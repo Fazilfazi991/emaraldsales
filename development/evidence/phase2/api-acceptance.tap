@@ -1,0 +1,72 @@
+TAP version 13
+# Subtest: Phase 2 independent acceptance: HTTP, isolation, write rollback and disk restart
+    # Subtest: 700 synthetic shops; authenticated server-side policies reject anonymous/CSRF/origin/spoofed performer
+    ok 1 - 700 synthetic shops; authenticated server-side policies reject anonymous/CSRF/origin/spoofed performer
+      ---
+      duration_ms: 68.7598
+      type: 'test'
+      ...
+    # Subtest: same actor concurrent different-shop requests have one winner; same-shop second actor succeeds
+    ok 2 - same actor concurrent different-shop requests have one winner; same-shop second actor succeeds
+      ---
+      duration_ms: 194.2228
+      type: 'test'
+      ...
+    # Subtest: unknown checkout acknowledgement is safely replayed; new key cannot overwrite completed history
+    ok 3 - unknown checkout acknowledgement is safely replayed; new key cannot overwrite completed history
+      ---
+      duration_ms: 151.4502
+      type: 'test'
+      ...
+    # Subtest: follow-up independent lifecycle supports ownership, stale-write protection and explicit assignment
+    ok 4 - follow-up independent lifecycle supports ownership, stale-write protection and explicit assignment
+      ---
+      duration_ms: 163.2964
+      type: 'test'
+      ...
+# {"requestId":"9e85c209-dc0c-48c7-97ff-a58a50106a5f","error":"QA synthetic transaction failure before commit"}
+    # Subtest: failed transaction rolls back visit, follow-up, audit and idempotency together then exact retry succeeds
+    ok 5 - failed transaction rolls back visit, follow-up, audit and idempotency together then exact retry succeeds
+      ---
+      duration_ms: 115.0931
+      type: 'test'
+      ...
+    # Subtest: duty repeated break/return stays separate from visits and private to executive
+    ok 6 - duty repeated break/return stays separate from visits and private to executive
+      ---
+      duration_ms: 193.7947
+      type: 'test'
+      ...
+    # Subtest: manager reports and both native downloads enforce roles and filters
+    ok 7 - manager reports and both native downloads enforce roles and filters
+      ---
+      duration_ms: 831.7917
+      type: 'test'
+      ...
+    # Subtest: disk restart preserves completed visit, reassigned follow-up and duty history
+    ok 8 - disk restart preserves completed visit, reassigned follow-up and duty history
+      ---
+      duration_ms: 1053.3406
+      type: 'test'
+      ...
+    # Subtest: logout revokes existing cookie, account disabling invalidates sessions immediately
+    ok 9 - logout revokes existing cookie, account disabling invalidates sessions immediately
+      ---
+      duration_ms: 45.3657
+      type: 'test'
+      ...
+    1..9
+ok 1 - Phase 2 independent acceptance: HTTP, isolation, write rollback and disk restart
+  ---
+  duration_ms: 18975.1663
+  type: 'test'
+  ...
+1..1
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24944.929

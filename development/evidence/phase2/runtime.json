@@ -1,0 +1,332 @@
+{
+  "executedAt": "2026-10-20T09:30:25.385Z",
+  "origin": "http://127.0.0.1:3100",
+  "checks": [
+    {
+      "slug": "ahmed",
+      "role": "executive",
+      "policies": {
+        "visit": "approved-v2",
+        "duty": "approved-v1"
+      },
+      "timezone": "Asia/Dubai",
+      "shops": 700,
+      "today": 0,
+      "reportStatus": 403,
+      "logoutRevoked": true
+    },
+    {
+      "slug": "manager",
+      "role": "manager",
+      "policies": {
+        "visit": "approved-v2",
+        "duty": "approved-v1"
+      },
+      "timezone": "Asia/Dubai",
+      "shops": 700,
+      "today": 2,
+      "reportStatus": 200,
+      "logoutRevoked": true
+    }
+  ],
+  "tabletLayouts": [
+    {
+      "role": "executive",
+      "width": 768,
+      "tables": [
+        {
+          "clientWidth": 538,
+          "scrollWidth": 538,
+          "cells": [
+            {
+              "label": "DATE",
+              "left": 238,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "SALES EXECUTIVE",
+              "left": 238,
+              "right": 472,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "SHOP / AREA",
+              "left": 488,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "CHECK IN",
+              "left": 238,
+              "right": 472,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "CHECK OUT",
+              "left": 488,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "DURATION",
+              "left": 238,
+              "right": 472,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "VISIT STATUS",
+              "left": 238,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "executive",
+      "width": 1024,
+      "tables": [
+        {
+          "clientWidth": 794,
+          "scrollWidth": 794,
+          "cells": [
+            {
+              "label": "DATE",
+              "left": 238,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "SALES EXECUTIVE",
+              "left": 238,
+              "right": 600,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "SHOP / AREA",
+              "left": 616,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "CHECK IN",
+              "left": 238,
+              "right": 600,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "CHECK OUT",
+              "left": 616,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "DURATION",
+              "left": 238,
+              "right": 600,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "VISIT STATUS",
+              "left": 238,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "width": 768,
+      "tables": [
+        {
+          "clientWidth": 538,
+          "scrollWidth": 538,
+          "cells": [
+            {
+              "label": "Sales executive",
+              "left": 238,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Duty now",
+              "left": 238,
+              "right": 472,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Recorded sessions",
+              "left": 488,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Completed visits",
+              "left": 238,
+              "right": 472,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Pending follow-ups",
+              "left": 238,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            }
+          ]
+        },
+        {
+          "clientWidth": 538,
+          "scrollWidth": 538,
+          "cells": [
+            {
+              "label": "Sales executive",
+              "left": 238,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Shop",
+              "left": 238,
+              "right": 472,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Check in",
+              "left": 488,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Check out",
+              "left": 238,
+              "right": 472,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Outcome",
+              "left": 238,
+              "right": 722,
+              "inside": true,
+              "display": "block"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "width": 1024,
+      "tables": [
+        {
+          "clientWidth": 794,
+          "scrollWidth": 794,
+          "cells": [
+            {
+              "label": "Sales executive",
+              "left": 238,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Duty now",
+              "left": 238,
+              "right": 600,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Recorded sessions",
+              "left": 616,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Completed visits",
+              "left": 238,
+              "right": 600,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Pending follow-ups",
+              "left": 238,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            }
+          ]
+        },
+        {
+          "clientWidth": 794,
+          "scrollWidth": 794,
+          "cells": [
+            {
+              "label": "Sales executive",
+              "left": 238,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Shop",
+              "left": 238,
+              "right": 600,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Check in",
+              "left": 616,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Check out",
+              "left": 238,
+              "right": 600,
+              "inside": true,
+              "display": "block"
+            },
+            {
+              "label": "Outcome",
+              "left": 238,
+              "right": 978,
+              "inside": true,
+              "display": "block"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
