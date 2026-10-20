@@ -1,0 +1,104 @@
+{
+  "status": "passed",
+  "sourceCommit": "0b9ad20e554f1a89d9e94918588da44728df9ce1",
+  "scope": "Fresh native downloads from prepared synthetic local database",
+  "checks": [
+    "Eight download bytes/hashes recorded",
+    "All four PDFs have Arabic text, UAE date context and embedded fonts",
+    "All-staff PDF also has Malayalam and accented Latin; all-staff XLSX exact-name checks passed in runtime harness"
+  ],
+  "files": [
+    {
+      "file": "all-staff-activity.xlsx",
+      "bytes": 7751,
+      "sha256": "be003fdd8cbe60d7071f2c2da1f0ad57e85abe9996394189ae0244678d0b14f9"
+    },
+    {
+      "file": "all-staff-activity.pdf",
+      "bytes": 50050,
+      "sha256": "1b597ca7019d0e0f02facbc8d6bd67724cbbd4ef20381e80cc71d82f552c50d6",
+      "pages": 1,
+      "arabicCharacters": 30,
+      "malayalamCharacters": 26,
+      "fonts": [
+        "/AAAAAA+NotoSans-Bold",
+        "/BAAAAA+NotoSans-Regular",
+        "/CAAAAA+NotoSansArabic-Regular",
+        "/DAAAAA+NotoSansMalayalam-Regular",
+        "/EAAAAA+ArialMT"
+      ],
+      "embeddedFontReferences": 5
+    },
+    {
+      "file": "selected-staff-activity.xlsx",
+      "bytes": 7498,
+      "sha256": "44081606b4a032109bc4a0fdf109968585beaa21a6b119231829e4bb38f13d81"
+    },
+    {
+      "file": "selected-staff-activity.pdf",
+      "bytes": 41566,
+      "sha256": "3b28f065249e43412226fa8419099ab62330f1a8dd88ba923650c681b1c07981",
+      "pages": 1,
+      "arabicCharacters": 32,
+      "malayalamCharacters": 0,
+      "fonts": [
+        "/AAAAAA+NotoSans-Bold",
+        "/BAAAAA+NotoSans-Regular",
+        "/CAAAAA+NotoSansArabic-Regular",
+        "/DAAAAA+ArialMT"
+      ],
+      "embeddedFontReferences": 4
+    },
+    {
+      "file": "selected-staff-duty.xlsx",
+      "bytes": 8346,
+      "sha256": "b6eb31002dc8a200868773ac986c6d3666450b2a9fda9b0c522d998e87a73094"
+    },
+    {
+      "file": "selected-staff-duty.pdf",
+      "bytes": 39653,
+      "sha256": "d302e4421405f5ce50d92c43914ab15a4309cad79ecc351a969f5ed1615c0f8c",
+      "pages": 1,
+      "arabicCharacters": 5,
+      "malayalamCharacters": 0,
+      "fonts": [
+        "/AAAAAA+NotoSans-Bold",
+        "/BAAAAA+NotoSans-Regular",
+        "/CAAAAA+NotoSansArabic-Regular",
+        "/DAAAAA+ArialMT"
+      ],
+      "embeddedFontReferences": 4
+    },
+    {
+      "file": "selected-staff-followups.xlsx",
+      "bytes": 7580,
+      "sha256": "043f241c1d02b108d0a01009a05cca27193b08aaea74e48cd8576a239ca1de16"
+    },
+    {
+      "file": "selected-staff-followups.pdf",
+      "bytes": 41088,
+      "sha256": "e01882b040218d8cd5452cd2e15737f3ef2bfbf48ac338ad2c85e33a98bde3cb",
+      "pages": 1,
+      "arabicCharacters": 42,
+      "malayalamCharacters": 0,
+      "fonts": [
+        "/AAAAAA+NotoSans-Bold",
+        "/BAAAAA+NotoSans-Regular",
+        "/CAAAAA+NotoSansArabic-Regular",
+        "/DAAAAA+ArialMT"
+      ],
+      "embeddedFontReferences": 4
+    }
+  ],
+  "visualInspection": {
+    "by": "Coordinator",
+    "renderedPages": [
+      "all-staff-activity.png",
+      "selected-staff-duty.png"
+    ],
+    "observed": "Arabic and Malayalam glyphs visible/shaped, wrapped cells readable, no observed missing-glyph boxes or overlaps",
+    "nativeLanguageClientApproval": "pending",
+    "physicalDevice": false
+  },
+  "displayObservation": "Duty/rest/active minutes are independently rounded; short synthetic intervals can show a small arithmetic residual. See Phase 4 acceptance report."
+}

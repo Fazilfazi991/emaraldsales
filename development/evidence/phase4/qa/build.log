@@ -1,0 +1,2 @@
+$ tsc --noEmit && node scripts/build.mjs
+Client built.

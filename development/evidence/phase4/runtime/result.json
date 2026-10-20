@@ -1,0 +1,212 @@
+{
+  "status": "passed",
+  "executedAt": "2026-10-20T10:36:09.787Z",
+  "sourceCommit": "0b9ad20e554f1a89d9e94918588da44728df9ce1",
+  "origin": "http://127.0.0.1:3100",
+  "scope": "Synthetic local browser emulation, not human or physical-device acceptance",
+  "checks": [
+    "Executive signs in and starts separate duty",
+    "Manager sees saved On duty after explicit refresh",
+    "Executive searches, checks in, selects outcome, checks out and sets exactly one independent follow-up",
+    "Manager filters by salesman and two UAE business dates",
+    "Manager reviews pending follow-up and downloads eight populated Excel/PDF files including multilingual all-staff activity",
+    "Completed follow-up and visit persist through refresh and fresh executive login",
+    "Manager sees saved On break after explicit refresh",
+    "Manager sees saved On duty after explicit refresh",
+    "Manager sees saved Off duty after explicit refresh",
+    "Executive break, return and end are saved with manager visibility of each state",
+    "Fresh manager login retains completed shared customer history"
+  ],
+  "layouts": [
+    {
+      "role": "manager",
+      "state": "on-duty",
+      "width": 390,
+      "viewport": 390,
+      "document": 390
+    },
+    {
+      "role": "manager",
+      "state": "on-duty",
+      "width": 430,
+      "viewport": 430,
+      "document": 430
+    },
+    {
+      "role": "manager",
+      "state": "on-duty",
+      "width": 768,
+      "viewport": 768,
+      "document": 768
+    },
+    {
+      "role": "manager",
+      "state": "on-duty",
+      "width": 1024,
+      "viewport": 1024,
+      "document": 1024
+    },
+    {
+      "role": "manager",
+      "state": "on-duty",
+      "width": 1440,
+      "viewport": 1440,
+      "document": 1440
+    },
+    {
+      "role": "executive",
+      "state": "checkout",
+      "width": 390,
+      "viewport": 390,
+      "document": 390
+    },
+    {
+      "role": "executive",
+      "state": "pending-followup",
+      "width": 390,
+      "viewport": 390,
+      "document": 390
+    },
+    {
+      "role": "executive",
+      "state": "pending-followup",
+      "width": 430,
+      "viewport": 430,
+      "document": 430
+    },
+    {
+      "role": "executive",
+      "state": "pending-followup",
+      "width": 768,
+      "viewport": 768,
+      "document": 768
+    },
+    {
+      "role": "executive",
+      "state": "pending-followup",
+      "width": 1024,
+      "viewport": 1024,
+      "document": 1024
+    },
+    {
+      "role": "executive",
+      "state": "pending-followup",
+      "width": 1440,
+      "viewport": 1440,
+      "document": 1440
+    },
+    {
+      "role": "manager",
+      "state": "date-person-filter",
+      "width": 1440,
+      "viewport": 1440,
+      "document": 1440
+    },
+    {
+      "role": "executive",
+      "state": "completed-followup",
+      "width": 390,
+      "viewport": 390,
+      "document": 390
+    },
+    {
+      "role": "manager",
+      "state": "completed-followups",
+      "width": 1440,
+      "viewport": 1440,
+      "document": 1440
+    },
+    {
+      "role": "manager",
+      "state": "customer-history",
+      "width": 1440,
+      "viewport": 1440,
+      "document": 1440
+    },
+    {
+      "role": "manager",
+      "state": "on-break",
+      "width": 390,
+      "viewport": 390,
+      "document": 390
+    },
+    {
+      "role": "manager",
+      "state": "off-duty",
+      "width": 1440,
+      "viewport": 1440,
+      "document": 1440
+    }
+  ],
+  "downloads": [
+    {
+      "kind": "activity",
+      "format": "xlsx",
+      "scope": "all-staff",
+      "path": "evidence/phase4/runtime/all-staff-activity.xlsx",
+      "bytes": 7751,
+      "rows": 5
+    },
+    {
+      "kind": "activity",
+      "format": "pdf",
+      "scope": "all-staff",
+      "path": "evidence/phase4/runtime/all-staff-activity.pdf",
+      "bytes": 50050
+    },
+    {
+      "kind": "activity",
+      "format": "xlsx",
+      "scope": "selected-staff",
+      "path": "evidence/phase4/runtime/selected-staff-activity.xlsx",
+      "bytes": 7498,
+      "rows": 3
+    },
+    {
+      "kind": "activity",
+      "format": "pdf",
+      "scope": "selected-staff",
+      "path": "evidence/phase4/runtime/selected-staff-activity.pdf",
+      "bytes": 41566
+    },
+    {
+      "kind": "duty",
+      "format": "xlsx",
+      "scope": "selected-staff",
+      "path": "evidence/phase4/runtime/selected-staff-duty.xlsx",
+      "bytes": 8346,
+      "rows": 3
+    },
+    {
+      "kind": "duty",
+      "format": "pdf",
+      "scope": "selected-staff",
+      "path": "evidence/phase4/runtime/selected-staff-duty.pdf",
+      "bytes": 39653
+    },
+    {
+      "kind": "followups",
+      "format": "xlsx",
+      "scope": "selected-staff",
+      "path": "evidence/phase4/runtime/selected-staff-followups.xlsx",
+      "bytes": 7580,
+      "rows": 4
+    },
+    {
+      "kind": "followups",
+      "format": "pdf",
+      "scope": "selected-staff",
+      "path": "evidence/phase4/runtime/selected-staff-followups.pdf",
+      "bytes": 41088
+    }
+  ],
+  "errors": [],
+  "records": {
+    "visitId": "f6b26f2f-a5ac-45bd-89c5-7f5668c97515",
+    "followupId": "52076182-f976-4d69-a16c-de8fb30b6b15",
+    "dutyId": "c4272ce4-fec5-4df8-a771-741c34ce2f16",
+    "visit": "completed",
+    "followup": "completed",
+    "duty": "ended"
+  }
+}

@@ -1,0 +1,274 @@
+{
+  "executedAt": "2026-10-20T10:34:45.338Z",
+  "sourceCommit": "0b9ad20e554f1a89d9e94918588da44728df9ce1",
+  "branch": "phase4/acceptance-readiness",
+  "node": "v22.22.0",
+  "pnpm": "11.25.0",
+  "sourceHashManifest": "source-snapshot.json",
+  "sourceChangesSinceSnapshot": [],
+  "commands": [
+    {
+      "command": "pnpm install --frozen-lockfile",
+      "exitCode": 0,
+      "evidence": "install.log"
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "evidence": "build.log"
+    },
+    {
+      "command": "pnpm exec tsx --test --test-reporter=tap tests/*.test.ts",
+      "exitCode": 0,
+      "evidence": "tests.tap",
+      "note": "Same test runner and test glob as pnpm test; explicit raw TAP reporter."
+    },
+    {
+      "command": "pnpm audit --prod --json",
+      "exitCode": 0,
+      "evidence": "audit.json"
+    },
+    {
+      "command": "PHASE3_EVIDENCE=evidence/phase4/qa/browser pnpm run test:browser:phase3",
+      "exitCode": 0,
+      "evidence": "browser.log"
+    },
+    {
+      "command": "scripts/integrity.mjs evaluated with output path redirected to evidence/phase4/qa/integrity.json",
+      "exitCode": 0,
+      "evidence": "integrity.log"
+    }
+  ],
+  "tests": {
+    "tests": 56,
+    "pass": 56,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "productionAudit": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "dependencies": 193,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 193
+  },
+  "referenceIntegrity": {
+    "checked": 10,
+    "matched": 10
+  },
+  "browser": {
+    "engine": "Microsoft Edge / Playwright",
+    "deviceScope": "Desktop Microsoft Edge with emulated CSS viewport widths; no physical Android/iPhone/iPad device testing.",
+    "widths": [
+      390,
+      430,
+      768,
+      1024,
+      1440
+    ],
+    "checkpoints": 26,
+    "layoutAssertions": 53,
+    "overflowFailures": 0,
+    "uniquePngs": 48,
+    "downloadAssertions": 35,
+    "actualDownloadedFiles": 35,
+    "xlsxFiles": 20,
+    "pdfFiles": 15,
+    "uncaughtErrors": [],
+    "usabilityScope": "Scripted label-based novice-path review; not independent first-time human usability research.",
+    "note": "The followups screenshot is captured twice at each width under the same filename; layout assertion count exceeds unique screenshots by five."
+  },
+  "textReview": {
+    "sourceFiles": 35,
+    "invalidUtf8": [],
+    "replacementCharacters": [],
+    "mojibakeMarkers": [],
+    "exactWorkbookCells": 9,
+    "pdfScope": "Retained Phase 3 synthetic samples, rendered read-only with Poppler into Phase 4 QA images. This is not a new actual-runtime download."
+  },
+  "downloadedArtifacts": [
+    {
+      "path": "browser/manager-1024.pdf",
+      "bytes": 41629,
+      "sha256": "908e81b33ca833df656bfa9dda0a8cca13c474ac0184a5a64aab930a3a80f3c4"
+    },
+    {
+      "path": "browser/manager-1024.xlsx",
+      "bytes": 7521,
+      "sha256": "ce66faa45a3eab7f2f8cbb750ac916d38b3a371fb218ccaa3e1dc8bf7fac7bef"
+    },
+    {
+      "path": "browser/manager-1440.pdf",
+      "bytes": 41841,
+      "sha256": "a4c6ca458962edb2454d1f206fc7edf7ce43805327afb501ff17d894c60c4dca"
+    },
+    {
+      "path": "browser/manager-1440.xlsx",
+      "bytes": 7556,
+      "sha256": "c693dbc9d4886d6b36e545b0a4b74dc54e03312cd0b0ee28e4a2a1643509b8a3"
+    },
+    {
+      "path": "browser/manager-390.pdf",
+      "bytes": 41065,
+      "sha256": "4e8c898de096012804ab78eab43aa7c6e00f68882b2be1d19a6b298ea5c7ed4b"
+    },
+    {
+      "path": "browser/manager-390.xlsx",
+      "bytes": 7409,
+      "sha256": "d6bb4d066715bc1b4d5be74f95269cf835eab92103b2be81773579d10d7194a9"
+    },
+    {
+      "path": "browser/manager-430.pdf",
+      "bytes": 41271,
+      "sha256": "bd53778e9e3519db1bbc77a1fa64b3b1da816ab54dd36317a1ca2cc9c6f951d3"
+    },
+    {
+      "path": "browser/manager-430.xlsx",
+      "bytes": 7458,
+      "sha256": "0faa2329d5687f74aeed24a918235a0cc9a94133f9e03cf7c8bd3d292c7ace43"
+    },
+    {
+      "path": "browser/manager-768.pdf",
+      "bytes": 41444,
+      "sha256": "5883329348e6298017af4fd86b65c14419ee576f65d0a376bb2fd940a6161c92"
+    },
+    {
+      "path": "browser/manager-768.xlsx",
+      "bytes": 7492,
+      "sha256": "21d859ef80a8b4aca6bfb509be1d3a7f2c5767323873a85ba88644bd0dd2b785"
+    },
+    {
+      "path": "browser/manager-direct-filter-1024.xlsx",
+      "bytes": 9328,
+      "sha256": "dab580e691cc712b520fa17d89015f5c302eedec61603e00cd33a44c611bddde"
+    },
+    {
+      "path": "browser/manager-direct-filter-1440.xlsx",
+      "bytes": 9360,
+      "sha256": "8fd2582de5e39ea3b9f7432943c8b1c7203f244077e231c323f53b8b11c4cac4"
+    },
+    {
+      "path": "browser/manager-direct-filter-390.xlsx",
+      "bytes": 9264,
+      "sha256": "badceb6f48757876e46fb3e0ed4b5c3aaed72df224d40a04ff3b2e211b414590"
+    },
+    {
+      "path": "browser/manager-direct-filter-430.xlsx",
+      "bytes": 9287,
+      "sha256": "6c56dde9dbd10a671e7164e5e341bb9c6899addaeaa39d3df833d6d5b66833a4"
+    },
+    {
+      "path": "browser/manager-direct-filter-768.xlsx",
+      "bytes": 9309,
+      "sha256": "7b829dbe4fcb8dbba9f49977d2e57e2aea1400743d0271f2cdf87ae77f5066b4"
+    },
+    {
+      "path": "browser/manager-duty-1024.pdf",
+      "bytes": 42480,
+      "sha256": "8c754ccc9bdaf893fe18a278ebeba12c38ba1581eb73b48af619e982aabc1aaf"
+    },
+    {
+      "path": "browser/manager-duty-1024.xlsx",
+      "bytes": 8533,
+      "sha256": "1456c4159b467658927ba4d74541c9668e8d57daaf7ef98451cc8c30e1231bf7"
+    },
+    {
+      "path": "browser/manager-duty-1440.pdf",
+      "bytes": 42996,
+      "sha256": "a780442cf1c359bf2d929d21360d1ebf95fb45e774f56123ca0d1cc9e5018932"
+    },
+    {
+      "path": "browser/manager-duty-1440.xlsx",
+      "bytes": 8627,
+      "sha256": "84d4cb8ef37808bc6fb1ef5cce9866377d8a15f8bec01ca73709f5dd2df6bd5a"
+    },
+    {
+      "path": "browser/manager-duty-390.pdf",
+      "bytes": 39003,
+      "sha256": "48b514b0ea3618b21b56699b55831913bc3a149e0a45b3bae4cfd15613b9753f"
+    },
+    {
+      "path": "browser/manager-duty-390.xlsx",
+      "bytes": 8250,
+      "sha256": "53a33dc719300475fd13f982db3c05eefe90251a43dcae8ed4e15a962b2f4653"
+    },
+    {
+      "path": "browser/manager-duty-430.pdf",
+      "bytes": 39478,
+      "sha256": "7ad2a7a65f35f1d00176ba990da94dcb39a0768116b151ecca790d7b45906901"
+    },
+    {
+      "path": "browser/manager-duty-430.xlsx",
+      "bytes": 8355,
+      "sha256": "2b4ad78fe19a19e17379b0b238cda2ca87596f8eab8321dc05fe7b9cdfc4cb3b"
+    },
+    {
+      "path": "browser/manager-duty-768.pdf",
+      "bytes": 39891,
+      "sha256": "e1ac2c8298f383011108c375961e97dd3eeb82d5ba2547ef6b33b838737e6160"
+    },
+    {
+      "path": "browser/manager-duty-768.xlsx",
+      "bytes": 8446,
+      "sha256": "8e6ef65cc4fb00eb395ff19bce9bccfbe9ba951a2f227c9d025ce063d054095c"
+    },
+    {
+      "path": "browser/manager-followups-1024.pdf",
+      "bytes": 41253,
+      "sha256": "10037f9420f9a581a7c6e9e3bf3298d62d9d7d34b4a212974a660b86e50375d6"
+    },
+    {
+      "path": "browser/manager-followups-1024.xlsx",
+      "bytes": 7602,
+      "sha256": "b1ac2e4bfc1f2fb4cf8d9a52598aa0c4f2bd2c966611b7a0d1aa33e07f5f8ad8"
+    },
+    {
+      "path": "browser/manager-followups-1440.pdf",
+      "bytes": 41317,
+      "sha256": "b57a5f73ead140d72a79f70bad2b48e7934aa16e5ca755ab92b31f3e8de7b047"
+    },
+    {
+      "path": "browser/manager-followups-1440.xlsx",
+      "bytes": 7635,
+      "sha256": "f7f9f747165c98b7167e07f8808af16526b12575aad390a72c43ab62ea7506f9"
+    },
+    {
+      "path": "browser/manager-followups-390.pdf",
+      "bytes": 40663,
+      "sha256": "b3039b2ca1b3033304e36052b7d83f194793aa069d782df1c47f41ca97a13651"
+    },
+    {
+      "path": "browser/manager-followups-390.xlsx",
+      "bytes": 7499,
+      "sha256": "d1deb24d4a48c28f3497558ec74406147f510b457883b635bd3a0598b105e7e0"
+    },
+    {
+      "path": "browser/manager-followups-430.pdf",
+      "bytes": 40856,
+      "sha256": "1430051828fb97c761f735dd1a94fed0835a2bec6f403612e8378431d2ecec85"
+    },
+    {
+      "path": "browser/manager-followups-430.xlsx",
+      "bytes": 7539,
+      "sha256": "82144085d3951f64581244ea47f004fac390d69714f58718122e5af4c9124828"
+    },
+    {
+      "path": "browser/manager-followups-768.pdf",
+      "bytes": 40967,
+      "sha256": "d5152c530100d3ba9fb3e200301841f5d40199a11c1651e2fe2de3c12310aa63"
+    },
+    {
+      "path": "browser/manager-followups-768.xlsx",
+      "bytes": 7574,
+      "sha256": "4811f2261c2d1124361efefdf8156aa9e781cd20584a3c5c774a527ec66c513f"
+    }
+  ]
+}

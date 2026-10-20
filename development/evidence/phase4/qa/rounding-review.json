@@ -1,0 +1,163 @@
+{
+  "executedAt": "2026-10-20T10:39:44.646Z",
+  "sourceCommit": "0b9ad20e554f1a89d9e94918588da44728df9ce1",
+  "hashes": {
+    "src/reports.ts": "38919857ab7448a7430a6a9f0a8157f744654a45947f3c5f3dccec4dd0753ede",
+    "src/pdf-report.ts": "f2d4b404bca83629313aaba769db34c26c73953e5d489ea990cab43228231236",
+    "evidence/phase4/runtime/selected-staff-duty.xlsx": "b6eb31002dc8a200868773ac986c6d3666450b2a9fda9b0c522d998e87a73094",
+    "evidence/phase4/runtime/selected-staff-duty.pdf": "d302e4421405f5ce50d92c43914ab15a4309cad79ecc351a969f5ed1615c0f8c",
+    "evidence/phase4/runtime/selected-staff-duty.png": "f68ef6273b8f0ad61854bdbfa4924bae7c6c5354d2d851cd9fd1dd0c1b7f02dd",
+    "evidence/phase4/runtime/all-staff-activity.pdf": "1b597ca7019d0e0f02facbc8d6bd67724cbbd4ef20381e80cc71d82f552c50d6",
+    "evidence/phase4/runtime/all-staff-activity.png": "a6af4c6aa4fa9b5dc9a90dae97617a6875d39f5b58c4c53a026dd36a609d2614"
+  },
+  "classification": {
+    "priority": "P3",
+    "kind": "Presentation rounding acceptance observation",
+    "integrityFailureReproduced": false
+  },
+  "sourceBehavior": "Reports.dutyDurations unions/clips raw millisecond intervals, subtracts raw rest from elapsed, then independently rounds elapsed/rest/active to 0.01 minutes. Reports.exportRows sums those rounded row metrics for each total.",
+  "illustrativeActualMethodReproduction": [
+    {
+      "illustrativeOnly": true,
+      "elapsedMs": 10520,
+      "restMs": 240,
+      "activeMs": 10280,
+      "actualMethod": {
+        "state": "Ended",
+        "elapsed_minutes": 0.18,
+        "rest_minutes": 0,
+        "active_minutes": 0.17,
+        "clipped_from": "2026-10-20T10:00:00.000Z",
+        "clipped_to": "2026-10-20T10:00:10.520Z"
+      }
+    },
+    {
+      "illustrativeOnly": true,
+      "elapsedMs": 11120,
+      "restMs": 240,
+      "activeMs": 10880,
+      "actualMethod": {
+        "state": "Ended",
+        "elapsed_minutes": 0.19,
+        "rest_minutes": 0,
+        "active_minutes": 0.18,
+        "clipped_from": "2026-10-20T10:00:00.000Z",
+        "clipped_to": "2026-10-20T10:00:11.120Z"
+      }
+    },
+    {
+      "illustrativeOnly": true,
+      "elapsedMs": 16800,
+      "restMs": 0,
+      "activeMs": 16800,
+      "actualMethod": {
+        "state": "Ended",
+        "elapsed_minutes": 0.28,
+        "rest_minutes": 0,
+        "active_minutes": 0.28,
+        "clipped_from": "2026-10-20T10:00:00.000Z",
+        "clipped_to": "2026-10-20T10:00:16.800Z"
+      }
+    }
+  ],
+  "illustrativeDisplayedTotals": {
+    "elapsedMinutes": 0.65,
+    "restMinutes": 0,
+    "activeMinutes": 0.63
+  },
+  "rawVersusDisplay": {
+    "restZeroDisplayThreshold": "Positive rest below 300 ms rounds to 0 minutes at 0.01-minute precision. Raw subtraction can still move rounded active time down 0.01 minute.",
+    "actualRawDatabaseIntervalsRead": false,
+    "note": "The example raw timings are constructed only. Actual exported break timestamps have minute precision and cannot establish actual subsecond rest durations."
+  },
+  "observedRuntimeXlsx": {
+    "path": "evidence/phase4/runtime/selected-staff-duty.xlsx",
+    "workbookCreatedAt": "2026-10-20T10:35:54.000Z",
+    "totals": "Duty sessions: 3. Recorded duty: 0.64 min. Rest: 0 min. Duty less rest: 0.62 min. Sessions overlap the selected UAE dates. Recorded minutes are clipped to those dates and the report time for ongoing sessions. Recorded duty and rest are elapsed records, not payroll, absence, lateness or approved working hours.",
+    "rows": [
+      {
+        "state": "On duty",
+        "displayedElapsedMinutes": 0.27,
+        "displayedRestMinutes": 0,
+        "displayedActiveMinutes": 0.27,
+        "breakHistorySummary": "0 breaks - see Break history sheet"
+      },
+      {
+        "state": "Ended",
+        "displayedElapsedMinutes": 0.18,
+        "displayedRestMinutes": 0,
+        "displayedActiveMinutes": 0.17,
+        "breakHistorySummary": "1 breaks - see Break history sheet"
+      },
+      {
+        "state": "Ended",
+        "displayedElapsedMinutes": 0.19,
+        "displayedRestMinutes": 0,
+        "displayedActiveMinutes": 0.18,
+        "breakHistorySummary": "1 breaks - see Break history sheet"
+      }
+    ],
+    "actualBreakRowCount": 2,
+    "actualBreakRows": [
+      {
+        "executive": "Ahmed Hassan / أحمد حسن",
+        "dutyStartedUae": "20/10/2026, 14:20",
+        "breakStartedUae": "20/10/2026, 14:20",
+        "returnedUae": "20/10/2026, 14:20"
+      },
+      {
+        "executive": "Ahmed Hassan / أحمد حسن",
+        "dutyStartedUae": "20/10/2026, 14:11",
+        "breakStartedUae": "20/10/2026, 14:11",
+        "returnedUae": "20/10/2026, 14:11"
+      }
+    ],
+    "finding": "Both ended-session break records remain represented in the actual Break history worksheet."
+  },
+  "observedRuntimePdf": {
+    "path": "evidence/phase4/runtime/selected-staff-duty.pdf",
+    "reviewImage": "evidence/phase4/runtime/selected-staff-duty.png",
+    "visuallyObservedTotals": {
+      "elapsedMinutes": 0.65,
+      "restMinutes": 0,
+      "activeMinutes": 0.63
+    },
+    "visuallyObservedRows": [
+      {
+        "state": "On duty",
+        "elapsedMinutes": 0.28,
+        "restMinutes": 0,
+        "activeMinutes": 0.28
+      },
+      {
+        "state": "Ended",
+        "elapsedMinutes": 0.18,
+        "restMinutes": 0,
+        "activeMinutes": 0.17
+      },
+      {
+        "state": "Ended",
+        "elapsedMinutes": 0.19,
+        "restMinutes": 0,
+        "activeMinutes": 0.18
+      }
+    ]
+  },
+  "independentExportSnapshots": {
+    "xlsxOngoingMinutes": 0.27,
+    "pdfOngoingMinutes": 0.28,
+    "finding": "XLSX has 0.27 ongoing minutes while PDF has 0.28. Each download calls Reports.filters with its own clock/asOf and read-only repeatable-read transaction. The elapsed ongoing session advances between sequential exports; identical minute-formatted context does not imply an identical instant. The 0.01 total difference is consistent with those independent snapshots."
+  },
+  "freshRuntimeMultilingualPdfReview": {
+    "path": "evidence/phase4/runtime/all-staff-activity.pdf",
+    "reviewImage": "evidence/phase4/runtime/all-staff-activity.png",
+    "pagesInspected": [
+      1
+    ],
+    "runtimeSource": "Fresh runtime all-staff activity download, separate from retained Phase 3 samples.",
+    "finding": "Arabic and Malayalam names/shop labels and accented Latin render visibly with shaped glyphs; no missing-glyph boxes, clipped text or overlap observed on the inspected single page.",
+    "limit": "Visual engineering review only; native-language client acceptance remains pending."
+  },
+  "recommendedDisposition": "Record as a P3 owner acceptance observation. Preserve raw duration arithmetic and records. A future small presentation clarification can state that each metric is independently rounded to 0.01 minute, totals sum rounded rows, and subsecond rests may display zero. Do not recompute net from already-rounded duty/rest or invent payroll/minimum-break rules.",
+  "changes": "Only QA documentation/evidence written; no app edits, database reads/writes or business-rule changes."
+}

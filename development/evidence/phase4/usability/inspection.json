@@ -1,0 +1,1764 @@
+{
+  "executedAt": "2026-10-20T10:34:01.665Z",
+  "origin": "http://127.0.0.1:3100",
+  "synthetic": true,
+  "mode": "Read-only role navigation; login/logout allowed. Follow-up completion dialog opened and dismissed without saving.",
+  "realPhone": false,
+  "humanAcceptance": false,
+  "results": [
+    {
+      "role": "executive",
+      "width": 390,
+      "home": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 69
+          },
+          {
+            "label": "⌂Shops",
+            "height": 69
+          },
+          {
+            "label": "◷Visits",
+            "height": 69
+          },
+          {
+            "label": "＋New shops",
+            "height": 69
+          },
+          {
+            "label": "♙Team",
+            "height": 69
+          }
+        ],
+        "brandVisible": false,
+        "heading": "Your working day"
+      },
+      "shop": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 69
+          },
+          {
+            "label": "⌂Shops",
+            "height": 69
+          },
+          {
+            "label": "◷Visits",
+            "height": 69
+          },
+          {
+            "label": "＋New shops",
+            "height": 69
+          },
+          {
+            "label": "♙Team",
+            "height": 69
+          }
+        ],
+        "brandVisible": false,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Your working day"
+        }
+      ]
+    },
+    {
+      "role": "executive",
+      "width": 430,
+      "home": {
+        "viewport": 430,
+        "pageWidth": 430,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 69
+          },
+          {
+            "label": "⌂Shops",
+            "height": 69
+          },
+          {
+            "label": "◷Visits",
+            "height": 69
+          },
+          {
+            "label": "＋New shops",
+            "height": 69
+          },
+          {
+            "label": "♙Team",
+            "height": 69
+          }
+        ],
+        "brandVisible": false,
+        "heading": "Your working day"
+      },
+      "shop": {
+        "viewport": 430,
+        "pageWidth": 430,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 69
+          },
+          {
+            "label": "⌂Shops",
+            "height": 69
+          },
+          {
+            "label": "◷Visits",
+            "height": 69
+          },
+          {
+            "label": "＋New shops",
+            "height": 69
+          },
+          {
+            "label": "♙Team",
+            "height": 69
+          }
+        ],
+        "brandVisible": false,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Your working day"
+        }
+      ]
+    },
+    {
+      "role": "executive",
+      "width": 768,
+      "home": {
+        "viewport": 768,
+        "pageWidth": 768,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Your working day"
+      },
+      "shop": {
+        "viewport": 768,
+        "pageWidth": 768,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Your working day"
+        }
+      ]
+    },
+    {
+      "role": "executive",
+      "width": 1024,
+      "home": {
+        "viewport": 1024,
+        "pageWidth": 1024,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Your working day"
+      },
+      "shop": {
+        "viewport": 1024,
+        "pageWidth": 1024,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Your working day"
+        }
+      ]
+    },
+    {
+      "role": "executive",
+      "width": 1440,
+      "home": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Your working day"
+      },
+      "shop": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "nav": [
+          {
+            "label": "▦Today",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel",
+        "Complete",
+        "Reschedule",
+        "Cancel"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Your working day"
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "width": 390,
+      "home": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 69
+          },
+          {
+            "label": "⌂Shops",
+            "height": 69
+          },
+          {
+            "label": "◷Visits",
+            "height": 69
+          },
+          {
+            "label": "＋New shops",
+            "height": 69
+          },
+          {
+            "label": "♙Team",
+            "height": 69
+          }
+        ],
+        "brandVisible": false,
+        "heading": "Daily activity"
+      },
+      "shop": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 69
+          },
+          {
+            "label": "⌂Shops",
+            "height": 69
+          },
+          {
+            "label": "◷Visits",
+            "height": 69
+          },
+          {
+            "label": "＋New shops",
+            "height": 69
+          },
+          {
+            "label": "♙Team",
+            "height": 69
+          }
+        ],
+        "brandVisible": false,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Assign executive",
+        "Assign executive",
+        "Assign executive"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Daily activity"
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "width": 430,
+      "home": {
+        "viewport": 430,
+        "pageWidth": 430,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 69
+          },
+          {
+            "label": "⌂Shops",
+            "height": 69
+          },
+          {
+            "label": "◷Visits",
+            "height": 69
+          },
+          {
+            "label": "＋New shops",
+            "height": 69
+          },
+          {
+            "label": "♙Team",
+            "height": 69
+          }
+        ],
+        "brandVisible": false,
+        "heading": "Daily activity"
+      },
+      "shop": {
+        "viewport": 430,
+        "pageWidth": 430,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 69
+          },
+          {
+            "label": "⌂Shops",
+            "height": 69
+          },
+          {
+            "label": "◷Visits",
+            "height": 69
+          },
+          {
+            "label": "＋New shops",
+            "height": 69
+          },
+          {
+            "label": "♙Team",
+            "height": 69
+          }
+        ],
+        "brandVisible": false,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Assign executive",
+        "Assign executive",
+        "Assign executive"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Daily activity"
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "width": 768,
+      "home": {
+        "viewport": 768,
+        "pageWidth": 768,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Daily activity"
+      },
+      "shop": {
+        "viewport": 768,
+        "pageWidth": 768,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Assign executive",
+        "Assign executive",
+        "Assign executive"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Daily activity"
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "width": 1024,
+      "home": {
+        "viewport": 1024,
+        "pageWidth": 1024,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Daily activity"
+      },
+      "shop": {
+        "viewport": 1024,
+        "pageWidth": 1024,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Assign executive",
+        "Assign executive",
+        "Assign executive"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Daily activity"
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "width": 1440,
+      "home": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Daily activity"
+      },
+      "shop": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "nav": [
+          {
+            "label": "▦Overview",
+            "height": 44
+          },
+          {
+            "label": "⌂Shops",
+            "height": 44
+          },
+          {
+            "label": "◷Visits",
+            "height": 44
+          },
+          {
+            "label": "＋New shops",
+            "height": 44
+          },
+          {
+            "label": "♙Team",
+            "height": 44
+          }
+        ],
+        "brandVisible": true,
+        "heading": "Shop profile"
+      },
+      "dutyVisible": 1,
+      "followupActions": [
+        "Assign executive",
+        "Assign executive",
+        "Assign executive"
+      ],
+      "destinations": [
+        {
+          "view": "visits",
+          "heading": "Visit history"
+        },
+        {
+          "view": "leads",
+          "heading": "New shops"
+        },
+        {
+          "view": "team",
+          "heading": "Sales executives"
+        },
+        {
+          "view": "dashboard",
+          "heading": "Daily activity"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "blockedWrites": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/followups"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/followups"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/followups"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/followups"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "POST",
+      "path": "/api/login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/followups"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops/68d1d54d-552b-4cc8-a5ef-497e0cff47de"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visits"
+    },
+    {
+      "method": "GET",
+      "path": "/api/shops"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/duty"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/activity"
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout"
+    }
+  ]
+}

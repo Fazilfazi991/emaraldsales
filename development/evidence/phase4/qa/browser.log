@@ -1,0 +1,29 @@
+$ node scripts/build.mjs && tsx scripts/phase3-browser.ts
+Client built.
+PASS 390px active filter stays visible and clear filters restores 700 shops
+PASS 390px separate executive same-shop visit does not hide own active visit
+PASS 390px lost save acknowledgement retains visible safe retry and creates exactly one follow-up
+PASS 390px saved visit and follow-up lifecycle survive refresh and fresh account login
+PASS 390px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 390px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS 430px active filter stays visible and clear filters restores 700 shops
+{"requestId":"d8ce5438-7058-4253-ad48-60cf05c029c0","error":"QA browser synthetic database failure"}
+PASS 430px failed database save keeps visit open, preserves form, then retry succeeds
+PASS 430px saved visit and follow-up lifecycle survive refresh and fresh account login
+PASS 430px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 430px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS 768px active filter stays visible and clear filters restores 700 shops
+PASS 768px saved visit and follow-up lifecycle survive refresh and fresh account login
+PASS 768px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 768px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS 1024px active filter stays visible and clear filters restores 700 shops
+PASS 1024px saved visit and follow-up lifecycle survive refresh and fresh account login
+PASS 1024px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 1024px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS 1440px active filter stays visible and clear filters restores 700 shops
+PASS 1440px executive adds shop with sensible self-assignment
+PASS 1440px saved visit and follow-up lifecycle survive refresh and fresh account login
+PASS 1440px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 1440px manager assigns independent follow-up and explicitly confirms audited shop transfer without rewriting existing history
+PASS 1440px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS no uncaught browser errors or executable untrusted notes

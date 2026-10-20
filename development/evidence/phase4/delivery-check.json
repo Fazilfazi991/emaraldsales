@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "executedAt": "2026-10-20T10:43:42.675Z",
+  "baseline": "0b9ad20e554f1a89d9e94918588da44728df9ce1",
+  "branch": "phase4/acceptance-readiness",
+  "applicationDiffFiles": [],
+  "implementationAncestorVerified": true,
+  "checkedDocuments": [
+    "docs/PHASE4-ACCEPTANCE-REPORT.md",
+    "docs/PHASE4-DEMONSTRATION.md",
+    "docs/PHASE4-PHONE-UAT.md",
+    "docs/PHASE4-PLAN.md",
+    "docs/PHASE4-POLICY-DECISIONS.md",
+    "docs/PHASE4-QA.md",
+    "docs/PHASE4-STAGING-PLAN.md"
+  ],
+  "relativeLinksChecked": 61,
+  "missingLinks": [],
+  "evidenceHashes": {
+    "qa/summary.json": {
+      "sha256": "ffa067edb17a067dc02be70071b38b602e7a63cf436c26e9dc96593d5255ceac"
+    },
+    "runtime/result.json": {
+      "sha256": "62ea59667c2093e71f57b3e72c53d776e392b8a1ba92bad3bb3cec17c81ba551"
+    },
+    "runtime/report-review.json": {
+      "sha256": "4ee927024d07e6d3af86e3988b9494f8727ad1c2038d46326039fb7f6c797337"
+    },
+    "restore/result.json": {
+      "sha256": "2e9123bda1fd1f3c2d4d07108a4735f13c6bf55687838dcfca6acfc336a45554"
+    },
+    "usability/inspection.json": {
+      "sha256": "4f88ff2aa849e5969b5840aa700e72a5659e0d6eef9aa56a7352512b314b8ce9"
+    }
+  },
+  "scope": "Documentation links and unchanged application baseline; human/staging acceptance remains pending"
+}

@@ -1,0 +1,73 @@
+{
+  "executedAt": "2026-10-20T10:32:55.681Z",
+  "sourceCommit": "0b9ad20e554f1a89d9e94918588da44728df9ce1",
+  "sourceFileHashes": {
+    "src/report-downloads.ts": "39fb00ae5ca24f11bc4f9bda1929ebc9566811e20d9a3afb498e2574268eecb2",
+    "src/pdf-report.ts": "f2d4b404bca83629313aaba769db34c26c73953e5d489ea990cab43228231236",
+    "scripts/phase3-report-samples.ts": "01c54e8b99684b8bbb6ca698c2300a4acfaee9913ae4a3ccf6bb50a421cd6b79"
+  },
+  "scannedFiles": 35,
+  "invalidUtf8": [],
+  "replacementCharacters": [],
+  "mojibakeMarkers": [],
+  "retainedPhase3Samples": [
+    {
+      "path": "evidence/phase3/reports/unicode-activity.pdf",
+      "sha256": "94c8b5e1d4082a83fbe72787468b3721e339538feeba96130b7efdf031a03bc5"
+    },
+    {
+      "path": "evidence/phase3/reports/unicode-multipage.pdf",
+      "sha256": "6ce30dd71d31c638d1b2b5e7c1fe0713c5430f1c8ed6379900badfbf7348db64"
+    },
+    {
+      "path": "evidence/phase3/reports/unicode-activity.xlsx",
+      "sha256": "f428c99d128a93bd4cdab9c21a45b8f63af2453e1d8181e23c48ba87e6588fa2"
+    }
+  ],
+  "unicodeWorkbookCells": [
+    {
+      "cell": "A6",
+      "matches": true
+    },
+    {
+      "cell": "B6",
+      "matches": true
+    },
+    {
+      "cell": "C6",
+      "matches": true
+    },
+    {
+      "cell": "A7",
+      "matches": true
+    },
+    {
+      "cell": "B7",
+      "matches": true
+    },
+    {
+      "cell": "C7",
+      "matches": true
+    },
+    {
+      "cell": "A8",
+      "matches": true
+    },
+    {
+      "cell": "B8",
+      "matches": true
+    },
+    {
+      "cell": "C8",
+      "matches": true
+    }
+  ],
+  "visualReview": {
+    "scope": "Retained Phase 3 synthetic samples, rendered read-only with Poppler into Phase 4 QA images. This is not a new actual-runtime download.",
+    "pagesInspected": [
+      "unicode-activity page 1",
+      "unicode-multipage page 1"
+    ],
+    "finding": "Arabic and Malayalam glyphs present with shaping; mixed Latin/numeric context visible. No replacement boxes, clipped cells, or overlap observed in inspected pages. Native-language client acceptance remains pending."
+  }
+}

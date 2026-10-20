@@ -47,6 +47,10 @@ Phase 2 reproduction evidence is under `evidence/phase3/before`; original eviden
 
 ## Owner review
 
+- [Phase 4 acceptance report and next owner checkpoint](docs/PHASE4-ACCEPTANCE-REPORT.md)
+- [Phase 4 demonstration checklist](docs/PHASE4-DEMONSTRATION.md), [real-phone human UAT](docs/PHASE4-PHONE-UAT.md)
+- [Outstanding correction-policy decisions](docs/PHASE4-POLICY-DECISIONS.md)
+- [Separate staging/security/backup plan](docs/PHASE4-STAGING-PLAN.md)
 - [Phase 3 handoff, results and release blockers](docs/PHASE3-HANDOFF.md)
 - [Executive and manager demonstration walkthroughs](docs/PHASE3-DEMONSTRATION.md)
 - [Client acceptance checklist](docs/PHASE3-ACCEPTANCE.md)

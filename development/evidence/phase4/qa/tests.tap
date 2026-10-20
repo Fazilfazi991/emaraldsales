@@ -1,0 +1,354 @@
+TAP version 13
+# Subtest: Phase 2 backend: management changes, independent follow-ups and rollback
+    # Subtest: migration retains performer uniqueness and historical approval cannot activate visits
+    ok 1 - migration retains performer uniqueness and historical approval cannot activate visits
+      ---
+      duration_ms: 466.213
+      type: 'test'
+      ...
+    # Subtest: shop edits require management, CSRF, reason, strict fields and current version
+    ok 2 - shop edits require management, CSRF, reason, strict fields and current version
+      ---
+      duration_ms: 689.5316
+      type: 'test'
+      ...
+    # Subtest: separate same-shop visits retain performer attribution and independently created follow-ups
+    ok 3 - separate same-shop visits retain performer attribution and independently created follow-ups
+      ---
+      duration_ms: 631.6754
+      type: 'test'
+      ...
+    # Subtest: explicit transfer is audited, versioned and idempotent without changing visits or follow-ups
+    ok 4 - explicit transfer is audited, versioned and idempotent without changing visits or follow-ups
+      ---
+      duration_ms: 456.2137
+      type: 'test'
+      ...
+    # Subtest: assignment targets must be active same-organization executives
+    ok 5 - assignment targets must be active same-organization executives
+      ---
+      duration_ms: 1338.7835
+      type: 'test'
+      ...
+    # Subtest: concurrent management assignment has one winner; old owner cannot change reassigned follow-up
+    ok 6 - concurrent management assignment has one winner; old owner cannot change reassigned follow-up
+      ---
+      duration_ms: 825.1261
+      type: 'test'
+      ...
+# {"requestId":"4387060d-4e7b-4aab-a38c-74374a547dcb","error":"Synthetic database write failure"}
+# {"requestId":"5a2c5dea-59ae-4785-8a39-ea6457b1231e","error":"Synthetic database write failure"}
+# {"requestId":"cf085b62-3eee-4176-bc2e-f5cf29dee3d2","error":"Synthetic database write failure"}
+    # Subtest: database failures roll back checkout, transfer and assignment, then same-key retry succeeds
+    ok 7 - database failures roll back checkout, transfer and assignment, then same-key retry succeeds
+      ---
+      duration_ms: 793.8515
+      type: 'test'
+      ...
+    # Subtest: executive dashboard scopes before row limits and manager dashboard retains team view
+    ok 8 - executive dashboard scopes before row limits and manager dashboard retains team view
+      ---
+      duration_ms: 2178.7699
+      type: 'test'
+      ...
+    # Subtest: audit is attributable, paginated, organization scoped and append-only
+    ok 9 - audit is attributable, paginated, organization scoped and append-only
+      ---
+      duration_ms: 112.3956
+      type: 'test'
+      ...
+    # Subtest: changed membership is checked inside the mutation transaction
+    ok 10 - changed membership is checked inside the mutation transaction
+      ---
+      duration_ms: 135.4703
+      type: 'test'
+      ...
+    1..10
+ok 1 - Phase 2 backend: management changes, independent follow-ups and rollback
+  ---
+  duration_ms: 39306.966
+  type: 'test'
+  ...
+# Subtest: Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL
+    # Subtest: UAE midnight, leap dates, exclusive report end and duty transitions
+    ok 1 - UAE midnight, leap dates, exclusive report end and duty transitions
+      ---
+      duration_ms: 12.0304
+      type: 'test'
+      ...
+    # Subtest: every operational endpoint requires a session; invalid login and CSRF/origin denied
+    ok 2 - every operational endpoint requires a session; invalid login and CSRF/origin denied
+      ---
+      duration_ms: 398.2463
+      type: 'test'
+      ...
+    # Subtest: 700 synthetic shops, paginated server search, shared history and no assignment-only read filter
+    ok 3 - 700 synthetic shops, paginated server search, shared history and no assignment-only read filter
+      ---
+      duration_ms: 362.5605
+      type: 'test'
+      ...
+    # Subtest: validation rejects spoofed actor/timestamps, invalid GPS and whitespace discussion
+    ok 4 - validation rejects spoofed actor/timestamps, invalid GPS and whitespace discussion
+      ---
+      duration_ms: 50.0875
+      type: 'test'
+      ...
+    # Subtest: concurrent duplicate check-in commits one visit, one audit event and one response
+    ok 5 - concurrent duplicate check-in commits one visit, one audit event and one response
+      ---
+      duration_ms: 96.7943
+      type: 'test'
+      ...
+    # Subtest: one open visit per executive; cross-owner checkout denied
+    ok 6 - one open visit per executive; cross-owner checkout denied
+      ---
+      duration_ms: 123.4074
+      type: 'test'
+      ...
+    # Subtest: checkout retry is atomic, follow-up owned by visitor, and previous follow-up survives
+    ok 7 - checkout retry is atomic, follow-up owned by visitor, and previous follow-up survives
+      ---
+      duration_ms: 222.6017
+      type: 'test'
+      ...
+    # Subtest: different checkout requests race: one completes and one conflicts without overwrite
+    ok 8 - different checkout requests race: one completes and one conflicts without overwrite
+      ---
+      duration_ms: 139.3748
+      type: 'test'
+      ...
+    # Subtest: simultaneous check-ins by different executives at the same shop both succeed
+    ok 9 - simultaneous check-ins by different executives at the same shop both succeed
+      ---
+      duration_ms: 234.3472
+      type: 'test'
+      ...
+    # Subtest: explicit follow-up reschedule, optimistic concurrency, completion and preservation
+    ok 10 - explicit follow-up reschedule, optimistic concurrency, completion and preservation
+      ---
+      duration_ms: 212.3287
+      type: 'test'
+      ...
+    # Subtest: new discovery retry preserves creator/assignee/visitor and atomic save-and-check-in rollback
+    ok 11 - new discovery retry preserves creator/assignee/visitor and atomic save-and-check-in rollback
+      ---
+      duration_ms: 329.5677
+      type: 'test'
+      ...
+    # Subtest: duty start/rest/return/end, duplicate taps, invalid transition, privacy and visit independence
+    ok 12 - duty start/rest/return/end, duplicate taps, invalid transition, privacy and visit independence
+      ---
+      duration_ms: 433.5281
+      type: 'test'
+      ...
+    # Subtest: overnight duty/rest retains exact instants across UAE midnight and supports a second rest interval
+    ok 13 - overnight duty/rest retains exact instants across UAE midnight and supports a second rest interval
+      ---
+      duration_ms: 325.9141
+      type: 'test'
+      ...
+    # Subtest: database reporting uses UAE date boundaries including exclusive next midnight
+    ok 14 - database reporting uses UAE date boundaries including exclusive next midnight
+      ---
+      duration_ms: 120.9908
+      type: 'test'
+      ...
+    # Subtest: audit events cannot be edited, foreign keys reject orphan records, unapproved operations unavailable
+    ok 15 - audit events cannot be edited, foreign keys reject orphan records, unapproved operations unavailable
+      ---
+      duration_ms: 115.6201
+      type: 'test'
+      ...
+    # Subtest: closing and reopening disk database preserves visits, follow-ups, sessions and duty for a second session
+    ok 16 - closing and reopening disk database preserves visits, follow-ups, sessions and duty for a second session
+      ---
+      duration_ms: 8407.7894
+      type: 'test'
+      ...
+    # Subtest: offline backup opens at a separate restore path and retains the completed visit
+    ok 17 - offline backup opens at a separate restore path and retains the completed visit
+      ---
+      duration_ms: 2833.3075
+      type: 'test'
+      ...
+    # Subtest: organization boundaries deny foreign shop history, check-in and duty reads
+    ok 18 - organization boundaries deny foreign shop history, check-in and duty reads
+      ---
+      duration_ms: 517.8584
+      type: 'test'
+      ...
+    # Subtest: admin creates a real account with retry safety and without plaintext password records
+    ok 19 - admin creates a real account with retry safety and without plaintext password records
+      ---
+      duration_ms: 778.4322
+      type: 'test'
+      ...
+    # Subtest: session revocation and expiry prevent subsequent reads
+    ok 20 - session revocation and expiry prevent subsequent reads
+      ---
+      duration_ms: 214.7773
+      type: 'test'
+      ...
+    1..20
+ok 2 - Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL
+  ---
+  duration_ms: 69938.4368
+  type: 'test'
+  ...
+# Subtest: Phase 2 independent acceptance: HTTP, isolation, write rollback and disk restart
+    # Subtest: 700 synthetic shops; authenticated server-side policies reject anonymous/CSRF/origin/spoofed performer
+    ok 1 - 700 synthetic shops; authenticated server-side policies reject anonymous/CSRF/origin/spoofed performer
+      ---
+      duration_ms: 121.1215
+      type: 'test'
+      ...
+    # Subtest: same actor concurrent different-shop requests have one winner; same-shop second actor succeeds
+    ok 2 - same actor concurrent different-shop requests have one winner; same-shop second actor succeeds
+      ---
+      duration_ms: 324.0008
+      type: 'test'
+      ...
+    # Subtest: unknown checkout acknowledgement is safely replayed; new key cannot overwrite completed history
+    ok 3 - unknown checkout acknowledgement is safely replayed; new key cannot overwrite completed history
+      ---
+      duration_ms: 273.3999
+      type: 'test'
+      ...
+    # Subtest: follow-up independent lifecycle supports ownership, stale-write protection and explicit assignment
+    ok 4 - follow-up independent lifecycle supports ownership, stale-write protection and explicit assignment
+      ---
+      duration_ms: 254.3802
+      type: 'test'
+      ...
+# {"requestId":"5c7807d2-9775-4d53-b0fb-df1cace4adcd","error":"QA synthetic transaction failure before commit"}
+    # Subtest: failed transaction rolls back visit, follow-up, audit and idempotency together then exact retry succeeds
+    ok 5 - failed transaction rolls back visit, follow-up, audit and idempotency together then exact retry succeeds
+      ---
+      duration_ms: 127.6219
+      type: 'test'
+      ...
+    # Subtest: duty repeated break/return stays separate from visits and private to executive
+    ok 6 - duty repeated break/return stays separate from visits and private to executive
+      ---
+      duration_ms: 280.2165
+      type: 'test'
+      ...
+    # Subtest: manager reports and both native downloads enforce roles and filters
+    ok 7 - manager reports and both native downloads enforce roles and filters
+      ---
+      duration_ms: 9931.3093
+      type: 'test'
+      ...
+    # Subtest: disk restart preserves completed visit, reassigned follow-up and duty history
+    ok 8 - disk restart preserves completed visit, reassigned follow-up and duty history
+      ---
+      duration_ms: 2109.9659
+      type: 'test'
+      ...
+    # Subtest: logout revokes existing cookie, account disabling invalidates sessions immediately
+    ok 9 - logout revokes existing cookie, account disabling invalidates sessions immediately
+      ---
+      duration_ms: 46.764
+      type: 'test'
+      ...
+    1..9
+ok 3 - Phase 2 independent acceptance: HTTP, isolation, write rollback and disk restart
+  ---
+  duration_ms: 66212.6428
+  type: 'test'
+  ...
+# Subtest: Bundled fonts match pinned upstream hashes and retain the redistribution license
+ok 4 - Bundled fonts match pinned upstream hashes and retain the redistribution license
+  ---
+  duration_ms: 121.2142
+  type: 'test'
+  ...
+# Subtest: Untrusted report text cannot execute script or fetch network resources during PDF rendering
+ok 5 - Untrusted report text cannot execute script or fetch network resources during PDF rendering
+  ---
+  duration_ms: 4555.8142
+  type: 'test'
+  ...
+# Subtest: Concurrent PDF preparation is bounded and the busy slot recovers after completion
+ok 6 - Concurrent PDF preparation is bounded and the busy slot recovers after completion
+  ---
+  duration_ms: 31009.1255
+  type: 'test'
+  ...
+# Subtest: Excel download retains all rows, safe text values and readable header
+ok 7 - Excel download retains all rows, safe text values and readable header
+  ---
+  duration_ms: 790.2194
+  type: 'test'
+  ...
+# Subtest: PDF download emits a real paginated PDF with embedded Unicode fonts
+ok 8 - PDF download emits a real paginated PDF with embedded Unicode fonts
+  ---
+  duration_ms: 23583.8058
+  type: 'test'
+  ...
+# Subtest: Excel keeps Unicode, selected staff context, totals and every repeated break
+ok 9 - Excel keeps Unicode, selected staff context, totals and every repeated break
+  ---
+  duration_ms: 485.3701
+  type: 'test'
+  ...
+# Subtest: Manager reports: saved activity, UAE dates, ongoing duty and complete exports
+    # Subtest: executive denied, inactive manager denied and foreign executive filter hidden
+    ok 1 - executive denied, inactive manager denied and foreign executive filter hidden
+      ---
+      duration_ms: 1419.6809
+      type: 'test'
+      ...
+    # Subtest: UAE exclusive end, checkout totals include overnight starts, pages preserve totals
+    ok 2 - UAE exclusive end, checkout totals include overnight starts, pages preserve totals
+      ---
+      duration_ms: 738.0046
+      type: 'test'
+      ...
+    # Subtest: invalid dates, ranges and page sizes fail explicitly
+    ok 3 - invalid dates, ranges and page sizes fail explicitly
+      ---
+      duration_ms: 56.169
+      type: 'test'
+      ...
+    # Subtest: overnight and repeated breaks clip correctly; ongoing totals stop at asOf
+    ok 4 - overnight and repeated breaks clip correctly; ongoing totals stop at asOf
+      ---
+      duration_ms: 398.9543
+      type: 'test'
+      ...
+    # Subtest: follow-up monitoring preserves lifecycle and includes overdue explicitly
+    ok 5 - follow-up monitoring preserves lifecycle and includes overdue explicitly
+      ---
+      duration_ms: 564.7443
+      type: 'test'
+      ...
+    # Subtest: exports include every matching row rather than page, UAE labels and duty history
+    ok 6 - exports include every matching row rather than page, UAE labels and duty history
+      ---
+      duration_ms: 486.0964
+      type: 'test'
+      ...
+    # Subtest: export cap rejects instead of silently truncating and foreign organization has no rows
+    ok 7 - export cap rejects instead of silently truncating and foreign organization has no rows
+      ---
+      duration_ms: 11163.2509
+      type: 'test'
+      ...
+    1..7
+ok 10 - Manager reports: saved activity, UAE dates, ongoing duty and complete exports
+  ---
+  duration_ms: 32816.7777
+  type: 'test'
+  ...
+1..10
+# tests 56
+# suites 0
+# pass 56
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 84648.8617

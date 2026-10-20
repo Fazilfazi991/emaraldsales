@@ -1,0 +1,179 @@
+{
+  "sourceCommit": "0b9ad20e554f1a89d9e94918588da44728df9ce1",
+  "files": [
+    {
+      "path": "assets/fonts/manifest.json",
+      "sha256": "19a61629fa06b44616ee2a343784d49082e8efceb6492c2c0623e3583d87cadd"
+    },
+    {
+      "path": "assets/fonts/NotoSans-Bold.ttf",
+      "sha256": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a"
+    },
+    {
+      "path": "assets/fonts/NotoSans-Regular.ttf",
+      "sha256": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5"
+    },
+    {
+      "path": "assets/fonts/NotoSansArabic-Regular.ttf",
+      "sha256": "ceea25b464a656dc3b26849bab9356740401af62aedf1bfa8b7f0d9b75925b1b"
+    },
+    {
+      "path": "assets/fonts/NotoSansMalayalam-Regular.ttf",
+      "sha256": "42eb462ff13e820ebbeaaec4e7b426bd1de145d02cef8b634f5a3efd376b513c"
+    },
+    {
+      "path": "assets/fonts/OFL.txt",
+      "sha256": "0dab92d0544f7b233403f14b84a663bdbfa746982eda629e7f4f9ffe1b036feb"
+    },
+    {
+      "path": "assets/fonts/README.md",
+      "sha256": "d8bf40ba9f392f3310c017f95e65cac5c0253503a717ceda0dcd7cae1fac7e6b"
+    },
+    {
+      "path": "scripts/account.ts",
+      "sha256": "3bd0e35237786669f5142469f0480d72765ca98d2c3a659da582164a51f6d832"
+    },
+    {
+      "path": "scripts/baseline.mjs",
+      "sha256": "4a1ed573fc6dbc36581897c40c24ffa2c6eda0ed55bf25a8c5751692f7e31f7f"
+    },
+    {
+      "path": "scripts/browser.ts",
+      "sha256": "057b2e56498fb595cf6f4d2b69e854076f1b5f15d716a765f8b5faee01aab6c2"
+    },
+    {
+      "path": "scripts/build.mjs",
+      "sha256": "8b9cb1604ef34d5ebb647162102cc6a79adadc2a6888a64e05c1cbb6696f68e8"
+    },
+    {
+      "path": "scripts/checkpoint1.mjs",
+      "sha256": "f14b43872599eba7ab8de81819bc010426a2eae71d692cea51ae8bb33bd4ede0"
+    },
+    {
+      "path": "scripts/integrity.mjs",
+      "sha256": "3e1f111a652381e83256e670ecc774cb98d13fe16ab1a944e891962bb9f0b4ba"
+    },
+    {
+      "path": "scripts/local-review.mjs",
+      "sha256": "b575953ce3533cacc537cbda3f322e3d1b7864d3b9740c5d32cd41dd1886c1da"
+    },
+    {
+      "path": "scripts/migrate.ts",
+      "sha256": "03547ea56035816c89673eb1abc24cb294733ea1c46727ac9add9155093c697b"
+    },
+    {
+      "path": "scripts/phase2-browser.ts",
+      "sha256": "b3251f5ba8e71f0233282bb27ffe4af2cff7589a7e1d22fb59d771ef179d82ae"
+    },
+    {
+      "path": "scripts/phase2-inspect.ts",
+      "sha256": "42bdfa6395d1ae79aad85a6b1c2ccd3d73d4169f3f4f52342cbd519c0f761168"
+    },
+    {
+      "path": "scripts/phase2-runtime.mjs",
+      "sha256": "b0c5153e1ecb867fbfdf16a44fae80de812f83f3fce4862711ddf890ccfe04a0"
+    },
+    {
+      "path": "scripts/phase3-browser.ts",
+      "sha256": "f26c75ff3605343587d7dc3922bec16ab9f3fec85c5e65ed2f1898060fcb9057"
+    },
+    {
+      "path": "scripts/phase3-demo-start.ts",
+      "sha256": "a31b424ca7c52466a1cfc3ac0e6d8d7ceeec1b6f92bd10040957cf5aa52bc786"
+    },
+    {
+      "path": "scripts/phase3-demo.ts",
+      "sha256": "96c5f4c2584b3db64df9e7baa8ae21be5f00ad5af3dd0cc0a47bee7fee646060"
+    },
+    {
+      "path": "scripts/phase3-report-samples.ts",
+      "sha256": "01c54e8b99684b8bbb6ca698c2300a4acfaee9913ae4a3ccf6bb50a421cd6b79"
+    },
+    {
+      "path": "scripts/phase3-runtime.ts",
+      "sha256": "698ac9f2e51248ee2cb87f9fb2197eaa5834922f406a0b28f4b0b4fc19410a93"
+    },
+    {
+      "path": "scripts/review-downloads.ts",
+      "sha256": "182fb9a490e79d32b85607666f21b584240da2785b658fd3c413e4e4a84c9399"
+    },
+    {
+      "path": "scripts/run.ps1",
+      "sha256": "665f7d1ace2f6685e0d44d62de356df0c84f2db032425fac95c6eebdc1379dfc"
+    },
+    {
+      "path": "scripts/seed.ts",
+      "sha256": "c0388b1177a0501246e918f03191ea1bc37555e10406c04b0ca0678aa9b2cebe"
+    },
+    {
+      "path": "src/auth.ts",
+      "sha256": "39b29fe69fc42ec89e53ee325028941f53c75f84c8f2de52d4ea2df41a0d6c8f"
+    },
+    {
+      "path": "src/config.ts",
+      "sha256": "533ce9bf812f5b3aa4f9682a04c7c8522c1d1d6da64f08378c5bd69eb79098dc"
+    },
+    {
+      "path": "src/database.ts",
+      "sha256": "698dd7843985acc3f78f9af5787994440ace235e55a3874f596dd0651b2339bd"
+    },
+    {
+      "path": "src/demo-fixtures.ts",
+      "sha256": "689d6d1fa2d4b31503af0e371e3982a374497f27a3a9510f8248894f6bd57671"
+    },
+    {
+      "path": "src/domain.ts",
+      "sha256": "835dc5089fe316fae49e7cab171048193a9fdb4a00cc63bf68c20961f2faadfe"
+    },
+    {
+      "path": "src/fixtures.ts",
+      "sha256": "e96f9fedb706a1503b0415aba6be106add314af87575260c7f2e8ed1aeba6c67"
+    },
+    {
+      "path": "src/pdf-report.ts",
+      "sha256": "f2d4b404bca83629313aaba769db34c26c73953e5d489ea990cab43228231236"
+    },
+    {
+      "path": "src/report-downloads.ts",
+      "sha256": "39fb00ae5ca24f11bc4f9bda1929ebc9566811e20d9a3afb498e2574268eecb2"
+    },
+    {
+      "path": "src/reports.ts",
+      "sha256": "38919857ab7448a7430a6a9f0a8157f744654a45947f3c5f3dccec4dd0753ede"
+    },
+    {
+      "path": "src/server.ts",
+      "sha256": "b463aa25c8dee36ed1f0816cb736e4e57887de5b0f5df0ecf3c6f50bd093dc49"
+    },
+    {
+      "path": "src/service.ts",
+      "sha256": "9f4927eb9fce60b170cb69f61449ea44e599d99dc0a78049f48258ae29e94a4c"
+    },
+    {
+      "path": "tests/backend-phase2.test.ts",
+      "sha256": "d55f3953d1903317d99bce60cccf8f6446f88c7f38034bd1f820437bcba3f41c"
+    },
+    {
+      "path": "tests/foundation.test.ts",
+      "sha256": "7e47d71a63b3e62669736507901c17cc8ba96af624657954af079826bf002ac2"
+    },
+    {
+      "path": "tests/phase2-acceptance.test.ts",
+      "sha256": "e5fb565e7779e33eed022b95b685ac0781e56e261d0030dd3f10effc485ebfb1"
+    },
+    {
+      "path": "tests/phase3-reports.test.ts",
+      "sha256": "1de2420191af22dc4879845192d4c6ce6118804914cb2d2485784d3cd0cc69af"
+    },
+    {
+      "path": "tests/report-downloads.test.ts",
+      "sha256": "c2f378d5c0dd142ece5f33f8e9d1ddbb756b3fa591c274a85576172ddae2b482"
+    },
+    {
+      "path": "tests/reports.test.ts",
+      "sha256": "b4fb3975676aa9f71581fbab1c1aaf40867c039475ad26c71797618925f73f9f"
+    }
+  ],
+  "branch": "phase4/acceptance-readiness",
+  "executedAt": "2026-10-20T10:31:46.7070018Z"
+}
