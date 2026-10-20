@@ -15,6 +15,7 @@ Owner: user/client unless stated otherwise. Date: 20 October 2026. Passing engin
 | D09 | Authentication uses real local password accounts, scrypt hashes, opaque HttpOnly sessions and CSRF protection | Local implementation, not a provider choice. Recovery, onboarding, offboarding, rotation, MFA/SSO and hosted identity selection are later operational decisions |
 | D10 | No hosted services, production changes, production accounts, real imports, Zoho integration or automatic production/main merge | Explicit Phase 2 release restrictions. Provider, region, domain, staging target, retention and release owner remain unselected |
 | D11 | Simple daily executive/manager interfaces, large mobile controls, short forms, prominent manager Excel/PDF downloads | **Mandatory user steering**. Complete report downloads authorized for manager/admin, not general customer export. Actual date/person selections govern downloads; reports do not silently truncate. No charts or complex analytics added |
+| D12 | Bundle licensed Noto fonts and use isolated Chromium for Unicode PDF layout | **Authorized by Phase 3 request**. Latin, Arabic and Malayalam examples verified; fonts pinned with hashes and SIL-OFL license. Chromium installation is an explicit local runtime prerequisite. Additional scripts and client spelling/layout acceptance remain review items |
 
 ## Remaining business choices
 
@@ -22,4 +23,4 @@ D03 and explicit manager/admin assignment authority are settled for isolated loc
 
 For client UAT, also review overnight duty behavior, end-from-rest handling and missed-event corrections. The current build records exact instants and provides no correction action, peer duty visibility, hours thresholds or payroll inference.
 
-Still unresolved: missed duty/visit correction authority and procedure; shift/rest limits and exact cut-duty meaning; lead conversion policy; import mapping/duplicate rules and specific commit authority; account recovery/offboarding and hosted identity; retention/privacy/backup ownership; final KPI acceptance; Unicode PDF font/languages; hosting/region/domain and Zoho scope. These do not authorize silent edits, payroll inference, production release or real data import.
+Still unresolved: missed duty/visit correction authority and procedure; shift/rest limits and exact cut-duty meaning; lead conversion policy; import mapping/duplicate rules and specific commit authority; account recovery/offboarding and hosted identity; retention/privacy/backup ownership; final KPI acceptance; additional PDF languages and client language review; hosting/region/domain and Zoho scope. These do not authorize silent edits, payroll inference, production release or real data import.

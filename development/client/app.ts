@@ -34,8 +34,8 @@ const nav = [
   ["dashboard", "▦", "Dashboard"],
   ["shops", "⌂", "Shops"],
   ["visits", "◷", "Visits"],
-  ["leads", "＋", "Leads"],
-  ["team", "♙", "Sales Team"],
+  ["leads", "＋", "New shops"],
+  ["team", "♙", "Team"],
 ];
 let me: {
     actor: Actor;
@@ -67,6 +67,7 @@ const retryKeys = new Map<string, string>();
 const checkinPayloads = new Map<string, unknown>();
 let unconfirmed: { path: string; signature: string } | null = null;
 let managerView: ReturnType<typeof createManagerView> | undefined;
+let filtersOpen = false;
 let retryOperation: { work: () => Promise<unknown>; message: string } | null = null;
 class ApiError extends Error {
   constructor(
@@ -331,7 +332,8 @@ function options(values: [string, string][], selected: string) {
     .join("");
 }
 function toolbar(visits = false) {
-  return `<div class="toolbar"><label class="search"><span class="search-icon">⌕</span><input class="input" id="search" placeholder="${visits ? "Search shop, executive or notes…" : "Search shop, mobile, contact or area…"}" aria-label="${visits ? "Search visits" : "Search shops"}" value="${h(filters.q)}"></label><details class="filter-options"><summary>More filters</summary><div class="filter-fields"><select class="select" aria-label="Filter by sales executive" data-filter="person">${options([["", "All executives"], ...meta.team.filter((m) => m.role === "executive").map((m) => [m.id, m.name] as [string, string])], filters.person)}</select><select class="select" aria-label="Filter by area" data-filter="area">${options([["", "All areas"], ...meta.areas.map((a) => [a, a] as [string, string])], filters.area)}</select><select class="select" aria-label="Filter by status" data-filter="status">${options([["", "All statuses"], ...(visits ? [...outcomes, "Currently Visiting"] : shopStatuses).map((a) => [a, a] as [string, string])], filters.status)}</select><select class="select" aria-label="Filter by date or visit" data-filter="when">${options(
+  const count = [filters.person, filters.area, filters.status, filters.when].filter(Boolean).length;
+  return `<div class="toolbar"><label class="search"><span class="search-icon">⌕</span><input class="input" id="search" placeholder="${visits ? "Search shop, executive or notes…" : "Search shop, mobile, contact or area…"}" aria-label="${visits ? "Search visits" : "Search shops"}" value="${h(filters.q)}"></label><details class="filter-options" ${filtersOpen ? "open" : ""}><summary>${count ? `Filters · ${count} active` : "More filters"}</summary><div class="filter-fields"><select class="select" aria-label="Filter by sales executive" data-filter="person">${options([["", "All executives"], ...meta.team.filter((m) => m.role === "executive").map((m) => [m.id, m.name] as [string, string])], filters.person)}</select><select class="select" aria-label="Filter by area" data-filter="area">${options([["", "All areas"], ...meta.areas.map((a) => [a, a] as [string, string])], filters.area)}</select><select class="select" aria-label="Filter by status" data-filter="status">${options([["", "All statuses"], ...(visits ? [...outcomes, "Currently Visiting"] : shopStatuses).map((a) => [a, a] as [string, string])], filters.status)}</select><select class="select" aria-label="Filter by date or visit" data-filter="when">${options(
     visits
       ? [
           ["", "All dates"],
@@ -347,7 +349,7 @@ function toolbar(visits = false) {
           ["due", "Follow-up set"],
         ],
     filters.when,
-  )}</select></div></details><span class="results">${list.total} ${visits ? "visits" : view === "leads" ? "leads" : "shops"}</span></div>`;
+  )}</select></div></details>${count || filters.q ? button("Clear filters", "data-clear-filters") : ""}<span class="results">${list.total} ${visits ? "visits" : view === "leads" ? "leads" : "shops"}</span></div>`;
 }
 function pages() {
   return `<div class="pagination">${button("← Previous", `data-page="${list.page - 1}" ${list.page === 0 ? "disabled" : ""}`)}<span>Page ${list.page + 1} of ${Math.max(1, Math.ceil(list.total / list.pageSize))}</span>${button("Next →", `data-page="${list.page + 1}" ${(list.page + 1) * list.pageSize >= list.total ? "disabled" : ""}`)}</div>`;
@@ -358,12 +360,12 @@ function renderShops() {
       view === "leads"
         ? "New accounts from the field"
         : "Your customer directory",
-      view === "leads" ? "Shop leads" : "Shops",
+      view === "leads" ? "New shops" : "Shops",
       "Search your shop network. Open a shop to review every past visit.",
       executive() ? button("＋ Add New Shop", "data-add", true) : "",
     ) +
     panel(
-      view === "leads" ? "New shop leads" : "All shops",
+      view === "leads" ? "New shops" : "All shops",
       "Shared history across the field team",
       toolbar() +
         table(
@@ -528,12 +530,12 @@ async function render() {
       $(id).innerHTML = nav
         .map(
           ([value, icon, label]) =>
-            `<button type="button" data-view="${value}" aria-current="${value === view ? "page" : "false"}"><span class="icon" aria-hidden="true">${icon}</span><span>${label}</span></button>`,
+            `<button type="button" data-view="${value}" aria-current="${value === view ? "page" : "false"}"><span class="icon" aria-hidden="true">${icon}</span><span>${value === "dashboard" ? executive() ? "Today" : "Overview" : label}</span></button>`,
         )
         .join("");
     $("crumb").textContent = selected
       ? "Shop profile"
-      : nav.find((n) => n[0] === view)![2];
+      : view === "dashboard" ? executive() ? "Today" : "Overview" : nav.find((n) => n[0] === view)![2];
     $("content").innerHTML =
       `<p class="error" role="alert" id="saveError" hidden></p>${retryBanner()}${!visitEnabled() ? '<div class="notice section-gap">Visit recording is awaiting approval. You can search shops and read visit history.</div>' : ""}${markup}`;
     if (supervisor() && view === "dashboard" && !selected) {
@@ -764,6 +766,12 @@ document.addEventListener("click", async (e) => {
       window.scrollTo(0, 0);
       return;
     }
+    if (d.clearFilters !== undefined) {
+      clearTimeout(searchTimer);
+      filters = { q: "", person: "", area: "", status: "", when: "", page: 0 };
+      await render();
+      return;
+    }
     if (d.shop) {
       selected = d.shop;
       await render();
@@ -871,6 +879,10 @@ document.addEventListener("click", async (e) => {
   }
 });
 let searchTimer: ReturnType<typeof setTimeout>;
+document.addEventListener("toggle", (event) => {
+  const details = event.target as HTMLDetailsElement;
+  if (details.matches?.(".filter-options") && details.isConnected) filtersOpen = details.open;
+}, true);
 document.addEventListener("input", (e) => {
   const input = e.target as HTMLInputElement;
   if (input.id === "search") {

@@ -1,6 +1,6 @@
 {
   "name": "emerald-field-sales-crm",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,7 +15,13 @@
     "test:reference": "node scripts/baseline.mjs",
     "test:integrity": "node scripts/integrity.mjs",
     "test:runtime": "node scripts/phase2-runtime.mjs",
-    "review:downloads": "tsx scripts/review-downloads.ts"
+    "review:downloads": "tsx scripts/review-downloads.ts",
+    "pdf:setup": "playwright install chromium",
+    "demo:prepare": "tsx scripts/phase3-demo.ts",
+    "demo:start": "tsx scripts/phase3-demo-start.ts",
+    "test:browser:phase3": "node scripts/build.mjs && tsx scripts/phase3-browser.ts",
+    "test:runtime:phase3": "tsx scripts/phase3-runtime.ts",
+    "review:reports:phase3": "tsx scripts/phase3-report-samples.ts"
   },
   "engines": {
     "node": ">=22"
@@ -24,15 +30,15 @@
   "dependencies": {
     "@electric-sql/pglite": "0.5.10",
     "exceljs": "4.4.0",
-    "pdfkit": "0.20.2",
-    "zod": "4.6.7"
+    "fontkit": "2.0.4",
+    "zod": "4.6.7",
+    "playwright": "1.64.1"
   },
   "devDependencies": {
+    "@types/fontkit": "2.0.9",
     "@types/node": "26.6.5",
     "esbuild": "0.28.2",
-    "playwright": "1.64.1",
     "tsx": "4.23.15",
-    "typescript": "7.0.2",
-    "@types/pdfkit": "0.17.6"
+    "typescript": "7.0.2"
   }
 }

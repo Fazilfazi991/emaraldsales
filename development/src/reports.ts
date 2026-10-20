@@ -11,7 +11,7 @@ export interface ReportPage {
   staff?: Row[]; summary?: Row; status?: string; scope?: string;
 }
 export interface ReportExport {
-  kind: ReportKind; title: string; from: string; to: string; person: string | null;
+  kind: ReportKind; title: string; from: string; to: string; person: string | null; personName: string | null; totals: string;
   timeZone: "Asia/Dubai"; asOf: string; total: number; notes: string[];
   columns: { key: string; label: string }[]; rows: Row[];
 }
@@ -106,14 +106,17 @@ export class Reports {
       await tx.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
       await this.authorize(tx,actor,f.person);
       const result=await this.read(tx,actor,kind,f,true);
+      const personName=f.person?(await tx.query<{name:string}>("SELECT u.name FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 AND m.role='executive'",[actor.organizationId,f.person])).rows[0].name:null;
+      const sum=(key:string)=>Math.round(result.rows.reduce((n,r)=>n+Number(r[key]??0),0)*100)/100;
+      const totals=kind==="activity"?`Visits started in dates: ${result.total}. Visits completed in dates: ${result.summary!.completed_visits}. Pending follow-ups now: ${result.summary!.pending_followups}. Due by end date: ${result.summary!.due_followups}.`:kind==="duty"?`Duty sessions: ${result.total}. Recorded duty: ${sum("elapsed_minutes")} min. Rest: ${sum("rest_minutes")} min. Duty less rest: ${sum("active_minutes")} min.`:`Follow-ups: ${result.total}. Pending: ${result.rows.filter(r=>r.status==="pending").length}. Completed: ${result.rows.filter(r=>r.status==="completed").length}. Cancelled: ${result.rows.filter(r=>r.status==="cancelled").length}.`;
       const local=(v:any)=>v?new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dubai",dateStyle:"short",timeStyle:"short",hour12:false}).format(new Date(v)):"";
       const rows=result.rows.map(row=>{
         const copy={...row};
         for(const key of ["checked_in_at","checked_out_at","started_at","ended_at","created_at","updated_at"]) if(key in copy) copy[key]=local(copy[key]);
-        if(kind==="duty")copy.rest_history=row.rests.map((r:Row)=>`${local(r.started_at)} → ${r.ended_at?local(r.ended_at):"Ongoing"}`).join("; ");
+        if(kind==="duty")copy.rest_history=row.rests.map((r:Row)=>`${local(r.started_at)} to ${r.ended_at?local(r.ended_at):"Ongoing"}`).join("; ");
         return copy;
       });
-      return {kind,title:{activity:"Visit activity",duty:"Recorded duty and breaks",followups:"Customer follow-ups"}[kind],from:f.from,to:f.to,person:f.person,timeZone:"Asia/Dubai",asOf:f.asOf,total:result.total,notes:[...notes[kind],...(kind==="followups"?[`Scope: ${f.scope}; status: ${f.scope==="outstanding"?"pending":f.status}.`]:[])],columns:columns[kind],rows};
+      return {kind,title:{activity:"Visit activity",duty:"Recorded duty and breaks",followups:"Customer follow-ups"}[kind],from:f.from,to:f.to,person:f.person,personName,totals,timeZone:"Asia/Dubai",asOf:f.asOf,total:result.total,notes:[...notes[kind],...(kind==="followups"?[`Scope: ${f.scope}; status: ${f.scope==="outstanding"?"pending":f.status}.`]:[])],columns:columns[kind],rows};
     });
   }
 }

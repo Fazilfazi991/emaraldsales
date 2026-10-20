@@ -1,6 +1,5 @@
 import ExcelJS from "exceljs";
-import PDFDocument from "pdfkit";
-import { Fault } from "./domain.js";
+import { renderPdf } from "./pdf-report.js";
 
 /** Serialization only: authorization, filters, snapshot and row cap belong to Reports.exportRows. */
 export interface DownloadReport {
@@ -9,6 +8,8 @@ export interface DownloadReport {
   from: string;
   to: string;
   person: string | null;
+  personName?: string | null;
+  totals?: string;
   timeZone: string;
   asOf: string | Date;
   total: number;
@@ -31,10 +32,15 @@ export async function excelReport(report: DownloadReport): Promise<Buffer> {
   sheet.mergeCells(2, 1, 2, count);
   sheet.getCell(2, 1).value = `${report.from} to ${report.to} | ${report.timeZone} | ${report.total} records`;
   sheet.mergeCells(3, 1, 3, count);
-  sheet.getCell(3, 1).value = report.notes.join(" ");
+  sheet.getCell(3, 1).value = context(report);
   sheet.getCell(3, 1).alignment = { wrapText: true, vertical: "top" };
   sheet.getCell(3, 1).font = { size: 10, color: { argb: "FF606B64" } };
-  sheet.getRow(3).height = 34;
+  sheet.getRow(3).height = 32;
+  sheet.mergeCells(4, 1, 4, count);
+  sheet.getCell(4, 1).value = [report.totals, ...report.notes].filter(Boolean).join(" ");
+  sheet.getCell(4, 1).alignment = { wrapText: true, vertical: "top" };
+  sheet.getCell(4, 1).font = { size: 10, color: { argb: "FF606B64" } };
+  sheet.getRow(4).height = 52;
   const header = sheet.getRow(5);
   header.values = report.columns.map(c => c.label);
   header.height = 30;
@@ -47,89 +53,31 @@ export async function excelReport(report: DownloadReport): Promise<Buffer> {
   }
   for (const row of report.rows) {
     // Plain string values never become spreadsheet formulas, even if they start with =, +, - or @.
-    const record = sheet.addRow(report.columns.map(c => cellValue(row[c.key])));
+    const record = sheet.addRow(report.columns.map(c => cellValue(c.key === "rest_history" && report.kind === "duty" && Array.isArray(row.rests) ? `${row.rests.length} breaks - see Break history sheet` : row[c.key])));
     record.alignment = { vertical: "top", wrapText: true };
     record.font = { name: "Calibri", size: 11 };
-    record.height = 32;
+    record.height = Math.max(32, ...report.columns.map((_, i) => {
+      const value = record.getCell(i + 1).text;
+      return 16 * value.split("\n").reduce((n, line) => n + Math.max(1, Math.ceil([...line].length / (sheet.getColumn(i + 1).width! * 0.85))), 0) + 8;
+    }));
     if (record.number % 2 === 0) record.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F6F2" } };
+  }
+  if (report.kind === "duty") {
+    const breaks = workbook.addWorksheet("Break history", { views: [{ state: "frozen", ySplit: 1 }] });
+    breaks.columns = [{header:"Sales executive",key:"staff",width:30},{header:"Duty started (UAE)",key:"duty",width:25},{header:"Break started (UAE)",key:"start",width:25},{header:"Returned (UAE)",key:"end",width:25}];
+    const local = (value: unknown) => value ? new Intl.DateTimeFormat("en-GB", {timeZone:"Asia/Dubai",dateStyle:"short",timeStyle:"short",hour12:false}).format(new Date(String(value))) : "Ongoing";
+    for (const row of report.rows) if (Array.isArray(row.rests)) for (const rest of row.rests) breaks.addRow([cellValue(row.executive_name),cellValue(row.started_at),local(rest.started_at),local(rest.ended_at)]);
+    breaks.getRow(1).font={bold:true,color:{argb:"FFFFFFFF"}};
+    breaks.getRow(1).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF164D3C"}};
+    breaks.eachRow(row=>{row.height=Math.max(32,...[1,2,3,4].map(i=>16*row.getCell(i).text.split("\n").reduce((n,line)=>n+Math.max(1,Math.ceil([...line].length/(breaks.getColumn(i).width!*0.85))),0)+8));row.alignment={vertical:"top",wrapText:true};});
+    breaks.pageSetup={orientation:"landscape",paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:"1:1"};
   }
   sheet.autoFilter = { from: { row: 5, column: 1 }, to: { row: Math.max(5, 5 + report.rows.length), column: count } };
   sheet.pageSetup = { orientation: "landscape", paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: "1:5" };
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
 
-const plain = (value: unknown) => String(value ?? "").replace(/[\u2010-\u2015]/g, "-").replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\u2026/g, "...").replace(/\u2192/g, "to").replace(/\u00a0/g, " ");
-function validatePdfText(report: DownloadReport) {
-  // Built-in PDF fonts have a defined Latin repertoire. Refuse unsupported scripts honestly
-  // rather than download a corrupt PDF; Excel preserves Unicode. A licensed Unicode font is a launch decision.
-  const values = [report.title, ...report.notes, ...report.columns.map(c => c.label), ...report.rows.flatMap(r => report.columns.map(c => r[c.key]))];
-  if (values.some(v => /[^\x09\x0a\x0d\x20-\x7e\xa0-\xff]/.test(plain(v))))
-    throw new Fault(422, "PDF_FONT_UNSUPPORTED", "This report contains text the PDF font cannot display. Download Excel to keep the full text.");
-}
+const context = (report: DownloadReport) => `Sales executive: ${report.personName ?? (report.person ? "Selected executive" : "All sales executives")} | Generated ${new Intl.DateTimeFormat("en-GB", {timeZone:"Asia/Dubai",dateStyle:"medium",timeStyle:"short",hour12:false}).format(new Date(report.asOf))} UAE`;
 export async function pdfReport(report: DownloadReport): Promise<Buffer> {
-  validatePdfText(report);
-  const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 36, bufferPages: true, info: { Title: report.title, Author: "Emerald Interlink" } });
-  const output = new Promise<Buffer>((resolve, reject) => {
-    const parts: Buffer[] = [];
-    doc.on("data", part => parts.push(Buffer.from(part)));
-    doc.on("end", () => resolve(Buffer.concat(parts)));
-    doc.on("error", reject);
-  });
-  const left = 36, width = doc.page.width - 72, bottom = doc.page.height - 42;
-  const weights = report.columns.map(c => /notes|reason/i.test(c.label) ? 2.1 : /shop/i.test(c.label) ? 1.65 : /date|time|start|end/i.test(c.label) ? 1.25 : 1);
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-  const widths = weights.map(w => width * w / totalWeight);
-  let y = 36;
-  const header = () => {
-    doc.fillColor("#164d3c").font("Helvetica-Bold").fontSize(16).text("EMERALD INTERLINK", left, 28, { width });
-    doc.fillColor("#202b25").fontSize(12).text(plain(report.title), left, 51, { width });
-    doc.fillColor("#606b64").font("Helvetica").fontSize(9).text(`${report.from} to ${report.to} | ${report.timeZone} | ${report.total} records`, left, 69, { width });
-    doc.fontSize(8).text(plain(report.notes.join(" ")), left, 84, { width });
-    y = Math.max(107, doc.y + 12);
-    doc.font("Helvetica-Bold").fontSize(8);
-    const height = Math.max(29, ...report.columns.map((c, i) => doc.heightOfString(plain(c.label), { width: widths[i] - 12 }) + 14));
-    doc.rect(left, y, width, height).fill("#164d3c");
-    let x = left;
-    report.columns.forEach((c, i) => { doc.fillColor("white").text(plain(c.label), x + 6, y + 7, { width: widths[i] - 12 }); x += widths[i]; });
-    y += height;
-    doc.font("Helvetica").fontSize(8);
-  };
-  const newPage = () => { doc.addPage(); header(); };
-  header();
-  report.rows.forEach((row, index) => {
-    // Split content into measured lines, so a long record can continue on another page without truncation.
-    const lines = report.columns.map((c, i) => {
-      const words = plain(row[c.key]).split(/(\s+)/); const result: string[] = []; let current = "";
-      for (const word of words) {
-        if (doc.widthOfString(current + word) <= widths[i] - 12) { current += word; continue; }
-        if (current.trim()) result.push(current.trim()); current = "";
-        for (const char of word) { if (doc.widthOfString(current + char) > widths[i] - 12 && current) { result.push(current); current = ""; } current += char; }
-      }
-      if (current.trim() || !result.length) result.push(current.trim()); return result;
-    });
-    let offset = 0; const maxLines = Math.max(...lines.map(v => v.length));
-    while (offset < maxLines) {
-      if (y + 25 > bottom) newPage();
-      const available = Math.max(1, Math.floor((bottom - y - 12) / 11));
-      const take = Math.min(available, maxLines - offset); const rowHeight = Math.max(27, take * 11 + 12);
-      doc.rect(left, y, width, rowHeight).fill(index % 2 ? "#f1f6f2" : "#ffffff");
-      let x = left;
-      lines.forEach((value, i) => { value.slice(offset, offset + take).forEach((line, j) => doc.fillColor("#202b25").font("Helvetica").fontSize(8).text(line, x + 6, y + 6 + j * 11, { width: widths[i] - 12, lineBreak: false })); x += widths[i]; });
-      doc.moveTo(left, y + rowHeight).lineTo(left + width, y + rowHeight).strokeColor("#dce5de").stroke();
-      y += rowHeight; offset += take;
-      if (offset < maxLines) newPage();
-    }
-  });
-  if (!report.rows.length) doc.fillColor("#606b64").fontSize(11).text("No records match the selected dates and staff.", left + 8, y + 20, { width: width - 16 });
-  const range = doc.bufferedPageRange();
-  for (let page = range.start; page < range.start + range.count; page++) {
-    doc.switchToPage(page);
-    // Footer is deliberately below the content margin; disable flow for this line so
-    // PDFKit does not append an otherwise empty page for each footer.
-    const margin = doc.page.margins.bottom;
-    doc.page.margins.bottom = 0;
-    doc.fillColor("#606b64").font("Helvetica").fontSize(8).text(`Page ${page + 1} of ${range.count}`, left, doc.page.height - 27, { width, align: "right", lineBreak: false });
-    doc.page.margins.bottom = margin;
-  }
-  doc.end(); return output;
+  return renderPdf(report, context(report));
 }

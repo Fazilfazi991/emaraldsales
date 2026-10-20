@@ -1,0 +1,11 @@
+import {config} from "../src/config.js";
+import {openDatabase} from "../src/database.js";
+import {application} from "../src/server.js";
+import {resolve} from "node:path";
+import {access} from "node:fs/promises";
+await access(".local/phase3-demo-accounts.json");
+const settings={...config(),dataDir:resolve(".data/phase3-demo"),visitPolicy:"approved-v2",dutyPolicy:"approved-v1"};
+const db=await openDatabase(settings.dataDir);
+const server=application(db,settings);server.requestTimeout=15000;server.headersTimeout=10000;
+server.listen(settings.port,settings.host,()=>console.log(`Emerald synthetic Phase 3 demonstration: ${settings.origin}`));
+for(const signal of ["SIGINT","SIGTERM"] as const)process.on(signal,()=>server.close(()=>void db.close().then(()=>process.exit(0))));

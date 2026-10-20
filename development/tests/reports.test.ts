@@ -73,6 +73,8 @@ test("Manager reports: saved activity, UAE dates, ongoing duty and complete expo
     });
     await t.test("exports include every matching row rather than page, UAE labels and duty history",async()=>{
       const result=await reports.exportRows(manager,"activity",params("&page=1&pageSize=1"));assert.equal(result.total,47);assert.equal(result.rows.length,47);
+      assert.ok(result.totals.includes("Visits started in dates: 47"));
+      const empty=await reports.exportRows(manager,"activity",new URLSearchParams(`from=2026-01-01&person=${ahmed.id}`));assert.equal(empty.total,0);assert.equal(empty.personName,ahmed.name);assert.ok(empty.totals.includes("Visits completed in dates: 0"));
       assert.equal(result.rows.filter(v=>v.checked_in_at==="20/01/2026, 09:00").length,45);assert.equal(result.timeZone,"Asia/Dubai");
       const duty=await reports.exportRows(manager,"duty",params());assert.equal(duty.rows.length,2);assert.ok(duty.rows.some(d=>d.rest_history.includes("Ongoing")));
       const follows=await reports.exportRows(manager,"followups",params("&scope=outstanding"));assert.equal(follows.rows.length,2);assert.ok(follows.notes.some(n=>n.includes("outstanding")));

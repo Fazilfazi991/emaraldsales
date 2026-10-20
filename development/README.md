@@ -1,60 +1,57 @@
-# Emerald Field Sales CRM — Phase 2 local application
+# Emerald Field Sales CRM — Phase 3 local demonstration
 
-Emerald Interlink Trading L.L.C's building-materials field CRM. The TypeScript application preserves Emerald's five modules and recognizable style, with real sessions and disk-backed PostgreSQL persistence. Phase 2 adds the approved visit rules, explicit shop transfers, independent follow-ups, a simpler executive day, and manager activity/duty/follow-up reports with Excel/PDF downloads. The unchanged demo remains in `../reference/emerald-field-sales-crm-source/`. Client acceptance and production release remain separate from local engineering checks.
+The application preserves Emerald's existing green interface, five destinations, real authentication and disk-backed PostgreSQL data. Phase 3 adds visible/resettable filters, a clearer mobile manager overview, simpler navigation names, and Unicode PDF reports with selected staff, dates and totals. This is a local owner-review candidate; client acceptance and production release are pending.
 
-## Open the prepared application
+## Run the demonstration
 
-The local URL is **http://127.0.0.1:3100/**. Five real local accounts use random passwords held only in `.local/accounts.json` (gitignored). The executive usernames are `ahmed@local.invalid`, `shihab@local.invalid`, and `naseer@local.invalid`; manager/admin accounts are also listed in that file. Read passwords locally; do not send them in chat. These are synthetic review accounts, not supplied staff accounts. Shihab has a seeded open visit; Ahmed is the clean starting user.
-
-**Visit/follow-up writes are active under `approved-v2`: one active visit per executive; several executives may visit the same shop.** Visits record their authenticated performer and never transfer shop ownership. Managers/admins can edit/transfer shops and assign pending follow-ups with a reason and audit record. Executives manage their own follow-ups. Managers start on a simple daily overview with staff/date filters and Excel/PDF downloads. See the [Phase 2 handoff](docs/PHASE2-HANDOFF.md) for exact verification and remaining launch blockers. No hosted resources, real customer imports or production deployment exist.
-
-## Reproduce on Windows
-
-Node 22+ and pnpm 11.25.0 are required. The PowerShell wrapper uses an installed pnpm or this Codex environment's bundled pnpm, without changing global settings. From this directory:
+From this `development` directory, with Node 22+ and pnpm 11.25.0:
 
 ```powershell
-.\scripts\run.ps1 install --frozen-lockfile
-Copy-Item -LiteralPath .env.example -Destination .env
-.\scripts\run.ps1 build
-.\scripts\run.ps1 db:migrate
-.\scripts\run.ps1 db:seed --synthetic 700
-.\scripts\run.ps1 dev
+pnpm install --frozen-lockfile
+pnpm pdf:setup
+pnpm build
+pnpm demo:prepare
+pnpm demo:start
 ```
 
-On a machine with pnpm, the equivalent commands are `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm db:migrate`, `pnpm db:seed --synthetic 700`, and `pnpm dev`. Do not rerun seed on the prepared database: it deliberately refuses nonempty databases. Do not overwrite an existing `.env` when updating.
+Use `demo:prepare` **once**, for the new isolated `.data/phase3-demo` database. It refuses existing data or credentials. For the already-prepared demonstration, run only `pnpm demo:start`. Stop an existing port-3100 server before starting another. Open **http://127.0.0.1:3100/**.
 
-The original `python` command was a Windows Store alias here; baseline validation used the bundled Python executable. The supplied reference server is separate, at port 8080. Browser checks use installed Microsoft Edge through Playwright. No Docker engine or system PostgreSQL installation is needed: PGlite executes PostgreSQL locally, with files under `.data/crm`. Only one process may open a given data directory. Stop the server before migrations, account CLI commands or backups. A stale process lock is recovered only when its recorded process no longer exists.
+Random synthetic passwords are in **`.local/phase3-demo-accounts.json`**, ignored by Git. Use `ahmed@local.invalid` for the executive journey and `manager@local.invalid` for management. Additional fictional accounts include Shihab, Naseer and a local administrator. Keep passwords private. The demo has 700 fictional shops, including Arabic, Malayalam and accented Latin examples. Shihab has a seeded open visit; Ahmed is the intended starting executive. The original Phase 2 `.data/crm` database and `.local/accounts.json` remain separate and preserved.
 
-`HOST`, `PORT`, `APP_ORIGIN`, `DATA_DIR`, `COOKIE_SECURE`, `VISIT_POLICY`, `DUTY_POLICY` and `NODE_ENV` are documented in `.env.example`. The origin and URL must agree exactly. Loopback binding is enforced and `NODE_ENV=production` fails deliberately. Use HTTPS and secure cookies when later configuring an authorized hosted environment.
+`pdf:setup` installs the Playwright-pinned Chromium browser locally. PDF export uses it at runtime, with network requests blocked, JavaScript disabled and bundled SIL-OFL Noto fonts. This is an explicit runtime dependency on every development machine. Missing browser setup produces a useful PDF error and leaves Excel available. Latin, Arabic and Malayalam are verified; additional scripts/emoji may need another licensed font. Browser binaries are not committed. [Font sources and license](assets/fonts/README.md).
 
-## Checks
+On this Windows environment, `.\scripts\run.ps1 <command>` finds installed pnpm or the Codex bundled pnpm. The default `python` command here is a Windows Store alias; PDF inspection uses the bundled Python runtime and Poppler.
+
+## Local data and permissions
+
+The demo starter uses `.data/phase3-demo` and approved local visit/duty policies. `pnpm dev` still uses ordinary `.env` configuration and `.data/crm`. Do not overwrite an existing `.env`. For a separate empty ordinary database: `pnpm db:migrate`, then `pnpm db:seed --synthetic 700`; seed refuses nonempty data. Do not use synthetic fixtures on client data.
+
+PGlite executes PostgreSQL locally; no Docker or system PostgreSQL is required. Only one process may open a data directory. Stop that server before migrations, offline inspection or backup. Loopback binding is enforced. `NODE_ENV=production` deliberately fails. Hosting, secure-cookie configuration and external PostgreSQL require a separately approved staging/release plan.
+
+Visits belong to the authenticated performer, with one open visit per executive and several executives allowed at the same shop. Visiting never transfers ownership. Managers/admins explicitly transfer shops or assign pending follow-ups with a reason and audit. Executives manage their own follow-ups. Duty is separate from visits. Reports use Asia/Dubai dates and distinguish visits started from visits completed, current pending follow-ups and recorded attendance. Authorization, audit, version checks and transaction safety remain enabled.
+
+## Verify
 
 ```powershell
-.\scripts\run.ps1 build
-.\scripts\run.ps1 test
-.\scripts\run.ps1 test:browser
-.\scripts\run.ps1 test:integrity
+pnpm build
+pnpm test
+pnpm test:browser:phase3
+pnpm review:reports:phase3
+pnpm test:integrity
+pnpm audit --prod
 ```
 
-Tests create and remove their own temporary synthetic PostgreSQL databases; they do not reset `.data/crm`. Phase 2 browser checks use separate authenticated executive/manager accounts at 390/430/768/1024/1440px, actual APIs/database and native report downloads. Run `pnpm test:runtime` against the prepared port-3100 app for a read-only operational smoke check apart from sign-in/sign-out. The historical `scripts/browser.ts` records Phase 1 assumptions and is not the Phase 2 acceptance command. `pnpm test:reference` requires the unchanged snapshot's static server on 8080; it captures reference evidence only.
+Automated suites and the five-width browser harness use disposable synthetic databases. `pnpm test:runtime:phase3` performs complete journeys **against the prepared demo on port 3100**, creating a fictional visit, follow-up and duty record, saving five-width screenshots and downloading all report types. It intentionally changes demonstration data.
 
-To bootstrap an account in an otherwise empty local database, first migrate, create a private local password file with a random password of at least 14 characters, then run:
+Phase 2 reproduction evidence is under `evidence/phase3/before`; original evidence remains under `evidence/phase2`. Historical `test:browser`, `test:runtime` and `review:downloads` target Phase 2 paths/accounts. Do not use those runtime commands against the Phase 3 demo. `test:reference` requires the unchanged reference static server on port 8080.
 
-```powershell
-.\scripts\run.ps1 account:create person@example.invalid "Person Name" executive .local\private-password.txt
-```
+## Owner review
 
-The CLI is a trusted host-operator bootstrap tool, not a web permission bypass. The protected `/api/accounts` API allows admins only. Password recovery, offboarding and administrative UI remain future work. Never use synthetic fixtures on a customer database.
+- [Phase 3 handoff, results and release blockers](docs/PHASE3-HANDOFF.md)
+- [Executive and manager demonstration walkthroughs](docs/PHASE3-DEMONSTRATION.md)
+- [Client acceptance checklist](docs/PHASE3-ACCEPTANCE.md)
+- [Independent usability and safety review](docs/PHASE3-REVIEW.md)
+- [Approved and outstanding business decisions](docs/DECISIONS.md)
+- [Historical Phase 2 handoff](docs/PHASE2-HANDOFF.md)
 
-## Review records
-
-- [Scope, source evidence and module map](docs/SCOPE-AND-EVIDENCE.md)
-- [Architecture, schema, permissions and API contracts](docs/ARCHITECTURE.md)
-- [Approved and outstanding decisions](docs/DECISIONS.md)
-- [Migration, import and rollback plan](docs/MIGRATION-AND-RELEASE.md)
-- [Handoff and executed verification](docs/HANDOFF.md)
-- [Executive, manager and mobile UAT checklist](docs/UAT.md)
-- [Phase 2 current handoff and launch blockers](docs/PHASE2-HANDOFF.md)
-- [Phase 2 ownership and acceptance plan](docs/PHASE2-PLAN.md)
-
-Report downloads are manager/admin-only, filtered and audited. Excel preserves Unicode text; the current PDF font supports Latin text and explicitly asks for Excel when a script cannot be rendered. There is no invoicing, inventory, payments, dispatch, payroll, Zoho connection, offline sync, continuous GPS, hosting provisioning, real customer import or production rollout.
+No deployment, real import, production account creation, Zoho Books connection or main merge is part of this work. Invoicing, inventory, payroll, offline sync, account-recovery UI and missed-event corrections remain outside this candidate.
