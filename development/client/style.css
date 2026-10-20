@@ -8,3 +8,48 @@
   
 .brand-thumb{width:36px;height:42px;object-fit:contain}.signed-in{font-size:10px;line-height:1.3}.signed-in small{display:block;color:var(--muted);font-size:9px;text-transform:capitalize}.login-wrap{display:grid;place-items:center;min-height:100dvh;padding:24px}.login-card{width:min(400px,100%);overflow:hidden}.login-logo{display:block;width:210px;height:170px;object-fit:cover;object-position:center 15%;margin:12px auto 0}.login-card .panel-body{padding:24px}.login-card h1{font-size:21px;letter-spacing:-.03em;margin:6px 0}.login-card form{margin:22px 0}.login-card form label{display:block;margin:14px 0 6px;color:var(--muted);font-size:11px}.login-card form .button{width:100%;margin-top:10px;min-height:42px}.error{background:var(--red-soft);border:1px solid #e6c5c3;border-radius:5px;color:var(--red);padding:10px;font-size:11px;line-height:1.6;overflow-wrap:anywhere}.error:empty{display:none}.error[hidden]{display:none}.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px;gap:8px;color:var(--muted);font-size:10px}.history-card{text-align:left;cursor:pointer;width:100%}.duty-card{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}.duty-card p{margin:4px 0 0}.followup-item{padding:12px 0;border-bottom:1px solid var(--line)}.followup-item:last-child{border:0}.followup-item .actions{flex-wrap:wrap}.section-gap{margin-bottom:15px}#dialogBody .table-wrap{max-width:100%}#content{scroll-margin-top:70px}a{color:var(--green)}
 @media(max-width:700px){.topbar .crumb{font-size:9px;max-width:35%}.top-actions{min-width:0}.signed-in{font-size:9px;max-width:90px}.signed-in small{font-size:8px}.duty-card{flex-direction:column;align-items:stretch}.duty-card .actions{flex-wrap:wrap}.button{min-height:38px}.nav .button{min-height:35px}.input,.select{min-height:38px}.dialog-foot{flex-wrap:wrap}.dialog-foot .button{flex:1;min-height:42px}.login-wrap{padding:16px}.login-logo{width:190px;height:155px}}
+
+/* Keep the established Emerald layout, with comfortable reading and touch sizes. */
+:root{--muted:#59665d;--soft:#657267;font-size:14px}
+.button{min-height:44px;font-size:13px;padding:8px 14px}
+.button.small{min-height:44px;font-size:12px}
+.input,.select,.textarea,.form-field .input,.form-field .select{height:44px;font-size:14px}
+.form-field textarea{font-size:14px;line-height:1.5;min-height:104px}
+.signed-in,.crumb,.subheading,.hero-shop p,.visit-record p,.notice,.pagination,td,.fact strong,.empty,.activity-copy strong{font-size:13px}
+.signed-in small,.help,.cell-sub,.panel-caption,.kpi-foot,.kpi-top,.follow-row span,.visit-meta,.map-chip,.summary-strip,th,.fact label,.form-field label,.dialog-head p,.badge{font-size:12px}
+.panel-title,.section-title,.team-top strong{font-size:15px}
+.eyebrow{font-size:11px}
+.heading h1{font-size:26px;letter-spacing:-.03em}
+.nav button{height:44px;font-size:13px}
+.badge{min-height:25px}.avatar{font-size:11px}
+.actions{flex-wrap:wrap}.hero-shop>div{min-width:0}.hero-shop .button{max-width:100%}
+.hero-shop h2,.shop-link,.visit-record p{overflow-wrap:anywhere}
+.toolbar .select{min-height:44px;font-size:13px}
+.filter-options{flex-basis:100%;min-width:0}.filter-options>summary{font-size:13px;padding:10px 0}.filter-fields{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:8px}
+.filter-fields .select{flex:1;min-width:140px}.toolbar .results{font-size:12px}
+.search .input{min-height:48px;font-size:15px}.search-icon{top:14px}
+.daily-next{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.daily-next .button{min-height:48px}.daily-next strong{font-size:17px}
+details>summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:600;color:var(--green-dark)}
+.dialog-head h2{font-size:19px}.dialog{width:min(560px,calc(100vw - 26px))}
+.dialog form{max-height:88dvh;display:flex;flex-direction:column;min-height:0}
+.dialog-body{flex:1;min-height:0}.dialog-head,.dialog-foot{flex-shrink:0}
+.toast{font-size:14px}.login-card .input{min-height:48px;font-size:16px}
+.save-status{align-self:center;display:block;margin-right:auto;padding:12px;font-size:14px;font-weight:600;color:var(--green-dark);background:var(--surface);border-radius:5px}
+.login-card .help,.login-card form label{font-size:13px}.login-card .subheading{font-size:14px}
+::selection{background:#cee8d6;color:var(--green-dark)}input,textarea{caret-color:var(--green)}
+#content[aria-busy=true]{opacity:.7}.button:disabled{opacity:.6}
+@media(max-width:1050px){.layout-main{grid-template-columns:1fr}.team-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){
+  body{padding-bottom:76px}.content{padding:20px 12px 32px}.topbar{height:66px}.topbar .crumb{display:none}
+  .top-actions{width:100%;gap:8px}.signed-in{margin-right:auto;font-size:13px;max-width:150px}.signed-in small{font-size:11px}
+  .topbar .button{font-size:12px;min-height:44px;padding:0 10px}.heading h1{font-size:24px}
+  .button{min-height:48px;font-size:14px}.button.small{min-height:44px;font-size:13px}
+  .input,.select,.form-field .input,.form-field .select,.form-field textarea,.search .input{font-size:16px;min-height:48px}
+  .form-field label,.subheading,.hero-shop p,.fact strong,.visit-record p,.notice,td,.empty{font-size:14px}
+  .form-field label{color:#46544a}.form-grid{gap:16px}.hero-shop .button{width:100%;min-height:52px}
+  .duty-card .actions .button{flex:1}.daily-next{align-items:stretch;flex-direction:column}.daily-next .button{width:100%;min-height:52px}
+  .mobile-nav{min-height:70px}.mobile-nav button{gap:4px;min-height:66px}.mobile-nav button .icon{font-size:20px}.mobile-nav button span:last-child{font-size:11px}
+  .mobile-cards td:before{font-size:11px}.mobile-cards tbody tr{gap:12px}.cell-sub,.badge,.follow-row span{font-size:12px}
+  .team-grid{grid-template-columns:1fr}.dialog-foot .button{min-height:48px}.dialog-head{padding:14px}.toast-region{bottom:82px}
+}

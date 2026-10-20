@@ -64,6 +64,8 @@ let formAction = "",
   fetching = false;
 const retryKeys = new Map<string, string>();
 const checkinPayloads = new Map<string, unknown>();
+let unconfirmed: { path: string; signature: string } | null = null;
+let retryOperation: { work: () => Promise<unknown>; message: string } | null = null;
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -78,6 +80,8 @@ async function api(
   mutation = false,
 ): Promise<any> {
   const signature = JSON.stringify([path, body]);
+  if (mutation && unconfirmed && unconfirmed.signature !== signature)
+    throw new ApiError(409, "A previous save is unconfirmed. Use Retry save before starting another action.");
   let key = retryKeys.get(signature);
   if (mutation && !key) {
     key = crypto.randomUUID();
@@ -100,13 +104,20 @@ async function api(
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
+    if (mutation) unconfirmed = { path, signature };
     throw new ApiError(
       0,
-      "Connection lost. Save is unconfirmed. Reconnect and retry the same form; do not assume it was recorded.",
+      mutation ? "Connection lost. Save is unconfirmed. Reconnect and use Retry save." : "Unable to load this information. Check your connection and try again.",
     );
   }
-  const data = await response.json();
+  let data: any;
+  try { data = await response.json(); }
+  catch {
+    if (mutation) unconfirmed = { path, signature };
+    throw new ApiError(0, mutation ? "Save is unconfirmed. Use Retry save when the connection returns." : "Unable to read the server response. Refresh to try again.");
+  }
   if (!response.ok) {
+    if (mutation) unconfirmed = response.status >= 500 ? { path, signature } : null;
     if (response.status === 401 && path !== "/login")
       loginScreen(
         "Your session expired. Sign in, then check the shop history before retrying.",
@@ -116,7 +127,7 @@ async function api(
       data.error?.message ?? "The server could not confirm the action.",
     );
   }
-  if (mutation) retryKeys.delete(signature);
+  if (mutation) { retryKeys.delete(signature); unconfirmed = null; }
   return data;
 }
 function toast(message: string) {
@@ -185,8 +196,9 @@ const duration = (v: Row) =>
     : "In progress";
 const fact = (label: string, value: unknown) =>
   `<div class="fact"><label>${label}</label><strong>${h(value ?? "—")}</strong></div>`;
-const visitEnabled = () => me.policies.visit === "approved-v1";
+const visitEnabled = () => me.policies.visit === "approved-v2";
 const executive = () => me.actor.role === "executive";
+const supervisor = () => me.actor.role === "manager" || me.actor.role === "admin";
 function shell() {
   $("application").innerHTML =
     `<div class="shell"><aside class="sidebar" aria-label="Main navigation"><div class="brand"><img class="brand-thumb" src="/brand.png" alt="Emerald Interlink"><div><b>EMERALD INTERLINK</b><span>Field Sales CRM</span></div></div><div class="workspace-label">FIELD WORKSPACE</div><nav class="nav" id="desktopNav"></nav><div class="sidebar-foot"><b>EMERALD INTERLINK TRADING L.L.C</b><br>Dubai, United Arab Emirates<div class="connection"><span class="dot"></span>Local review · synthetic data</div><div>Online saves · UAE reporting time</div></div></aside><main class="main"><header class="topbar"><div class="crumb">Emerald Interlink / <b id="crumb">Dashboard</b></div><div class="top-actions"><span class="signed-in">${h(me.actor.name)} <small>${h(me.actor.role)}</small></span>${button("Duty", "data-duty")}${button("Sign out", "data-logout")}</div></header><div class="content" id="content" tabindex="-1"></div></main><nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation"></nav></div>`;
@@ -205,6 +217,7 @@ function loginScreen(message = "") {
         email: ($("email") as HTMLInputElement).value,
         password: ($("password") as HTMLInputElement).value,
       });
+      resetWorkspace();
       await bootstrap();
     } catch (error) {
       $("loginError").textContent =
@@ -213,6 +226,19 @@ function loginScreen(message = "") {
       submit.disabled = false;
     }
   });
+}
+function resetWorkspace() {
+  retryKeys.clear();
+  checkinPayloads.clear();
+  unconfirmed = null;
+  retryOperation = null;
+  dashboard = undefined as any;
+  profile = null;
+  selected = null;
+  view = "dashboard";
+  duty = { sessions: [], rests: [] };
+  filters = { q: "", person: "", area: "", status: "", when: "", page: 0 };
+  epoch++;
 }
 async function bootstrap() {
   me = await api("/me");
@@ -253,6 +279,7 @@ function teamCards() {
     .join("");
 }
 function renderDashboard() {
+  if (executive()) return executiveDashboard();
   const m = dashboard.metrics,
     kpis = [
       ["Sales Executives", m.executives, "Field team"],
@@ -282,6 +309,13 @@ function renderDashboard() {
       .join("") || '<div class="empty">All field visits are checked out.</div>';
   return `${heading(executive() ? "Field workspace" : "Manager overview", "Today’s field activity", `${date(m.day)} · Asia/Dubai · refreshed ${time(m.server_time)}`, button("Refresh", "data-refresh") + button("View all visits →", 'data-view="visits"'))}${executive() ? dutyCard() : ""}<section class="kpis">${kpis.map(([label, value, foot], i) => `<article class="kpi"><div class="kpi-top"><span>${label}</span><span class="kpi-icon">${["♙", "⌖", "✓", "＋", "◷"][i]}</span></div><div class="kpi-value">${value}</div><div class="kpi-foot">${foot}</div></article>`).join("")}</section><div class="layout-main"><div class="stack">${panel("Today’s visits", `${m.today} recorded today`, visitRows(dashboard.today.rows))}${panel("Sales team progress", "Derived from recorded activity", `<div class="panel-body team-grid">${teamCards()}</div>`)}${panel("Currently in the field", "Open visits, including earlier days", `<div class="panel-body">${active}</div>`)}</div><aside class="stack">${panel("Follow-ups due", "Three days ahead, including overdue items", `<div class="panel-body">${follows}</div>`)}${panel("New shops this week", "Recent field discoveries", `<div class="panel-body">${dashboard.recent.map((s: Row) => `<div class="follow-row"><div>${shopLink(s.id, s.name)}<span>${h(s.area)} · ${date(s.created_at)}</span></div>${badge(s.status)}</div>`).join("") || '<div class="empty">No new shops this week.</div>'}</div>`)}<div class="notice">Every recorded visit stays in the shop’s shared history so the next executive can pick up where the last visit left off.</div></aside></div>`;
 }
+function executiveDashboard() {
+  const active = dashboard.active.find((v: Row) => v.visitor_id === me.actor.id);
+  const today = dashboard.today.rows.filter((v: Row) => v.visitor_id === me.actor.id);
+  const due = dashboard.followups.filter((f: Row) => f.owner_id === me.actor.id);
+  const follows = due.map((f: Row) => `<div class="follow-row"><div class="left">${shopLink(f.shop_id, f.shop_name)}<span>${date(f.due_date)}</span></div>${badge(f.due_date < serverDay ? "Overdue" : f.due_date === serverDay ? "Due today" : "Scheduled")}</div>`).join("");
+  return `${heading("Field workspace", "Your working day", date(serverDay), button("Refresh", "data-refresh"))}${dutyCard()}${panel(active ? "Your visit in progress" : "Ready for your next visit?", active ? "Open the shop to finish and save your visit." : "Search for a shop, review its history, then check in.", `<div class="panel-body daily-next">${active ? `<div><strong>${h(active.shop_name)}</strong><p class="subheading">Checked in ${date(active.checked_in_at)} at ${time(active.checked_in_at)}</p></div>${button("Open visit · Check out", `data-shop="${h(active.shop_id)}"`, true)}` : button("Search shops", 'data-view="shops"', true)}</div>`)}<div class="layout-main section"><div class="stack">${panel("Your visits today", `${today.length} recorded · ${today.filter((v: Row) => v.checked_out_at).length} completed`, visitRows(today))}</div><aside>${panel("Your follow-ups due", "Overdue and next three days · Open a shop to update", `<div class="panel-body">${follows || '<p class="empty">No follow-ups due. Add an optional follow-up date when completing a visit.</p>'}</div>`)}</aside></div>`;
+}
 function options(values: [string, string][], selected: string) {
   return values
     .map(
@@ -291,7 +325,7 @@ function options(values: [string, string][], selected: string) {
     .join("");
 }
 function toolbar(visits = false) {
-  return `<div class="toolbar"><label class="search"><span class="search-icon">⌕</span><input class="input" id="search" placeholder="${visits ? "Search shop, executive or notes…" : "Search shop, mobile, contact or area…"}" aria-label="${visits ? "Search visits" : "Search shops"}" value="${h(filters.q)}"></label><select class="select" aria-label="Filter by sales executive" data-filter="person">${options([["", "All executives"], ...meta.team.filter((m) => m.role === "executive").map((m) => [m.id, m.name] as [string, string])], filters.person)}</select><select class="select" aria-label="Filter by area" data-filter="area">${options([["", "All areas"], ...meta.areas.map((a) => [a, a] as [string, string])], filters.area)}</select><select class="select" aria-label="Filter by status" data-filter="status">${options([["", "All statuses"], ...(visits ? [...outcomes, "Currently Visiting"] : shopStatuses).map((a) => [a, a] as [string, string])], filters.status)}</select><select class="select" aria-label="Filter by date or visit" data-filter="when">${options(
+  return `<div class="toolbar"><label class="search"><span class="search-icon">⌕</span><input class="input" id="search" placeholder="${visits ? "Search shop, executive or notes…" : "Search shop, mobile, contact or area…"}" aria-label="${visits ? "Search visits" : "Search shops"}" value="${h(filters.q)}"></label><details class="filter-options"><summary>More filters</summary><div class="filter-fields"><select class="select" aria-label="Filter by sales executive" data-filter="person">${options([["", "All executives"], ...meta.team.filter((m) => m.role === "executive").map((m) => [m.id, m.name] as [string, string])], filters.person)}</select><select class="select" aria-label="Filter by area" data-filter="area">${options([["", "All areas"], ...meta.areas.map((a) => [a, a] as [string, string])], filters.area)}</select><select class="select" aria-label="Filter by status" data-filter="status">${options([["", "All statuses"], ...(visits ? [...outcomes, "Currently Visiting"] : shopStatuses).map((a) => [a, a] as [string, string])], filters.status)}</select><select class="select" aria-label="Filter by date or visit" data-filter="when">${options(
     visits
       ? [
           ["", "All dates"],
@@ -307,7 +341,7 @@ function toolbar(visits = false) {
           ["due", "Follow-up set"],
         ],
     filters.when,
-  )}</select><span class="results">${list.total} ${visits ? "visits" : view === "leads" ? "leads" : "shops"}</span></div>`;
+  )}</select></div></details><span class="results">${list.total} ${visits ? "visits" : view === "leads" ? "leads" : "shops"}</span></div>`;
 }
 function pages() {
   return `<div class="pagination">${button("← Previous", `data-page="${list.page - 1}" ${list.page === 0 ? "disabled" : ""}`)}<span>Page ${list.page + 1} of ${Math.max(1, Math.ceil(list.total / list.pageSize))}</span>${button("Next →", `data-page="${list.page + 1}" ${(list.page + 1) * list.pageSize >= list.total ? "disabled" : ""}`)}</div>`;
@@ -354,23 +388,21 @@ function timeline(v: Row) {
 }
 function renderProfile() {
   const { shop: s, visits, followups } = profile!,
-    active = visits.find((v) => v.lifecycle === "open");
+    active = visits.find((v) => v.lifecycle === "open" && v.visitor_id === me.actor.id),
+    anotherActive = dashboard.active.find((v: Row) => v.visitor_id === me.actor.id && v.shop_id !== s.id);
   const checkAction = !executive()
     ? ""
     : active
-      ? active.visitor_id === me.actor.id
-        ? button("✓ Check out", `data-checkout="${h(active.id)}"`, true)
-        : button(
-            `Currently visiting: ${h(person(active.visitor_id))}`,
-            "disabled",
-          )
+      ? button("Complete visit · Check out", `data-checkout="${h(active.id)}"`, true)
+      : anotherActive
+        ? button("Finish your current visit first", `data-shop="${h(anotherActive.shop_id)}"`)
       : button(
           "⌖ Check in to this shop",
           `data-checkin="${h(s.id)}" ${!visitEnabled() ? "disabled" : ""}`,
           true,
         );
   const pending = followups.filter((f) => f.status === "pending");
-  return `${button("← Back to list", "data-back")}${heading("Shop record", "Shop profile", `${h(s.area)} · ${s.synthetic ? "Synthetic review record" : "Field discovery"}`)}<section class="panel"><div class="panel-body"><div class="hero-shop"><div><p class="eyebrow">${s.status === "Customer" ? "Shop profile" : "Field discovery · Lead"}</p><h2>${h(s.name)}</h2><p>${h(s.contact)} · <a href="tel:${h(s.phone.replace(/[^+\d]/g, ""))}">${h(s.phone)}</a></p><p>⌖ ${h(s.location || s.area)}</p></div><div>${checkAction}</div></div><div class="grid-two section">${fact("ASSIGNED EXECUTIVE", person(s.assigned_executive_id))}${fact("SHOP STATUS", s.status)}${fact("LAST VISIT", date(visits[0]?.checked_in_at))}${fact("NEXT FOLLOW-UP", date(pending.map((f) => f.due_date).sort()[0]))}</div><div class="summary-strip section"><span><b>${visits.length}</b> total visits</span><span><b>${visits.filter((v) => businessDay(v.checked_in_at) === serverDay).length}</b> today</span><span>Added by ${h(person(s.created_by))}</span></div></div></section><div class="profile-main section"><div>${panel("Visit history", `${visits.length} recorded visits · Most recent first`, `<div class="panel-body visit-history">${visits.map(timeline).join("") || '<div class="empty">No visits yet. Check in to record the first visit.</div>'}</div>`)}</div><aside class="stack">${panel("Shop information", "Shared context for every field visit", `<div class="panel-body grid-two">${fact("Contact person", s.contact)}${fact("Mobile", s.phone)}${fact("Area", s.area)}${fact("Added to CRM", date(s.created_at))}${fact("Notes", s.notes)}</div>`)}${panel("Follow-ups", "Each item retains its originating visit and owner", `<div class="panel-body">${followups.map((f) => `<article class="followup-item"><strong>${date(f.due_date)}</strong> ${badge(f.status)}<p class="subheading">${h(person(f.owner_id))} · Visit ${date(visits.find((v) => v.id === f.visit_id)?.checked_in_at)}</p>${f.status === "pending" && f.owner_id === me.actor.id && visitEnabled() ? `<div class="actions section">${button("Complete", `data-followup="${f.id}" data-action="complete"`)}${button("Reschedule", `data-followup="${f.id}" data-action="reschedule"`)}${button("Cancel", `data-followup="${f.id}" data-action="cancel"`)}</div>` : ""}</article>`).join("") || '<p class="empty">Set an optional date when checking out a visit.</p>'}</div>`)}</aside></div>`;
+  return `${button("← Back to list", "data-back")}${heading("Shop record", "Shop profile", `${h(s.area)} · ${s.synthetic ? "Synthetic review record" : "Field discovery"}`)}<section class="panel"><div class="panel-body"><div class="hero-shop"><div><p class="eyebrow">${s.status === "Customer" ? "Shop profile" : "Field discovery · Lead"}</p><h2>${h(s.name)}</h2><p>${h(s.contact)} · <a href="tel:${h(s.phone.replace(/[^+\d]/g, ""))}">${h(s.phone)}</a></p><p>⌖ ${h(s.location || s.area)}</p></div><div>${checkAction}</div></div><div class="grid-two section">${fact("ASSIGNED EXECUTIVE", person(s.assigned_executive_id))}${fact("SHOP STATUS", s.status)}${fact("LAST VISIT", date(visits[0]?.checked_in_at))}${fact("NEXT FOLLOW-UP", date(pending.map((f) => f.due_date).sort()[0]))}</div><div class="summary-strip section"><span><b>${visits.length}</b> total visits</span><span><b>${visits.filter((v) => businessDay(v.checked_in_at) === serverDay).length}</b> today</span><span>Added by ${h(person(s.created_by))}</span></div></div></section><div class="profile-main section"><div>${panel("Visit history", `${visits.length} recorded visits · Most recent first`, `<div class="panel-body visit-history">${visits.map(timeline).join("") || '<div class="empty">No visits yet. Check in to record the first visit.</div>'}</div>`)}</div><aside class="stack">${panel("Shop information", "Shared context for every field visit", `<div class="panel-body grid-two">${fact("Contact person", s.contact)}${fact("Mobile", s.phone)}${fact("Area", s.area)}${fact("Added to CRM", date(s.created_at))}${fact("Notes", s.notes)}</div>`)}${panel("Follow-ups", "Each item keeps its own owner and visit", `<div class="panel-body">${executive() && visitEnabled() && visits.some(v => v.visitor_id === me.actor.id && v.lifecycle === "completed") ? button("Add follow-up", "data-add-followup") : ""}${followups.map((f) => `<article class="followup-item"><strong>${date(f.due_date)}</strong> ${badge(f.status)}<p class="subheading">${h(person(f.owner_id))} · Visit ${date(visits.find((v) => v.id === f.visit_id)?.checked_in_at)}</p>${f.status === "pending" && f.owner_id === me.actor.id && executive() && visitEnabled() ? `<div class="actions section">${button("Complete", `data-followup="${f.id}" data-action="complete"`)}${button("Reschedule", `data-followup="${f.id}" data-action="reschedule"`)}${button("Cancel", `data-followup="${f.id}" data-action="cancel"`)}</div>` : f.status === "pending" && supervisor() && visitEnabled() ? `<div class="actions section">${button("Assign executive", `data-followup="${f.id}" data-action="assign"`)}</div>` : ""}</article>`).join("") || '<p class="empty">Set an optional date when completing your visit.</p>'}</div>`) }${panel("Record history", "Who changed this shop and when", `<div class="panel-body">${button("View record history", "data-audit")}${supervisor() ? `<details class="section"><summary>Manage shop</summary><p class="help">Changes need a reason and stay in record history.</p><div class="actions section">${button("Edit shop details", "data-edit-shop")}${button("Transfer shop", "data-transfer-shop")}</div></details>` : ""}</div>`)}</aside></div>`;
 }
 function currentDuty() {
   const s = duty.sessions.find(
@@ -383,7 +415,7 @@ function currentDuty() {
 }
 function dutyCard() {
   const current = currentDuty();
-  return `<section class="notice duty-card"><div><strong>Your duty · ${current.state === "off" ? "Off duty" : current.state === "rest" ? "Away / rest" : "On duty"}</strong><p>Duty timing is separate from shop visits.</p></div><div class="actions">${me.policies.duty !== "approved-v1" ? badge("Policy pending") : current.state === "off" ? button("Start duty", 'data-duty-action="start"', true) : current.state === "rest" ? button("Return to duty", 'data-duty-action="return"', true) : button("Start rest", 'data-duty-action="rest"') + button("End duty", 'data-duty-action="end"')}</div></section>`;
+  return `<section class="notice duty-card"><div><strong>Your duty · ${current.state === "off" ? "Off duty" : current.state === "rest" ? "On break" : "On duty"}</strong><p>Duty timing is separate from shop visits.</p></div><div class="actions">${me.policies.duty !== "approved-v1" ? badge("Policy pending") : current.state === "off" ? button("Start duty", 'data-duty-action="start"') : current.state === "rest" ? button("Return to duty", 'data-duty-action="return"') : button("Start break", 'data-duty-action="rest"') + button("End duty", 'data-duty-action="end"')}</div></section>`;
 }
 function dutyTable() {
   return table(
@@ -430,6 +462,7 @@ function query() {
 async function render() {
   const ticket = ++epoch;
   fetching = true;
+  $("content")?.setAttribute("aria-busy", "true");
   const focused = document.activeElement as HTMLInputElement | null;
   const cursor = focused?.id === "search" ? focused.selectionStart : null;
   try {
@@ -439,9 +472,11 @@ async function render() {
       serverDay = dashboard.metrics.day;
     }
     if (selected) {
-      const result = await api(`/shops/${selected}`);
+      const [result, currentDashboard] = await Promise.all([api(`/shops/${selected}`), api("/dashboard")]);
       if (ticket !== epoch) return;
       profile = result;
+      dashboard = currentDashboard;
+      serverDay = dashboard.metrics.day;
       markup = renderProfile();
     } else if (view === "dashboard" || view === "team") {
       const result = await api("/dashboard"),
@@ -492,7 +527,7 @@ async function render() {
       ? "Shop profile"
       : nav.find((n) => n[0] === view)![2];
     $("content").innerHTML =
-      `<p class="error" role="alert" id="saveError" hidden></p>${!visitEnabled() ? '<div class="notice section-gap">Visit recording is unavailable while the open-visit and follow-up policy awaits approval. Search and shared history are available.</div>' : ""}${markup}`;
+      `<p class="error" role="alert" id="saveError" hidden></p>${retryBanner()}${!visitEnabled() ? '<div class="notice section-gap">Visit recording is awaiting approval. You can search shops and read visit history.</div>' : ""}${markup}`;
     if (cursor !== null && $("search")) {
       ($("search") as HTMLInputElement).focus();
       ($("search") as HTMLInputElement).setSelectionRange(cursor, cursor);
@@ -500,8 +535,14 @@ async function render() {
   } catch (error) {
     showError(error);
   } finally {
-    if (ticket === epoch) fetching = false;
+    if (ticket === epoch) {
+      fetching = false;
+      $("content")?.removeAttribute("aria-busy");
+    }
   }
+}
+function retryBanner() {
+  return unconfirmed && retryOperation ? `<div class="notice section-gap" id="retrySave"><strong>Save not yet confirmed</strong><p>Reconnect, then retry the same save. Your original details are kept for this attempt.</p>${button("Retry save", "data-retry-save", true)}</div>` : "";
 }
 function field(
   name: string,
@@ -511,7 +552,8 @@ function field(
   value = "",
   choices?: [string, string][],
 ) {
-  return `<div class="form-field ${type === "textarea" ? "full" : ""}"><label for="field-${name}">${label}${required ? " *" : ""}</label>${choices ? `<select class="select" name="${name}" id="field-${name}">${options(choices, value)}</select>` : type === "textarea" ? `<textarea name="${name}" id="field-${name}" ${required ? "required" : ""} maxlength="5000">${h(value)}</textarea>` : `<input class="input" name="${name}" id="field-${name}" type="${type}" value="${h(value)}" ${required ? "required" : ""} ${type === "date" ? `min="${serverDay}"` : type === "number" ? 'min="0" step="0.01" max="999999999"' : 'maxlength="300"'}>`}</div>`;
+  const max = ({name:160, contact:120, phone:40, area:100, location:300, reason:1000, notes:5000, orderNote:1000} as Record<string,number>)[name] ?? 300;
+  return `<div class="form-field ${type === "textarea" ? "full" : ""}"><label for="field-${name}">${label}${required ? " *" : ""}</label>${choices ? `<select class="select" name="${name}" id="field-${name}" ${required ? "required" : ""}>${options(choices, value)}</select>` : type === "textarea" ? `<textarea name="${name}" id="field-${name}" ${required ? "required" : ""} maxlength="${max}">${h(value)}</textarea>` : `<input class="input" name="${name}" id="field-${name}" type="${type}" value="${h(value)}" ${required ? "required" : ""} ${type === "date" ? `min="${serverDay}"` : type === "number" ? 'min="0" step="0.01" max="999999999"' : `maxlength="${max}"`} ${name === "area" ? 'list="known-areas"' : ""}>${name === "area" ? `<datalist id="known-areas">${meta.areas.map(a => `<option value="${h(a)}"></option>`).join("")}</datalist>` : ""}`}</div>`;
 }
 function dialog(
   title: string,
@@ -532,23 +574,23 @@ function checkoutForm(id: string) {
   formAction = "checkout";
   formId = id;
   dialog(
-    "Record this shop visit",
+    "Complete your visit",
     profile!.shop.name,
     `<div class="form-grid">${field(
       "outcome",
-      "Visit status",
+      "Visit outcome",
       "select",
       true,
       "Regular Visit",
       outcomes.map((x) => [x, x]),
-    )}${field(
+    )}${field("notes", "What did you discuss?", "textarea", true)}${field("followUpDate", "Follow-up date (optional)", "date")}</div><details class="section"><summary>Order details (optional)</summary><div class="form-grid section">${field(
       "orderStatus",
       "Order status",
       "select",
       true,
       "No Order",
       orderStates.map((x) => [x, x]),
-    )}${field("notes", "Discussion / visit notes", "textarea", true)}${field("orderNote", "Order note / reference")}${field("orderValue", "Approximate order value · AED", "number")}${field("followUpDate", "New follow-up date", "date")}</div><p class="help">An optional new follow-up belongs to you. Existing follow-ups stay unchanged. Approximate order interest is not an invoice.</p>`,
+    )}${field("orderNote", "Order note / reference")}${field("orderValue", "Approximate order value · AED", "number")}</div><p class="help">Order interest only. This does not create an invoice.</p></details><p class="help section">A follow-up date creates a new item for you. Existing follow-ups stay unchanged.</p>`,
     submit("Check Out · Save Visit"),
   );
 }
@@ -557,10 +599,30 @@ function leadForm() {
   dialog(
     "Add a new shop",
     "Save a discovery with its own history.",
-    `<div class="form-grid">${field("name", "Shop name", "text", true)}${field("contact", "Contact person")}${field("phone", "Mobile", "tel")}${field("area", "Area", "text", true)}${field("assignedExecutiveId", "Assigned executive", "select", true, me.actor.id, [[me.actor.id, me.actor.name]])}${field("location", "Location")}${field("notes", "Notes", "textarea")}</div><p class="help">Your signed-in account is recorded as the creator. Check-in uses the actual visitor, independently of assignment.</p>`,
-    submit("Save New Shop") +
-      (visitEnabled() ? submit("Save & Check In", "checkin") : ""),
+    `<div class="form-grid">${field("name", "Shop name", "text", true)}${field("area", "Area", "text", true)}${field("contact", "Contact person")}${field("phone", "Mobile", "tel")}</div><details class="section"><summary>More shop details (optional)</summary><div class="form-grid section">${field("location", "Location")}${field("notes", "Notes", "textarea")}</div></details><p class="help section">Assigned to ${h(me.actor.name)}. You can check in after saving.</p>`,
+    submit("Save New Shop"),
   );
+}
+function shopManagementForm(transfer: boolean) {
+  const s = profile!.shop;
+  formAction = transfer ? "transfer" : "shop-update";
+  formId = s.id;
+  dialog(transfer ? "Transfer shop" : "Edit shop details", s.name,
+    `<div class="form-grid">${transfer ? field("assignedExecutiveId", "Assign shop to", "select", true, s.assigned_executive_id, meta.team.filter(p => p.role === "executive").map(p => [p.id, p.name])) : field("name", "Shop name", "text", true, s.name) + field("contact", "Contact person", "text", false, s.contact) + field("phone", "Mobile", "tel", false, s.phone) + field("area", "Area", "text", true, s.area) + field("location", "Location", "text", false, s.location) + field("notes", "Shop notes", "textarea", false, s.notes)}${field("reason", "Reason for this change", "textarea", true)}</div>${transfer ? '<p class="help section">Only the shop assignment changes. Past visits and existing follow-ups keep their owners. This transfer is recorded in history.</p>' : ""}`,
+    submit(transfer ? "Review transfer" : "Save shop details"));
+}
+function addFollowupForm() {
+  formAction = "followup-create";
+  const visits = profile!.visits.filter(v => v.visitor_id === me.actor.id && v.lifecycle === "completed");
+  dialog("Add follow-up", profile!.shop.name,
+    `<div class="form-grid">${field("dueDate", "Follow-up date", "date", true, serverDay)}${field("visitId", "For your visit on", "select", true, visits[0].id, visits.map(v => [v.id, `${date(v.checked_in_at)} · ${time(v.checked_in_at)}`]))}</div><p class="help section">This adds a new follow-up assigned to you. Other follow-ups stay unchanged.</p>`, submit("Save follow-up"));
+}
+async function auditHistory(page = 0) {
+  const result = await api(`/shops/${profile!.shop.id}/audit?page=${page}`);
+  formAction = "";
+  const labels: Record<string, string> = {"shop.update":"Shop details changed", "shop.transfer":"Shop transferred", "followup.assign":"Follow-up assigned", "followup.create":"Follow-up added", "followup.complete":"Follow-up completed", "followup.reschedule":"Follow-up rescheduled", "followup.cancel":"Follow-up cancelled", "visit.checkin":"Visit check-in", "visit.checkout":"Visit completed", "shop.create":"Shop created"};
+  const rows = result.rows.map((row: Row) => `<article class="followup-item"><strong>${h(labels[row.action] ?? String(row.action).replaceAll(".", " "))}</strong><p>${h(row.actor_name)} · ${date(row.happened_at)} ${time(row.happened_at)}</p>${row.details?.reason ? `<p>${h(row.details.reason)}</p>` : ""}</article>`).join("");
+  dialog("Record history", profile!.shop.name, rows || '<p class="empty">No changes recorded yet.</p>', button("Previous", `data-audit-page="${page - 1}" ${page === 0 ? "disabled" : ""}`) + button("Next", `data-audit-page="${page + 1}" ${(page + 1) * result.pageSize >= result.total ? "disabled" : ""}`) + button("Close", "data-dismiss"));
 }
 async function gps() {
   if (!navigator.geolocation || !isSecureContext)
@@ -586,13 +648,27 @@ async function gps() {
 }
 async function mutateWork(work: () => Promise<unknown>, message: string) {
   if (submitting) return;
+  if (unconfirmed && work !== retryOperation?.work) {
+    showError(new Error("Use Retry save to confirm your previous action first."));
+    return;
+  }
   submitting = true;
+  retryOperation = { work, message };
   const buttons = Array.from(
     document.querySelectorAll<HTMLButtonElement>("button"),
   ).filter((b) => !b.disabled);
+  const inputs = Array.from(document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("#dialogForm input, #dialogForm select, #dialogForm textarea")).filter(input => !input.disabled);
   buttons.forEach((b) => (b.disabled = true));
+  inputs.forEach(input => input.disabled = true);
+  ($("dialog") as HTMLDialogElement).setAttribute("aria-busy", "true");
+  const saving = document.createElement("span");
+  saving.className = "save-status";
+  saving.setAttribute("role", "status");
+  saving.textContent = "Saving…";
+  (($("dialog") as HTMLDialogElement).open ? $("dialogFoot") : $("toasts")).prepend(saving);
   try {
     await work();
+    retryOperation = null;
     ($("dialog") as HTMLDialogElement).close();
     toast(message);
     await render();
@@ -603,26 +679,43 @@ async function mutateWork(work: () => Promise<unknown>, message: string) {
         error instanceof Error ? error.message : "Save not confirmed.";
       alert.hidden = false;
     } else showError(error);
+    if (unconfirmed) {
+      if (alert && ($("dialog") as HTMLDialogElement).open)
+        alert.insertAdjacentHTML("afterend", retryBanner());
+      else if ($("content")) $("content").insertAdjacentHTML("afterbegin", retryBanner());
+    } else retryOperation = null;
   } finally {
     submitting = false;
     buttons.forEach((b) => (b.disabled = false));
+    if (!unconfirmed) {
+      document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("#dialogForm input, #dialogForm select, #dialogForm textarea").forEach(input => input.disabled = false);
+      document.querySelectorAll<HTMLButtonElement>("#dialogForm button[type=submit]").forEach(b => b.disabled = false);
+    }
+    else buttons.filter(b => b.type === "submit").forEach(b => b.disabled = true);
+    ($("dialog") as HTMLDialogElement).removeAttribute("aria-busy");
+    saving.remove();
   }
 }
+$("dialog").addEventListener("cancel", e => { if (submitting) e.preventDefault(); });
 document.addEventListener("click", async (e) => {
   const target = (e.target as Element).closest<HTMLButtonElement>("button");
-  if (!target || target.disabled) return;
+  if (!target || target.disabled || submitting) return;
   const d = target.dataset;
   try {
+    if (d.retrySave !== undefined && retryOperation) {
+      const operation = retryOperation;
+      document.querySelectorAll("#retrySave").forEach(node => node.remove());
+      await mutateWork(operation.work, operation.message);
+      return;
+    }
+    if (unconfirmed && (d.add !== undefined || d.checkout || d.checkin || d.followup || d.addFollowup !== undefined || d.editShop !== undefined || d.transferShop !== undefined || d.dutyAction)) {
+      showError(new Error("Your previous save is unconfirmed. Use Retry save first."));
+      return;
+    }
     if (d.logout !== undefined) {
       await api("/logout", {});
-      retryKeys.clear();
-      checkinPayloads.clear();
+      resetWorkspace();
       me = undefined as any;
-      dashboard = undefined as any;
-      profile = null;
-      selected = null;
-      view = "dashboard";
-      epoch++;
       loginScreen();
       return;
     }
@@ -676,6 +769,15 @@ document.addEventListener("click", async (e) => {
       leadForm();
       return;
     }
+    if (d.editShop !== undefined || d.transferShop !== undefined) {
+      shopManagementForm(d.transferShop !== undefined);
+      return;
+    }
+    if (d.addFollowup !== undefined) { addFollowupForm(); return; }
+    if (d.audit !== undefined || d.auditPage !== undefined) {
+      await auditHistory(Number(d.auditPage ?? 0));
+      return;
+    }
     if (d.checkout) {
       checkoutForm(d.checkout);
       return;
@@ -706,6 +808,7 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (d.dutyAction) {
+      duty = await api("/duty");
       const current = currentDuty();
       await mutateWork(
         () =>
@@ -714,7 +817,7 @@ document.addEventListener("click", async (e) => {
             { expectedSessionId: current.session?.id ?? null },
             true,
           ),
-        "Duty event recorded.",
+        d.dutyAction === "start" ? "Duty started." : d.dutyAction === "rest" ? "Break started." : d.dutyAction === "return" ? "You are back on duty." : "Duty ended.",
       );
       return;
     }
@@ -723,10 +826,10 @@ document.addEventListener("click", async (e) => {
       formId = d.followup;
       const f = profile!.followups.find((f) => f.id === formId)!;
       dialog(
-        "Update follow-up",
+        d.action === "assign" ? "Assign follow-up" : d.action === "complete" ? "Complete follow-up" : d.action === "cancel" ? "Cancel follow-up" : "Reschedule follow-up",
         `${date(f.due_date)} · ${person(f.owner_id)}`,
-        `<div class="form-grid">${d.action === "reschedule" ? field("dueDate", "New due date", "date", true, f.due_date) : ""}${field("reason", "Reason / completion note", "textarea", true)}</div>`,
-        submit("Save follow-up"),
+        `<div class="form-grid">${d.action === "assign" ? field("ownerId", "Assign to executive", "select", true, f.owner_id, meta.team.filter(p => p.role === "executive").map(p => [p.id, p.name])) : d.action === "reschedule" ? field("dueDate", "New due date", "date", true, f.due_date < serverDay ? serverDay : f.due_date) : ""}${field("reason", d.action === "complete" ? "Completion note" : "Reason for this change", "textarea", true, d.action === "complete" ? "Follow-up completed" : d.action === "reschedule" ? "Follow-up rescheduled" : "")}</div>`,
+        submit(d.action === "cancel" ? "Review cancellation" : "Save follow-up"),
       );
       return;
     }
@@ -758,10 +861,15 @@ $("dialogForm").addEventListener("submit", (e) => {
   if (!form.reportValidity()) return;
   const fd = new FormData(form),
     data = Object.fromEntries(fd) as Record<string, string>;
+  const action = formAction, id = formId;
+  if (!action) return;
+  const version = action.startsWith("followup:") ? profile!.followups.find(f => f.id === id)!.version : profile?.shop.version;
+  if (action === "transfer" && !window.confirm(`Transfer ${profile!.shop.name} to ${person(data.assignedExecutiveId)}? Existing visits and follow-ups will keep their owners. The transfer and reason will be recorded.`)) return;
+  if (action === "followup:cancel" && !window.confirm("Cancel this follow-up? Its history will be kept.")) return;
   void mutateWork(async () => {
-    if (formAction === "checkout")
+    if (action === "checkout")
       await api(
-        `/visits/${formId}/checkout`,
+        `/visits/${id}/checkout`,
         {
           ...data,
           orderValue: data.orderValue === "" ? null : Number(data.orderValue),
@@ -769,13 +877,13 @@ $("dialogForm").addEventListener("submit", (e) => {
         },
         true,
       );
-    if (formAction === "lead") {
+    if (action === "lead") {
       const result = await api(
         "/leads",
         {
           ...data,
-          checkIn:
-            (e as SubmitEvent).submitter?.getAttribute("value") === "checkin",
+          assignedExecutiveId: me.actor.id,
+          checkIn: false,
           gps: { availability: "not_requested" },
         },
         true,
@@ -783,15 +891,18 @@ $("dialogForm").addEventListener("submit", (e) => {
       selected = result.shop.id;
       view = "leads";
     }
-    if (formAction.startsWith("followup:")) {
-      const f = profile!.followups.find((f) => f.id === formId)!;
+    if (action === "shop-update" || action === "transfer")
+      await api(`/shops/${id}/${action === "transfer" ? "transfer" : "update"}`, {...data, version}, true);
+    if (action === "followup-create")
+      await api("/followups", data, true);
+    if (action.startsWith("followup:")) {
       await api(
-        `/followups/${formId}`,
-        { ...data, action: formAction.split(":")[1], version: f.version },
+        `/followups/${id}${action === "followup:assign" ? "/assign" : ""}`,
+        { ...data, ...(action === "followup:assign" ? {} : {action: action.split(":")[1]}), version },
         true,
       );
     }
-  }, "Saved to the shared workspace.");
+  }, action === "checkout" ? "Visit completed and saved." : action === "lead" ? "New shop saved. You can now check in." : action.startsWith("followup") ? "Follow-up saved." : "Shop change saved in record history.");
 });
 window.addEventListener("offline", () =>
   toast(
