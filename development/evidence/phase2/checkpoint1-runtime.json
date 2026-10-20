@@ -1,0 +1,14 @@
+{
+  "executedAt": "2026-10-20T09:07:15.053Z",
+  "origin": "http://127.0.0.1:3100",
+  "authenticatedRole": "manager",
+  "totalShops": 700,
+  "pageRows": 40,
+  "executives": 3,
+  "policies": {
+    "visit": "pending",
+    "duty": "approved-v1"
+  },
+  "unauthenticatedStatus": 401,
+  "dashboardCounterConsistency": true
+}

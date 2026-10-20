@@ -1,5 +1,7 @@
 # Application and API contract
 
+Historical Phase 1 foundation contract at `ec26756`. Phase 2 changes the open-visit rule, enables approved local writes, adds explicit assignment/shop updates and manager report/download APIs. See [the current Phase 2 handoff](PHASE2-HANDOFF.md), [decision log](DECISIONS.md) and [manager report contract](PHASE2-MANAGER-CONTRACT.md). The original Phase 1 details below are retained as an architectural baseline, not a statement of current endpoint availability.
+
 ## Local structure and database
 
 One Node HTTP process serves the built client and protected JSON API. TypeScript separates presentation, domain/services and persistence. PGlite provides a disk-backed PostgreSQL engine without Docker or hosted infrastructure. It is the **local adapter**, not the final multi-node hosting choice. A filesystem process lock prevents concurrently opening the same directory. Transactions serialize locally; standard PostgreSQL row locks and partial unique indexes also express the intended constraints. Network PostgreSQL, DB credentials/least-privilege service role, connection pools, cross-process contention and staging migrations are not implemented/tested yet. A later adapter must implement `Database`/`Queryable` and preserve transaction semantics; rerun the entire suite against that provider.

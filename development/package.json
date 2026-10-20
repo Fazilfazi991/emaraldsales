@@ -1,6 +1,6 @@
 {
   "name": "emerald-field-sales-crm",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,9 +11,11 @@
     "db:seed": "tsx scripts/seed.ts",
     "account:create": "tsx scripts/account.ts",
     "test": "tsx --test tests/*.test.ts",
-    "test:browser": "tsx scripts/browser.ts",
+    "test:browser": "node scripts/build.mjs && tsx scripts/phase2-browser.ts",
     "test:reference": "node scripts/baseline.mjs",
-    "test:integrity": "node scripts/integrity.mjs"
+    "test:integrity": "node scripts/integrity.mjs",
+    "test:runtime": "node scripts/phase2-runtime.mjs",
+    "review:downloads": "tsx scripts/review-downloads.ts"
   },
   "engines": {
     "node": ">=22"

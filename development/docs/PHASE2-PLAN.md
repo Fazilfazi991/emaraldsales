@@ -14,6 +14,8 @@ Accepted starting commit: `ec26756`. Local-only integration branch: `phase2/inte
 
 Four total execution slots allow the coordinator and three specialists simultaneously. QA starts when one specialist completes; its independent checks run against the integrated candidate. Each agent works in a separate Git worktree and commits only its owned paths. Coordinator integrates commits explicitly and assigns fixes to the original owner while that agent remains active. No agent overwrites another's files or changes the running local database/environment.
 
+Mandatory usability steering from the owner applies to every role: preserve Emerald, make executive actions mobile-first and clearly labelled, keep visit forms short with optional detail collapsed, and default managers to simple daily attendance/visit/follow-up tables with obvious staff/date filters and Excel/PDF downloads. No charts or advanced administrative screens are added to daily work. QA must complete the novice-labelled executive and manager journeys without technical instructions. Downloadable reports are manager/admin-only; full customer exports remain outside scope. The coordinator owns runtime Excel/PDF serializers and their verification.
+
 ## Agreed contract before implementation
 
 - `VISIT_POLICY=approved-v2` identifies the newly approved policy: one open visit per executive, **no unique-open-shop restriction**. Retain pending as the safe gate; approved-v1 is historical and must not activate the old rule silently.

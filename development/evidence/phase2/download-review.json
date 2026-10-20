@@ -1,0 +1,44 @@
+{
+  "executedAt": "2026-10-20T09:40:54.235Z",
+  "origin": "http://127.0.0.1:3100",
+  "results": [
+    {
+      "kind": "activity",
+      "format": "xlsx",
+      "total": 2,
+      "bytes": 7372
+    },
+    {
+      "kind": "activity",
+      "format": "pdf",
+      "total": 2,
+      "bytes": 2469
+    },
+    {
+      "kind": "duty",
+      "format": "xlsx",
+      "total": 0,
+      "bytes": 7155
+    },
+    {
+      "kind": "duty",
+      "format": "pdf",
+      "total": 0,
+      "bytes": 2266
+    },
+    {
+      "kind": "followups",
+      "format": "xlsx",
+      "total": 3,
+      "bytes": 7449
+    },
+    {
+      "kind": "followups",
+      "format": "pdf",
+      "total": 3,
+      "bytes": 2556
+    }
+  ],
+  "status": "passed",
+  "visualReview": "Coordinator rendered and inspected seven populated activity pages, the empty duty page and the final readable follow-up page; no blank footer pages or clipped fields."
+}

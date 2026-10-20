@@ -1,0 +1,37 @@
+{
+  "executedAt": "2026-10-20T09:17:52.133Z",
+  "counts": {
+    "shops": 700,
+    "visits": 96,
+    "followups": 5,
+    "users": 5,
+    "audit_events": 0,
+    "duty_sessions": 0
+  },
+  "migrations": [
+    {
+      "name": "001_foundation.sql",
+      "sha256": "c7684e7e70787fe77bbeded693fab72485838d82688fc5220861e9cef68ca195"
+    },
+    {
+      "name": "002_import_provenance.sql",
+      "sha256": "a26dbe572547e7408b4dd1b104856529175e0fd4aa06c55bea9f8a12fe896dba"
+    }
+  ],
+  "indexes": [
+    "one_open_visit_per_executive",
+    "one_open_visit_per_shop",
+    "shops_assignment",
+    "shops_org_name",
+    "shops_organization_id_id_key",
+    "shops_pkey",
+    "visits_history",
+    "visits_organization_id_id_key",
+    "visits_organization_id_id_shop_id_key",
+    "visits_pkey",
+    "visits_reporting"
+  ],
+  "recordFingerprint": {
+    "shops": "dd68cb9adb2641b77bac41a6c4ec15f8"
+  }
+}

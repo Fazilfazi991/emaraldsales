@@ -1,5 +1,7 @@
 # Local foundation handoff — 20 October 2026
 
+Historical handoff for accepted Phase 1 commit `ec26756`. For the active approved-v2 application, updated permissions, reports, tests and launch blockers, use [Phase 2 handoff](PHASE2-HANDOFF.md).
+
 ## Delivered behavior
 
 The source-verified Emerald demo is preserved under `reference/` with its supplied HTML hash and all manifest hashes matching. A separate development application retains the five modules and responsive interface, adds supplied logo branding, replaces simulated identity/localStorage with real local accounts, server sessions and disk-backed PostgreSQL, and provides a populated executive experience.

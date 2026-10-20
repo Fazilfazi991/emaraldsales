@@ -1,0 +1,17 @@
+{
+  "pages": 7,
+  "nonempty_pages": 7,
+  "extracted_visit_states": 96,
+  "footers_present": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "empty_duty_report_pages": 1,
+  "visual_review": "Coordinator inspected all seven rendered pages, readable first/last and empty result; no blank footer pages or clipped columns",
+  "font_scope": "Latin text; unsupported scripts fail explicitly and Excel preserves Unicode"
+}
