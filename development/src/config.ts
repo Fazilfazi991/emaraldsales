@@ -24,9 +24,10 @@ export function config(): Config {
   const origin = process.env.APP_ORIGIN ?? `http://127.0.0.1:${port}`;
   if (new URL(origin).origin !== origin)
     throw new Error("APP_ORIGIN must be an exact origin");
-  for (const policy of [process.env.VISIT_POLICY, process.env.DUTY_POLICY])
-    if (policy && !["pending", "approved-v1"].includes(policy))
-      throw new Error("Unknown business policy");
+  if (process.env.VISIT_POLICY && !["pending", "approved-v1", "approved-v2"].includes(process.env.VISIT_POLICY))
+    throw new Error("Unknown visit policy");
+  if (process.env.DUTY_POLICY && !["pending", "approved-v1"].includes(process.env.DUTY_POLICY))
+    throw new Error("Unknown duty policy");
   return {
     host,
     port,

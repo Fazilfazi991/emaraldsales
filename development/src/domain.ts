@@ -131,6 +131,30 @@ export const followupInput = z.discriminatedUnion("action", [
     })
     .strict(),
 ]);
+export const shopUpdateInput = z.object({
+  version: z.number().int().positive(),
+  name: text(160).min(1),
+  contact: text(120),
+  phone: text(40).regex(/^[+\d ()-]*$/),
+  area: text(100).min(1),
+  location: text(300),
+  notes: text(5000),
+  reason: text(1000).min(1),
+}).strict();
+export const shopTransferInput = z.object({
+  version: z.number().int().positive(),
+  assignedExecutiveId: z.string().uuid(),
+  reason: text(1000).min(1),
+}).strict();
+export const followupCreateInput = z.object({
+  visitId: z.string().uuid(),
+  dueDate: calendarDate,
+}).strict();
+export const followupAssignInput = z.object({
+  version: z.number().int().positive(),
+  ownerId: z.string().uuid(),
+  reason: text(1000).min(1),
+}).strict();
 export type DutyState = "off" | "on" | "rest";
 export type DutyAction = "start" | "rest" | "return" | "end";
 export function nextDuty(state: DutyState, action: DutyAction): DutyState {
@@ -165,8 +189,12 @@ export function owns(actor: Actor, ownerId: string) {
       "This record belongs to another executive.",
     );
 }
-export function requirePolicy(policy: string, name: string) {
-  if (policy !== "approved-v1")
+export function management(actor: Actor) {
+  if (actor.role !== "manager" && actor.role !== "admin")
+    throw new Fault(403, "FORBIDDEN", "Only managers can make this change.");
+}
+export function requirePolicy(policy: string, name: string, approved = "approved-v1") {
+  if (policy !== approved)
     throw new Fault(
       409,
       "POLICY_PENDING",

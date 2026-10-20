@@ -169,6 +169,18 @@ export function application(db: Database, settings: Config) {
         send(200, await crm.profile(actor, z.string().uuid().parse(shop[1])));
         return;
       }
+      const shopAudit = path.match(/^\/api\/shops\/([^/]+)\/audit$/);
+      if (shopAudit && method === "GET") {
+        send(200, await crm.shopAudit(actor, z.string().uuid().parse(shopAudit[1]), url.searchParams));
+        return;
+      }
+      const shopChange = path.match(/^\/api\/shops\/([^/]+)\/(update|transfer)$/);
+      if (shopChange && method === "POST") {
+        const id = z.string().uuid().parse(shopChange[1]);
+        const body = await jsonBody(req);
+        send(200, shopChange[2] === "update" ? await crm.updateShop(actor, key, id, body) : await crm.transferShop(actor, key, id, body));
+        return;
+      }
       if (path === "/api/visits" && method === "GET") {
         send(200, await crm.visits(actor, url.searchParams));
         return;
@@ -195,6 +207,15 @@ export function application(db: Database, settings: Config) {
         return;
       }
       const followup = path.match(/^\/api\/followups\/([^/]+)$/);
+      if (path === "/api/followups" && method === "POST") {
+        send(200, await crm.createFollowup(actor, key, await jsonBody(req)));
+        return;
+      }
+      const followupAssign = path.match(/^\/api\/followups\/([^/]+)\/assign$/);
+      if (followupAssign && method === "POST") {
+        send(200, await crm.assignFollowup(actor, key, z.string().uuid().parse(followupAssign[1]), await jsonBody(req)));
+        return;
+      }
       if (followup && method === "POST") {
         send(
           200,
@@ -238,7 +259,7 @@ export function application(db: Database, settings: Config) {
         send(200, await crm.addAccount(actor, key, await jsonBody(req)));
         return;
       }
-      // Corrections, transfers, exports, imports and lead conversion need explicit policies.
+      // Corrections, generic exports/imports and lead conversion still need explicit policies.
       if (
         /^\/api\/(imports|exports|corrections|assignments|conversions)(\/|$)/.test(
           path,
@@ -295,7 +316,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     db = await openDatabase(settings.dataDir);
   const applied = (
     await db.query<{ name: string }>(
-      "SELECT name FROM schema_migrations WHERE name='002_import_provenance.sql'",
+      "SELECT name FROM schema_migrations WHERE name='003_phase2_visits_and_shop_versions.sql'",
     )
   ).rows;
   if (!applied.length) {

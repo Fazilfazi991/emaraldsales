@@ -29,7 +29,7 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
     origin: "http://127.0.0.1",
     dataDir: path,
     secure: false,
-    visitPolicy: "approved-v1",
+    visitPolicy: "approved-v2",
     dutyPolicy: "approved-v1",
   };
   let server = application(db, settings);
@@ -285,7 +285,7 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
       },
     );
     await t.test(
-      "one open visit per executive and per shop; cross-owner checkout denied",
+      "one open visit per executive; cross-owner checkout denied",
       async () => {
         assert.equal(
           (
@@ -296,15 +296,7 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
           ).status,
           409,
         );
-        assert.equal(
-          (
-            await request("/checkin", naseer, {
-              shopId: shop,
-              location: { availability: "denied" },
-            })
-          ).status,
-          409,
-        );
+
         assert.equal(
           (await request(`/visits/${visitId}/checkout`, naseer, checkout))
             .status,
@@ -410,7 +402,7 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
       },
     );
     await t.test(
-      "simultaneous check-ins by different executives at the same shop yield a single winner",
+      "simultaneous check-ins by different executives at the same shop both succeed",
       async () => {
         const body = {
           shopId: syntheticId("shop-5"),
@@ -420,19 +412,11 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
           request("/checkin", ahmed, body),
           request("/checkin", naseer, body),
         ]);
-        assert.deepEqual(replies.map((r) => r.status).sort(), [200, 409]);
-        const i = replies.findIndex((r) => r.status === 200);
-        const auth = i === 0 ? ahmed : naseer;
-        assert.equal(
-          (
-            await request(
-              `/visits/${replies[i].data.visit.id}/checkout`,
-              auth,
-              { ...checkout, followUpDate: null },
-            )
-          ).status,
-          200,
-        );
+        assert.deepEqual(replies.map((r) => r.status).sort(), [200, 200]);
+        assert.notEqual(replies[0].data.visit.id, replies[1].data.visit.id);
+        for (const [i, auth] of [ahmed, naseer].entries()) {
+          assert.equal((await request(`/visits/${replies[i].data.visit.id}/checkout`, auth, { ...checkout, followUpDate: null })).status, 200);
+        }
       },
     );
     await t.test(

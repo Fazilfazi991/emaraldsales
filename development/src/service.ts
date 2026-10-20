@@ -19,6 +19,11 @@ import {
   checkoutInput,
   leadInput,
   followupInput,
+  management,
+  shopUpdateInput,
+  shopTransferInput,
+  followupCreateInput,
+  followupAssignInput,
 } from "./domain.js";
 import type { Config } from "./config.js";
 import { z } from "zod";
@@ -173,17 +178,100 @@ export class CRM {
     );
     const visits = (
       await this.db.query<Row>(
-        "SELECT * FROM visits WHERE organization_id=$1 AND shop_id=$2 ORDER BY checked_in_at DESC,id",
+        "SELECT v.*,u.name AS visitor_name FROM visits v JOIN users u ON u.id=v.visitor_id WHERE v.organization_id=$1 AND v.shop_id=$2 ORDER BY v.checked_in_at DESC,v.id",
         [actor.organizationId, id],
       )
     ).rows;
     const followups = (
       await this.db.query<Row>(
-        "SELECT *,due_date::text FROM followups WHERE organization_id=$1 AND shop_id=$2 ORDER BY created_at DESC,id",
+        "SELECT f.*,f.due_date::text,u.name AS owner_name FROM followups f JOIN users u ON u.id=f.owner_id WHERE f.organization_id=$1 AND f.shop_id=$2 ORDER BY f.created_at DESC,f.id",
         [actor.organizationId, id],
       )
     ).rows;
     return { shop, visits, followups };
+  }
+  async shopAudit(actor: Actor, id: string, params: URLSearchParams) {
+    await one(this.db, "SELECT id FROM shops WHERE organization_id=$1 AND id=$2", [actor.organizationId, id]);
+    const page = z.coerce.number().int().min(0).max(10000).parse(params.get("page") ?? 0);
+    const where = `a.organization_id=$1 AND (
+      (a.entity_type='shop' AND a.entity_id=$2) OR
+      (a.entity_type='visit' AND EXISTS(SELECT 1 FROM visits v WHERE v.organization_id=$1 AND v.shop_id=$2 AND v.id=a.entity_id)) OR
+      (a.entity_type='followup' AND EXISTS(SELECT 1 FROM followups f WHERE f.organization_id=$1 AND f.shop_id=$2 AND f.id=a.entity_id)))`;
+    const total = (await this.db.query<Row>(`SELECT count(*)::int AS n FROM audit_events a WHERE ${where}`, [actor.organizationId, id])).rows[0].n;
+    const rows = (await this.db.query<Row>(`SELECT a.*,u.name AS actor_name FROM audit_events a JOIN users u ON u.id=a.actor_id WHERE ${where} ORDER BY a.happened_at DESC,a.id DESC LIMIT 40 OFFSET $3`, [actor.organizationId, id, page * 40])).rows;
+    return { rows, total, page, pageSize: 40 };
+  }
+  updateShop(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    management(actor);
+    const data = shopUpdateInput.parse(body);
+    return this.mutate(actor, key, `shop.update:${id}`, data, async (tx) => {
+      const before = await one(tx, "SELECT * FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE", [actor.organizationId, id]);
+      if (before.version !== data.version)
+        throw new Fault(409, "STALE_RECORD", "Shop details changed. Refresh before editing.");
+      const shop = await one(tx, `UPDATE shops SET name=$3,contact=$4,phone=$5,area=$6,location=$7,notes=$8,version=version+1,updated_at=now() WHERE organization_id=$1 AND id=$2 RETURNING *`, [actor.organizationId, id, data.name, data.contact, data.phone, data.area, data.location, data.notes]);
+      await audit(tx, actor, "shop.update", "shop", id, { before, after: shop, reason: data.reason });
+      return { shop };
+    });
+  }
+  private async activeExecutive(tx: Queryable, actor: Actor, id: string) {
+    const target = (await tx.query<Row>(`SELECT m.user_id FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1 AND m.user_id=$2 AND m.role='executive' AND u.active FOR SHARE`, [actor.organizationId, id])).rows[0];
+    if (!target)
+      throw new Fault(422, "INVALID_EXECUTIVE", "Choose an active executive from this team.");
+  }
+  transferShop(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    management(actor);
+    const data = shopTransferInput.parse(body);
+    return this.mutate(actor, key, `shop.transfer:${id}`, data, async (tx) => {
+      await this.activeExecutive(tx, actor, data.assignedExecutiveId);
+      const before = await one(tx, "SELECT * FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE", [actor.organizationId, id]);
+      if (before.version !== data.version)
+        throw new Fault(409, "STALE_RECORD", "Shop assignment changed. Refresh before editing.");
+      if (before.assigned_executive_id === data.assignedExecutiveId)
+        throw new Fault(422, "NO_CHANGE", "This executive already owns the shop.");
+      const shop = await one(tx, `UPDATE shops SET assigned_executive_id=$3,version=version+1,updated_at=now() WHERE organization_id=$1 AND id=$2 RETURNING *`, [actor.organizationId, id, data.assignedExecutiveId]);
+      await audit(tx, actor, "shop.transfer", "shop", id, {
+        before: { assignedExecutiveId: before.assigned_executive_id, version: before.version },
+        after: { assignedExecutiveId: shop.assigned_executive_id, version: shop.version },
+        reason: data.reason,
+      });
+      return { shop };
+    });
+  }
+  createFollowup(actor: Actor, key: string | undefined, body: unknown) {
+    executive(actor);
+    requirePolicy(this.config.visitPolicy, "Follow-up changes", "approved-v2");
+    const data = followupCreateInput.parse(body);
+    return this.mutate(actor, key, "followup.create", data, async (tx) => {
+      const visit = await one(tx, "SELECT * FROM visits WHERE organization_id=$1 AND id=$2 FOR UPDATE", [actor.organizationId, data.visitId]);
+      owns(actor, visit.visitor_id);
+      if (visit.lifecycle !== "completed")
+        throw new Fault(409, "VISIT_OPEN", "Finish this visit before adding a follow-up.");
+      await this.futureDate(tx, data.dueDate);
+      const followup = await one(tx, `INSERT INTO followups(id,organization_id,shop_id,visit_id,owner_id,created_by,due_date) VALUES($1,$2,$3,$4,$5,$5,$6) RETURNING *,due_date::text`, [randomUUID(), actor.organizationId, visit.shop_id, visit.id, actor.id, data.dueDate]);
+      await audit(tx, actor, "followup.create", "followup", followup.id, { visitId: visit.id, ownerId: actor.id, dueDate: data.dueDate });
+      return { followup };
+    });
+  }
+  private async futureDate(tx: Queryable, date: string) {
+    const day = (await tx.query<Row>("SELECT (now() AT TIME ZONE 'Asia/Dubai')::date::text AS day")).rows[0].day;
+    if (date < day)
+      throw new Fault(422, "PAST_FOLLOWUP", "Choose today or a future UAE date.");
+  }
+  assignFollowup(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    management(actor);
+    requirePolicy(this.config.visitPolicy, "Follow-up changes", "approved-v2");
+    const data = followupAssignInput.parse(body);
+    return this.mutate(actor, key, `followup.assign:${id}`, data, async (tx) => {
+      await this.activeExecutive(tx, actor, data.ownerId);
+      const before = await one(tx, "SELECT *,due_date::text FROM followups WHERE organization_id=$1 AND id=$2 FOR UPDATE", [actor.organizationId, id]);
+      if (before.version !== data.version || before.status !== "pending")
+        throw new Fault(409, "STALE_RECORD", "This follow-up changed. Refresh before editing.");
+      if (before.owner_id === data.ownerId)
+        throw new Fault(422, "NO_CHANGE", "This executive already owns the follow-up.");
+      const followup = await one(tx, `UPDATE followups SET owner_id=$3,updated_at=now(),version=version+1 WHERE organization_id=$1 AND id=$2 RETURNING *,due_date::text`, [actor.organizationId, id, data.ownerId]);
+      await audit(tx, actor, "followup.assign", "followup", id, { before, after: followup, reason: data.reason });
+      return { followup };
+    });
   }
   async visits(actor: Actor, p: URLSearchParams) {
     const page = z.coerce
@@ -235,34 +323,35 @@ export class CRM {
     return { rows, total, page, pageSize: 40 };
   }
   async dashboard(actor: Actor) {
+    const person = actor.role === "executive" ? actor.id : null;
     // All counters come from authoritative rows; no duplicated last-visit or visit-id lists.
     const metrics = (
       await this.db.query<Row>(
         `SELECT
       (SELECT count(*)::int FROM memberships WHERE organization_id=$1 AND role='executive') AS executives,
-      (SELECT count(*)::int FROM visits WHERE organization_id=$1 AND checked_in_at >= (date_trunc('day',now() AT TIME ZONE 'Asia/Dubai') AT TIME ZONE 'Asia/Dubai') AND checked_in_at < ((date_trunc('day',now() AT TIME ZONE 'Asia/Dubai')+interval '1 day') AT TIME ZONE 'Asia/Dubai')) AS today,
-      (SELECT count(*)::int FROM visits WHERE organization_id=$1 AND lifecycle='completed' AND (checked_in_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date) AS completed,
-      (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND (created_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date) AS new_shops,
-      (SELECT count(*)::int FROM followups WHERE organization_id=$1 AND status='pending') AS pending,
+      (SELECT count(*)::int FROM visits WHERE organization_id=$1 AND ($2::uuid IS NULL OR visitor_id=$2) AND checked_in_at >= (date_trunc('day',now() AT TIME ZONE 'Asia/Dubai') AT TIME ZONE 'Asia/Dubai') AND checked_in_at < ((date_trunc('day',now() AT TIME ZONE 'Asia/Dubai')+interval '1 day') AT TIME ZONE 'Asia/Dubai')) AS today,
+      (SELECT count(*)::int FROM visits WHERE organization_id=$1 AND ($2::uuid IS NULL OR visitor_id=$2) AND lifecycle='completed' AND (checked_in_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date) AS completed,
+      (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND ($2::uuid IS NULL OR created_by=$2) AND (created_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date) AS new_shops,
+      (SELECT count(*)::int FROM followups WHERE organization_id=$1 AND ($2::uuid IS NULL OR owner_id=$2) AND status='pending') AS pending,
       (now() AT TIME ZONE 'Asia/Dubai')::date::text AS day,now() AS server_time`,
-        [actor.organizationId],
+        [actor.organizationId, person],
       )
     ).rows[0];
     const active = (
       await this.db.query<Row>(
-        `SELECT v.*,s.name AS shop_name,s.area,u.name AS visitor_name FROM visits v JOIN shops s ON s.id=v.shop_id JOIN users u ON u.id=v.visitor_id WHERE v.organization_id=$1 AND v.lifecycle='open' ORDER BY v.checked_in_at`,
-        [actor.organizationId],
+        `SELECT v.*,s.name AS shop_name,s.area,u.name AS visitor_name FROM visits v JOIN shops s ON s.id=v.shop_id JOIN users u ON u.id=v.visitor_id WHERE v.organization_id=$1 AND ($2::uuid IS NULL OR v.visitor_id=$2) AND v.lifecycle='open' ORDER BY v.checked_in_at`,
+        [actor.organizationId, person],
       )
     ).rows;
     const followups = (
       await this.db.query<Row>(
-        `SELECT f.*,f.due_date::text,s.name AS shop_name,u.name AS owner_name FROM followups f JOIN shops s ON s.id=f.shop_id JOIN users u ON u.id=f.owner_id WHERE f.organization_id=$1 AND f.status='pending' AND f.due_date <= (now() AT TIME ZONE 'Asia/Dubai')::date+3 ORDER BY f.due_date,f.id LIMIT 100`,
-        [actor.organizationId],
+        `SELECT f.*,f.due_date::text,s.name AS shop_name,u.name AS owner_name FROM followups f JOIN shops s ON s.id=f.shop_id JOIN users u ON u.id=f.owner_id WHERE f.organization_id=$1 AND ($2::uuid IS NULL OR f.owner_id=$2) AND f.status='pending' AND f.due_date <= (now() AT TIME ZONE 'Asia/Dubai')::date+3 ORDER BY f.due_date,f.id LIMIT 100`,
+        [actor.organizationId, person],
       )
     ).rows;
     const today = await this.visits(
       actor,
-      new URLSearchParams({ from: metrics.day, to: metrics.day }),
+      new URLSearchParams({ from: metrics.day, to: metrics.day, ...(person ? { person } : {}) }),
     );
     const team = (
       await this.db.query<Row>(
@@ -291,7 +380,7 @@ export class CRM {
     location: unknown,
   ) {
     executive(actor);
-    requirePolicy(this.config.visitPolicy, "Visit recording");
+    requirePolicy(this.config.visitPolicy, "Visit recording", "approved-v2");
     await one(
       tx,
       "SELECT id FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE",
@@ -299,15 +388,15 @@ export class CRM {
     );
     const conflict = (
       await tx.query<Row>(
-        `SELECT id FROM visits WHERE organization_id=$1 AND lifecycle='open' AND (shop_id=$2 OR visitor_id=$3)`,
-        [actor.organizationId, shopId, actor.id],
+        `SELECT id FROM visits WHERE organization_id=$1 AND lifecycle='open' AND visitor_id=$2`,
+        [actor.organizationId, actor.id],
       )
     ).rows[0];
     if (conflict)
       throw new Fault(
         409,
         "OPEN_VISIT",
-        "An open visit already exists for this shop or executive. Finish it first.",
+        "Finish your current visit before starting another.",
       );
     const id = randomUUID();
     const visit = await one(
@@ -327,7 +416,7 @@ export class CRM {
   }
   checkout(actor: Actor, key: string | undefined, id: string, body: unknown) {
     executive(actor);
-    requirePolicy(this.config.visitPolicy, "Visit recording");
+    requirePolicy(this.config.visitPolicy, "Visit recording", "approved-v2");
     const data = checkoutInput.parse(body);
     return this.mutate(actor, key, `checkout:${id}`, data, async (tx) => {
       const v = await one(
@@ -404,7 +493,7 @@ export class CRM {
       );
     if (data.checkIn) {
       executive(actor);
-      requirePolicy(this.config.visitPolicy, "Visit recording");
+      requirePolicy(this.config.visitPolicy, "Visit recording", "approved-v2");
     }
     return this.mutate(actor, key, "lead", data, async (tx) => {
       await one(
@@ -447,7 +536,7 @@ export class CRM {
     body: unknown,
   ) {
     executive(actor);
-    requirePolicy(this.config.visitPolicy, "Follow-up changes");
+    requirePolicy(this.config.visitPolicy, "Follow-up changes", "approved-v2");
     const data = followupInput.parse(body);
     return this.mutate(actor, key, `followup:${id}`, data, async (tx) => {
       const old = await one(
