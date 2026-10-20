@@ -23,7 +23,7 @@ const notes: Record<ReportKind, string[]> = {
 const columns: Record<ReportKind, { key: string; label: string }[]> = {
   activity: [ ["visitor_name", "Sales executive"], ["shop_name", "Shop"], ["area", "Area"], ["checked_in_at", "Check in (UAE)"], ["checked_out_at", "Check out (UAE)"], ["lifecycle", "Visit state"], ["outcome", "Outcome"] ].map(([key,label])=>({key,label})),
   duty: [["executive_name", "Sales executive"], ["started_at", "Duty started (UAE)"], ["ended_at", "Duty ended (UAE)"], ["state", "Session state"], ["elapsed_minutes", "Recorded duty minutes"], ["rest_minutes", "Recorded rest minutes"], ["active_minutes", "Duty less rest minutes"], ["rest_history", "Break / return history (UAE)"]].map(([key,label])=>({key,label})),
-  followups: [["owner_name", "Assigned executive"], ["shop_name", "Shop"], ["area", "Area"], ["due_date", "Due date (UAE)"], ["status", "Status"], ["created_at", "Created (UAE)"], ["updated_at", "Last updated (UAE)"], ["visit_id", "Originating visit"]].map(([key,label])=>({key,label})),
+  followups: [["owner_name", "Assigned executive"], ["shop_name", "Shop"], ["area", "Area"], ["due_date", "Due date (UAE)"], ["status", "Status"], ["created_at", "Created (UAE)"], ["updated_at", "Last updated (UAE)"]].map(([key,label])=>({key,label})),
 };
 export class Reports {
   constructor(private db: Database, private clock = () => new Date()) {}
