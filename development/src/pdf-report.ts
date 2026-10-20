@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { openSync, type Font } from "fontkit";
-import { chromium } from "playwright";
+import { launchPdfBrowser } from "./pdf-browser.js";
 import { Fault } from "./domain.js";
 import type { DownloadReport } from "./report-downloads.js";
 
@@ -26,8 +26,8 @@ export async function renderPdf(report:DownloadReport,context:string):Promise<Bu
   let browser;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try{
-    try{browser=await chromium.launch({headless:true,timeout:30000});}
-    catch{throw new Fault(503,"PDF_UNAVAILABLE","PDF preparation is unavailable. Download Excel, or ask the local administrator to run the PDF setup in the run instructions.");}
+    try{browser=await launchPdfBrowser();}
+    catch{throw new Fault(503,"PDF_UNAVAILABLE","PDF preparation is temporarily unavailable. Download Excel, or ask your administrator for help.");}
     const page=await browser.newPage({javaScriptEnabled:false});
     await page.route("**/*",route=>route.abort());
     const weights=report.columns.map(c=>/notes|reason/i.test(c.label)?2.1:/shop/i.test(c.label)?1.65:/date|time|start|end/i.test(c.label)?1.25:1);

@@ -8,9 +8,12 @@
     "dev": "tsx src/server.ts",
     "start": "tsx src/server.ts",
     "db:migrate": "tsx scripts/migrate.ts",
+    "staging:migrate": "tsx scripts/staging-migrate.ts",
+    "staging:seed": "tsx scripts/staging-seed.ts",
     "db:seed": "tsx scripts/seed.ts",
     "account:create": "tsx scripts/account.ts",
     "test": "tsx --test tests/*.test.ts",
+    "test:postgres": "tsx --test tests/postgres.integration.ts",
     "test:browser": "node scripts/build.mjs && tsx scripts/phase2-browser.ts",
     "test:reference": "node scripts/baseline.mjs",
     "test:integrity": "node scripts/integrity.mjs",
@@ -24,19 +27,24 @@
     "review:reports:phase3": "tsx scripts/phase3-report-samples.ts"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "packageManager": "pnpm@11.25.0",
   "dependencies": {
     "@electric-sql/pglite": "0.5.10",
+    "@sparticuz/chromium": "153.0.0",
+    "@vercel/functions": "3.10.1",
     "exceljs": "4.4.0",
     "fontkit": "2.0.4",
-    "zod": "4.6.7",
-    "playwright": "1.64.1"
+    "pg": "8.23.1",
+    "playwright": "1.64.1",
+    "playwright-core": "1.63.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/fontkit": "2.0.9",
     "@types/node": "26.6.5",
+    "@types/pg": "8.23.1",
     "esbuild": "0.28.2",
     "tsx": "4.23.15",
     "typescript": "6.0.3"

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm run build",
+  "functions": {
+    "src/server.ts": {
+      "maxDuration": 60,
+      "includeFiles": "{dist/**,assets/fonts/**,migrations/**,node_modules/@sparticuz/chromium/bin/**}",
+      "excludeFiles": "{.local/**,.data/**,.evidence/**,.env,.env.*,tests/**}"
+    }
+  }
+}

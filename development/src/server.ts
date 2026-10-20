@@ -2,7 +2,9 @@ import {
   createServer,
   type IncomingMessage,
   type ServerResponse,
+  type RequestListener,
 } from "node:http";
+import { isIP } from "node:net";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -33,11 +35,14 @@ async function jsonBody(req: IncomingMessage) {
   }
 }
 export function application(db: Database, settings: Config) {
+  return createServer(requestHandler(db, settings));
+}
+export function requestHandler(db: Database, settings: Config): RequestListener {
   const crm = new CRM(db, settings);
   const reports = new Reports(db);
   const cookie = (value: string, age = 43200) =>
     `emerald_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${age}${settings.secure ? "; Secure" : ""}`;
-  return createServer(async (req, res) => {
+  return async (req, res) => {
     const requestId = randomUUID();
     res.setHeader("X-Request-Id", requestId);
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -108,7 +113,7 @@ export function application(db: Database, settings: Config) {
           db,
           body.email,
           body.password,
-          req.socket.remoteAddress ?? "unknown",
+          clientAddress(req, settings),
         );
         res.setHeader("Set-Cookie", cookie(session.token));
         send(200, { csrf: session.csrf });
@@ -317,7 +322,7 @@ export function application(db: Database, settings: Config) {
       console.error(
         JSON.stringify({
           requestId,
-          error: error instanceof Error ? error.message : "Unexpected error",
+          error: settings.trustedProxy ? "REQUEST_FAILED" : error instanceof Error ? error.message : "Unexpected error",
         }),
       );
       send(500, {
@@ -329,9 +334,21 @@ export function application(db: Database, settings: Config) {
         requestId,
       });
     }
-  });
+  };
 }
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+export function clientAddress(req: IncomingMessage, settings: Config) {
+  if (settings.trustedProxy !== "vercel") return req.socket.remoteAddress ?? "unknown";
+  // Trusted only inside the explicitly gated Vercel runtime; the edge overwrites this header.
+  const value = req.headers["x-vercel-forwarded-for"];
+  if (typeof value !== "string" || !isIP(value.trim()))
+    throw new Fault(503, "CLIENT_ADDRESS_UNAVAILABLE", "Sign-in is temporarily unavailable. Please try again shortly.");
+  return value.trim();
+}
+export default async function vercelHandler(req: IncomingMessage, res: ServerResponse) {
+  const { hostedHandler } = await import("./hosted.js");
+  return hostedHandler(req, res);
+}
+if (!process.env.VERCEL && process.argv[1] === fileURLToPath(import.meta.url)) {
   const settings = config(),
     db = await openDatabase(settings.dataDir);
   const applied = (
