@@ -1,0 +1,11 @@
+{
+  "executedAt": "2026-10-20T08:22:50.770Z",
+  "origin": "http://127.0.0.1:3100",
+  "policies": {
+    "visit": "pending",
+    "duty": "approved-v1"
+  },
+  "timezone": "Asia/Dubai",
+  "writeStatus": 409,
+  "writeResult": "POLICY_PENDING"
+}

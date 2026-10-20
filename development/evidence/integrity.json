@@ -1,0 +1,55 @@
+{
+  "executedAt": "2026-10-20T08:24:14.534Z",
+  "checks": [
+    {
+      "path": "docs/CHATGPT-PROJECT-SUPERVISOR-PROMPT.md",
+      "sha256": "4df32174915452366e9db6808a44fa9d8397fbdcf1fd7bd1506d5e17a94871cd",
+      "match": true
+    },
+    {
+      "path": "docs/DEMO-INVENTORY.md",
+      "sha256": "0294c6ee64238ff13a96f798dad731de8579eaa70f12f3d9d857ca7d55649b0b",
+      "match": true
+    },
+    {
+      "path": "docs/original-requirements.md",
+      "sha256": "bc32897754dbbb686e37f4dc062a45724b7e0d74d913edea572823ae77d05bdb",
+      "match": true
+    },
+    {
+      "path": "docs/PROJECT-BACKGROUND.md",
+      "sha256": "aa5712e2adc5a1cf29396d303505bc008fcf299bca4d817d84ca06fd4cd24ff2",
+      "match": true
+    },
+    {
+      "path": "docs/SOURCE-PROVENANCE.md",
+      "sha256": "f8b42cdf95b5e5c56156bb485f4d94b97965a9f35d19c6960c99503f46cd9600",
+      "match": true
+    },
+    {
+      "path": "public/demo/emerald-interlink/favicon.svg",
+      "sha256": "31e9be81678379ac89900e1f6eaf54400c71bb2000f1d7d38ff654c5a531164e",
+      "match": true
+    },
+    {
+      "path": "public/demo/emerald-interlink/index.html",
+      "sha256": "150613e28fb7f83c8c5fa1e80458c258d0ddaf394cbd929d02e4fc516a903d48",
+      "match": true
+    },
+    {
+      "path": "README.md",
+      "sha256": "f8786cc5e1d20b73dd1c67aabb1ec8b179e2d836038dc51b6d787488f36b8533",
+      "match": true
+    },
+    {
+      "path": "reference-tests/original-acceptance.cjs",
+      "sha256": "de3f28ea9b5c944aebba0864d3db3557064b2e82bd5a52e017143ab7b3ecae95",
+      "match": true
+    },
+    {
+      "path": "VALIDATION.md",
+      "sha256": "76576d07ab05774d42014ce5d3704d961450235b9f4e94b44f83963ab4d1e376",
+      "match": true
+    }
+  ]
+}

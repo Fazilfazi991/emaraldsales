@@ -1,0 +1,137 @@
+TAP version 13
+# Subtest: Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL
+    # Subtest: UAE midnight, leap dates, exclusive report end and duty transitions
+    ok 1 - UAE midnight, leap dates, exclusive report end and duty transitions
+      ---
+      duration_ms: 4.2085
+      type: 'test'
+      ...
+    # Subtest: every operational endpoint requires a session; invalid login and CSRF/origin denied
+    ok 2 - every operational endpoint requires a session; invalid login and CSRF/origin denied
+      ---
+      duration_ms: 116.2638
+      type: 'test'
+      ...
+    # Subtest: 700 synthetic shops, paginated server search, shared history and no assignment-only read filter
+    ok 3 - 700 synthetic shops, paginated server search, shared history and no assignment-only read filter
+      ---
+      duration_ms: 55.3346
+      type: 'test'
+      ...
+    # Subtest: validation rejects spoofed actor/timestamps, invalid GPS and whitespace discussion
+    ok 4 - validation rejects spoofed actor/timestamps, invalid GPS and whitespace discussion
+      ---
+      duration_ms: 15.2093
+      type: 'test'
+      ...
+    # Subtest: concurrent duplicate check-in commits one visit, one audit event and one response
+    ok 5 - concurrent duplicate check-in commits one visit, one audit event and one response
+      ---
+      duration_ms: 43.902
+      type: 'test'
+      ...
+    # Subtest: one open visit per executive and per shop; cross-owner checkout denied
+    ok 6 - one open visit per executive and per shop; cross-owner checkout denied
+      ---
+      duration_ms: 49.4619
+      type: 'test'
+      ...
+    # Subtest: checkout retry is atomic, follow-up owned by visitor, and previous follow-up survives
+    ok 7 - checkout retry is atomic, follow-up owned by visitor, and previous follow-up survives
+      ---
+      duration_ms: 43.5996
+      type: 'test'
+      ...
+    # Subtest: different checkout requests race: one completes and one conflicts without overwrite
+    ok 8 - different checkout requests race: one completes and one conflicts without overwrite
+      ---
+      duration_ms: 37.7629
+      type: 'test'
+      ...
+    # Subtest: simultaneous check-ins by different executives at the same shop yield a single winner
+    ok 9 - simultaneous check-ins by different executives at the same shop yield a single winner
+      ---
+      duration_ms: 30.8581
+      type: 'test'
+      ...
+    # Subtest: explicit follow-up reschedule, optimistic concurrency, completion and preservation
+    ok 10 - explicit follow-up reschedule, optimistic concurrency, completion and preservation
+      ---
+      duration_ms: 53.0405
+      type: 'test'
+      ...
+    # Subtest: new discovery retry preserves creator/assignee/visitor and atomic save-and-check-in rollback
+    ok 11 - new discovery retry preserves creator/assignee/visitor and atomic save-and-check-in rollback
+      ---
+      duration_ms: 91.6656
+      type: 'test'
+      ...
+    # Subtest: duty start/rest/return/end, duplicate taps, invalid transition, privacy and visit independence
+    ok 12 - duty start/rest/return/end, duplicate taps, invalid transition, privacy and visit independence
+      ---
+      duration_ms: 137.9673
+      type: 'test'
+      ...
+    # Subtest: overnight duty/rest retains exact instants across UAE midnight and supports a second rest interval
+    ok 13 - overnight duty/rest retains exact instants across UAE midnight and supports a second rest interval
+      ---
+      duration_ms: 81.7285
+      type: 'test'
+      ...
+    # Subtest: database reporting uses UAE date boundaries including exclusive next midnight
+    ok 14 - database reporting uses UAE date boundaries including exclusive next midnight
+      ---
+      duration_ms: 24.4196
+      type: 'test'
+      ...
+    # Subtest: audit events cannot be edited, foreign keys reject orphan records, unapproved operations unavailable
+    ok 15 - audit events cannot be edited, foreign keys reject orphan records, unapproved operations unavailable
+      ---
+      duration_ms: 36.3757
+      type: 'test'
+      ...
+    # Subtest: closing and reopening disk database preserves visits, follow-ups, sessions and duty for a second session
+    ok 16 - closing and reopening disk database preserves visits, follow-ups, sessions and duty for a second session
+      ---
+      duration_ms: 2777.0632
+      type: 'test'
+      ...
+    # Subtest: offline backup opens at a separate restore path and retains the completed visit
+    ok 17 - offline backup opens at a separate restore path and retains the completed visit
+      ---
+      duration_ms: 1357.2355
+      type: 'test'
+      ...
+    # Subtest: organization boundaries deny foreign shop history, check-in and duty reads
+    ok 18 - organization boundaries deny foreign shop history, check-in and duty reads
+      ---
+      duration_ms: 202.225
+      type: 'test'
+      ...
+    # Subtest: admin creates a real account with retry safety and without plaintext password records
+    ok 19 - admin creates a real account with retry safety and without plaintext password records
+      ---
+      duration_ms: 399.4323
+      type: 'test'
+      ...
+    # Subtest: session revocation and expiry prevent subsequent reads
+    ok 20 - session revocation and expiry prevent subsequent reads
+      ---
+      duration_ms: 119.6046
+      type: 'test'
+      ...
+    1..20
+ok 1 - Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL
+  ---
+  duration_ms: 12060.5033
+  type: 'test'
+  ...
+1..1
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13100.0059

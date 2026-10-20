@@ -1,0 +1,13 @@
+{
+  "sha256": "150613e28fb7f83c8c5fa1e80458c258d0ddaf394cbd929d02e4fc516a903d48",
+  "shops": 36,
+  "team": 3,
+  "historyBefore": 8,
+  "historyAfter": 9,
+  "identityAfter": "ahmed",
+  "identityDefectConfirmed": true,
+  "reloadDashboard": true,
+  "mobileOverflow": false,
+  "errors": [],
+  "executedAt": "2026-10-20T08:04:21.743Z"
+}

@@ -1,0 +1,73 @@
+{
+  "status": "passed",
+  "executedAt": "2026-10-20T08:23:30.750Z",
+  "browser": "Installed Microsoft Edge via Playwright",
+  "configuration": "Isolated temporary PostgreSQL database; explicit approved-v1 test policies",
+  "checks": [
+    "real executive login and populated dashboard",
+    "shared history to check-in with GPS unavailable/denied",
+    "checkout/follow-up stored and untrusted notes render as text",
+    "persistence after browser reload",
+    "second authenticated manager session sees shared saved visit",
+    "manager write attempt rejected by server",
+    "mobile executive duty start/rest/return/end",
+    "mobile lead save/check-in, checkout, lost-acknowledgement retry retains one visit",
+    "mobile reload persistence and all five modules without page overflow",
+    "logout revokes server session",
+    "no browser page exceptions or CSP violations"
+  ],
+  "overflows": [
+    {
+      "view": "dashboard",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "view": "shops",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "view": "visits",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "view": "leads",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "view": "team",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "view": "dashboard",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "shops",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "visits",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "leads",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "team",
+      "width": 390,
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "clientAcceptance": "not performed"
+}
