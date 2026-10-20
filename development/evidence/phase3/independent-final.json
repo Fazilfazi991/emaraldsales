@@ -1,0 +1,109 @@
+{
+  "commit": "dddeb42fd0e826eb83a9ebf9e618dc429b7e534e",
+  "executedAt": "2026-10-20T10:20:54.547Z",
+  "scope": "Previously reported export edge fixes only; no source edits, detector rerun, operational database or additional full acceptance",
+  "breakHistory": {
+    "rows": 301,
+    "firstDataHeight": 88,
+    "width": 30,
+    "longNameChars": 120,
+    "dynamicHeight": true
+  },
+  "sourceChecks": {
+    "repeatContextInThead": true,
+    "longRecordClassOver400Characters": true,
+    "sampleTimesUseAsiaDubai": true,
+    "multipageSampleTotals75": true,
+    "readmePdfSetup": true
+  },
+  "oversizedPdf": {
+    "pages": 6,
+    "markers": 300,
+    "uniqueMarkers": 300,
+    "missingMarkers": [],
+    "firstPageHasData": true,
+    "allPagesRetainContext": true,
+    "perPage": [
+      {
+        "page": 1,
+        "title": true,
+        "date": true,
+        "staff": true,
+        "generated": true,
+        "header": true,
+        "footer": true,
+        "breakMarkers": 44
+      },
+      {
+        "page": 2,
+        "title": true,
+        "date": true,
+        "staff": true,
+        "generated": true,
+        "header": true,
+        "footer": true,
+        "breakMarkers": 58
+      },
+      {
+        "page": 3,
+        "title": true,
+        "date": true,
+        "staff": true,
+        "generated": true,
+        "header": true,
+        "footer": true,
+        "breakMarkers": 58
+      },
+      {
+        "page": 4,
+        "title": true,
+        "date": true,
+        "staff": true,
+        "generated": true,
+        "header": true,
+        "footer": true,
+        "breakMarkers": 59
+      },
+      {
+        "page": 5,
+        "title": true,
+        "date": true,
+        "staff": true,
+        "generated": true,
+        "header": true,
+        "footer": true,
+        "breakMarkers": 58
+      },
+      {
+        "page": 6,
+        "title": true,
+        "date": true,
+        "staff": true,
+        "generated": true,
+        "header": true,
+        "footer": true,
+        "breakMarkers": 23
+      }
+    ]
+  },
+  "sampleOutputChecks": {
+    "dutyUsesUae0900": true,
+    "dutyNoUtcLabel": true,
+    "multipageTotals75": true
+  },
+  "visualReview": {
+    "pagesInspected": [
+      1,
+      2
+    ],
+    "readable": true,
+    "noClippingOrOverlaps": true,
+    "firstPageContainsDutyData": true,
+    "continuedPageHasRepeatedContext": true,
+    "images": [
+      "reports/independent-300-break-1.png",
+      "reports/independent-300-break-2.png"
+    ]
+  },
+  "status": "passed"
+}

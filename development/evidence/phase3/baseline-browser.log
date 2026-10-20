@@ -1,0 +1,17 @@
+PASS 390px separate executive same-shop visit does not hide own active visit
+PASS 390px lost save acknowledgement retains visible safe retry and creates exactly one follow-up
+PASS 390px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 390px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+{"requestId":"b824e953-8099-441f-af0d-67abbae022b1","error":"QA browser synthetic database failure"}
+PASS 430px failed database save keeps visit open, preserves form, then retry succeeds
+PASS 430px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 430px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS 768px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 768px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS 1024px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 1024px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS 1440px executive adds shop with sensible self-assignment
+PASS 1440px executive login, duty/break/return, search, checkin, checkout, independent follow-up, reschedule, complete, end duty and logout
+PASS 1440px manager assigns independent follow-up and explicitly confirms audited shop transfer without rewriting existing history
+PASS 1440px manager daily attendance/completed/pending overview, follow-ups, one-executive filter, Excel/PDF downloads and refresh
+PASS no uncaught browser errors or executable untrusted notes

@@ -1,0 +1,67 @@
+{
+  "executedAt": "2026-10-20T10:21:19.716Z",
+  "origin": "http://127.0.0.1:3100",
+  "synthetic": true,
+  "checks": [
+    "Executive complete daily journey, refresh and fresh login persisted visit/follow-up and ended duty",
+    "Separate manager attendance, visits by executive, pending follow-ups, customer history, Excel/PDF and fresh login persistence"
+  ],
+  "downloads": [
+    {
+      "kind": "activity",
+      "format": "xlsx",
+      "bytes": 7458,
+      "selectedStaff": "Ahmed Hassan / أحمد حسن",
+      "dates": "2026-10-20",
+      "populated": true
+    },
+    {
+      "kind": "activity",
+      "format": "pdf",
+      "bytes": 41145,
+      "selectedStaff": "Ahmed Hassan / أحمد حسن",
+      "dates": "2026-10-20",
+      "populated": true
+    },
+    {
+      "kind": "duty",
+      "format": "xlsx",
+      "bytes": 8285,
+      "selectedStaff": "Ahmed Hassan / أحمد حسن",
+      "dates": "2026-10-20",
+      "populated": true
+    },
+    {
+      "kind": "duty",
+      "format": "pdf",
+      "bytes": 39302,
+      "selectedStaff": "Ahmed Hassan / أحمد حسن",
+      "dates": "2026-10-20",
+      "populated": true
+    },
+    {
+      "kind": "followups",
+      "format": "xlsx",
+      "bytes": 7543,
+      "selectedStaff": "Ahmed Hassan / أحمد حسن",
+      "dates": "2026-10-20",
+      "populated": true
+    },
+    {
+      "kind": "followups",
+      "format": "pdf",
+      "bytes": 40861,
+      "selectedStaff": "Ahmed Hassan / أحمد حسن",
+      "dates": "2026-10-20",
+      "populated": true
+    }
+  ],
+  "widths": [
+    390,
+    430,
+    768,
+    1024,
+    1440
+  ],
+  "errors": []
+}

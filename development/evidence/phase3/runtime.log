@@ -1,0 +1,2 @@
+$ tsx scripts/phase3-runtime.ts
+Actual port 3100 synthetic demo: complete executive/manager journeys, persistence, five widths and six populated downloads passed.
