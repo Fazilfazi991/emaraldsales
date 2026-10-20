@@ -10,7 +10,9 @@ import { ZodError, z } from "zod";
 import { openDatabase, type Database } from "./database.js";
 import { config, type Config } from "./config.js";
 import { readSession, login, hashToken } from "./auth.js";
-import { CRM } from "./service.js";
+import { CRM, audit } from "./service.js";
+import { Reports, type ReportKind } from "./reports.js";
+import { excelReport, pdfReport } from "./report-downloads.js";
 import { Fault, type DutyAction } from "./domain.js";
 
 async function jsonBody(req: IncomingMessage) {
@@ -32,6 +34,7 @@ async function jsonBody(req: IncomingMessage) {
 }
 export function application(db: Database, settings: Config) {
   const crm = new CRM(db, settings);
+  const reports = new Reports(db);
   const cookie = (value: string, age = 43200) =>
     `emerald_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${age}${settings.secure ? "; Secure" : ""}`;
   return createServer(async (req, res) => {
@@ -123,6 +126,23 @@ export function application(db: Database, settings: Config) {
           ? req.headers["idempotency-key"]
           : undefined;
       const actor = session.actor;
+      const reportRoute = path.match(/^\/api\/reports\/(activity|duty|followups)(\/export)?$/);
+      if (reportRoute && method === "GET") {
+        const kind = reportRoute[1] as ReportKind;
+        if (reportRoute[2]) {
+          const format = z.enum(["xlsx", "pdf"]).parse(url.searchParams.get("format"));
+          const data = await reports.exportRows(actor, kind, url.searchParams);
+          const bytes = format === "xlsx" ? await excelReport(data) : await pdfReport(data);
+          await db.transaction(tx => audit(tx, actor, "report.download", "report", randomUUID(), { kind, format, from: data.from, to: data.to, person: data.person, scope: url.searchParams.get("scope") ?? "range", records: data.total }));
+          res.setHeader("Content-Type", format === "xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/pdf");
+          res.setHeader("Content-Disposition", `attachment; filename="emerald-${kind}-${data.from}-${data.to}.${format}"`);
+          res.setHeader("Content-Length", bytes.length);
+          res.end(bytes);
+        } else {
+          send(200, await reports[kind](actor, url.searchParams));
+        }
+        return;
+      }
       if (path === "/api/me" && method === "GET") {
         send(200, {
           actor,
