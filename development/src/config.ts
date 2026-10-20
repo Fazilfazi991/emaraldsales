@@ -9,6 +9,7 @@ export interface Config {
   secure: boolean;
   visitPolicy: string;
   dutyPolicy: string;
+  trustedProxy?: "vercel";
 }
 export function config(): Config {
   if (process.env.NODE_ENV === "production")

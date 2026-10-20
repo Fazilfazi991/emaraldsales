@@ -14,6 +14,9 @@ export interface Database extends Queryable {
   transaction<T>(work: (tx: Queryable) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
+export interface MigrationTransaction extends Queryable {
+  exec(sql: string): Promise<unknown>;
+}
 export async function openDatabase(path?: string): Promise<Database> {
   let release = async () => {};
   if (path) {
@@ -63,7 +66,11 @@ export async function openDatabase(path?: string): Promise<Database> {
   }
 }
 export async function migrate(db: Database) {
-  await db.query(
+  await db.transaction((tx) => applyMigrations(tx as MigrationTransaction));
+}
+/** Caller owns the transaction and, on network PostgreSQL, the migration lock. */
+export async function applyMigrations(tx: MigrationTransaction) {
+  await tx.query(
     "CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, sha256 text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())",
   );
   const directory = new URL("../migrations/", import.meta.url);
@@ -72,24 +79,34 @@ export async function migrate(db: Database) {
     .sort()) {
     const sql = await readFile(new URL(name, directory), "utf8");
     const hash = createHash("sha256").update(sql).digest("hex");
-    await db.transaction(async (tx) => {
-      const row = (
-        await tx.query<{ sha256: string }>(
-          "SELECT sha256 FROM schema_migrations WHERE name=$1",
-          [name],
-        )
-      ).rows[0];
-      if (row && row.sha256 !== hash)
-        throw new Error(`Applied migration changed: ${name}`);
-      if (row) return;
-      // Migration SQL is a trusted, versioned file; PGlite query accepts a single statement.
-      await (tx as Queryable & { exec(sql: string): Promise<unknown> }).exec(
-        sql,
-      );
-      await tx.query(
-        "INSERT INTO schema_migrations(name,sha256) VALUES ($1,$2)",
-        [name, hash],
-      );
-    });
+    const row = (
+      await tx.query<{ sha256: string }>(
+        "SELECT sha256 FROM schema_migrations WHERE name=$1",
+        [name],
+      )
+    ).rows[0];
+    if (row && row.sha256 !== hash)
+      throw new Error(`Applied migration changed: ${name}`);
+    if (row) continue;
+    // Migration SQL is a trusted, versioned file; PGlite query accepts a single statement.
+    await tx.exec(sql);
+    await tx.query(
+      "INSERT INTO schema_migrations(name,sha256) VALUES ($1,$2)",
+      [name, hash],
+    );
+  }
+}
+/** Read-only startup check: never create schema or modify a migration at runtime. */
+export async function verifyMigrations(db: Queryable) {
+  const directory = new URL("../migrations/", import.meta.url);
+  const files = (await readdir(directory)).filter(n => n.endsWith(".sql")).sort();
+  const rows = (await db.query<{ name: string; sha256: string }>(
+    "SELECT name,sha256 FROM schema_migrations ORDER BY name",
+  )).rows;
+  if (rows.length !== files.length) throw new Error("Schema verification failed");
+  for (const [index, name] of files.entries()) {
+    const hash = createHash("sha256").update(await readFile(new URL(name, directory))).digest("hex");
+    if (rows[index]?.name !== name || rows[index]?.sha256 !== hash)
+      throw new Error("Schema verification failed");
   }
 }
