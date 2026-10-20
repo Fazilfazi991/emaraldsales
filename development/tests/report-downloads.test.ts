@@ -19,5 +19,7 @@ test("Excel download retains all rows, safe text values and readable header", as
 test("PDF download emits a real paginated PDF and refuses unsupported script without corrupt output", async () => {
   const bytes = await pdfReport({ ...report, total: 100, rows: Array.from({length:100}, (_,i)=>({ staff:"Ahmed Hassan",shop:`Synthetic shop ${i+1}`,status:"Regular Visit" })) });
   assert.equal(bytes.subarray(0,5).toString(), "%PDF-");assert.ok(bytes.length>2000);
+  const empty = await pdfReport({...report,total:0,rows:[]});
+  assert.equal(empty.toString("latin1").match(/\/Type \/Page\b/g)?.length,1,"An empty report must not gain a blank footer page");
   await assert.rejects(()=>pdfReport({...report,rows:[{staff:"أحمد",shop:"Synthetic shop",status:"Regular Visit"}]}), error => (error as {code?:string}).code === "PDF_FONT_UNSUPPORTED");
 });

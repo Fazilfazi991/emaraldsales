@@ -123,7 +123,13 @@ export async function pdfReport(report: DownloadReport): Promise<Buffer> {
   if (!report.rows.length) doc.fillColor("#606b64").fontSize(11).text("No records match the selected dates and staff.", left + 8, y + 20, { width: width - 16 });
   const range = doc.bufferedPageRange();
   for (let page = range.start; page < range.start + range.count; page++) {
-    doc.switchToPage(page);doc.fillColor("#606b64").font("Helvetica").fontSize(8).text(`Page ${page + 1} of ${range.count}`, left, doc.page.height - 27, { width, align: "right", lineBreak: false });
+    doc.switchToPage(page);
+    // Footer is deliberately below the content margin; disable flow for this line so
+    // PDFKit does not append an otherwise empty page for each footer.
+    const margin = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+    doc.fillColor("#606b64").font("Helvetica").fontSize(8).text(`Page ${page + 1} of ${range.count}`, left, doc.page.height - 27, { width, align: "right", lineBreak: false });
+    doc.page.margins.bottom = margin;
   }
   doc.end(); return output;
 }
