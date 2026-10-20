@@ -1,0 +1,4 @@
+reference/** -text
+emerald-crm/** -text
+development/** text=auto eol=lf
+*.png binary
