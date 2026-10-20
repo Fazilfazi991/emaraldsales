@@ -4,6 +4,8 @@
 
 **Owner checkpoint: local preparation only. No hosted database, credentials, infrastructure, service connection, Vercel settings, push or deployment was created or changed.** This prepares a dedicated synthetic staging CRM, not real-client production use. The original `config()` production guard remains unchanged. A separate, explicit hosted staging gate is closed until approved configuration is supplied.
 
+Publication follow-up: `7c7b95b3a47e53d69d3c0911dc4a94b7628ca90f` is the verified implementation commit. A separate publication-safety commit sets `git.deploymentEnabled=false` in `vercel.json` because this repository is already connected to Vercel. This prevents automatic Git deployments while the staging branch and PR are reviewed; it does not change application behavior or cloud settings. Keep automatic deployment disabled until the owner approves infrastructure and release. [Vercel Git configuration](https://vercel.com/docs/project-configuration/git-configuration).
+
 ## What changes
 
 - Export a Node request handler from the existing detected `src/server.ts`; retain the existing local listener, screens, routes and access rules. Reuse the same handler in both environments.
