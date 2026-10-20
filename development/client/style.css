@@ -30,6 +30,8 @@
 .search .input{min-height:48px;font-size:15px}.search-icon{top:14px}
 .daily-next{display:flex;justify-content:space-between;align-items:center;gap:16px}
 .daily-next .button{min-height:48px}.daily-next strong{font-size:17px}
+.shop-primary{display:grid;justify-items:start;gap:8px}.followup-jump{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:600;text-underline-offset:3px}
+#shop-followups{scroll-margin-top:82px}
 details>summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:600;color:var(--green-dark)}
 .dialog-head h2{font-size:19px}.dialog{width:min(560px,calc(100vw - 26px))}
 .dialog form{max-height:88dvh;display:flex;flex-direction:column;min-height:0}
@@ -52,6 +54,8 @@ details>summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:600;co
   .mobile-nav{min-height:70px}.mobile-nav button{gap:4px;min-height:66px}.mobile-nav button .icon{font-size:20px}.mobile-nav button span:last-child{font-size:11px}
   .mobile-cards td:before{font-size:11px}.mobile-cards tbody tr{gap:12px}.cell-sub,.badge,.follow-row span{font-size:12px}
   .team-grid{grid-template-columns:1fr}.dialog-foot .button{min-height:48px}.dialog-head{padding:14px}.toast-region{bottom:82px}
+  .shop-primary{justify-items:stretch}.followup-jump{width:fit-content;font-size:14px}
+  .profile-main>.profile-sidebar{display:contents}.profile-sidebar>.panel{order:2}.profile-main>.profile-history{order:1}.profile-sidebar>#shop-followups{order:0}
 }
 .manager-reports .kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.manager-reports .toolbar{align-items:flex-end}.manager-reports .form-field{display:grid;gap:6px;min-width:130px}.manager-reports .toolbar label{color:#46544a;font-size:12px}.manager-reports .kpi-value{font-size:28px}.manager-reports .kpi-foot{line-height:1.45}.manager-reports [data-manager-export]{border-color:var(--green);color:var(--green);font-weight:700}.manager-reports button[aria-pressed=true]{background:var(--green-soft);color:var(--green-dark);border-color:var(--green)}
 @media(max-width:1050px){.manager-reports .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.manager-reports .toolbar{gap:12px}.manager-reports .form-field{width:100%;min-width:0}.manager-reports .toolbar .input,.manager-reports .toolbar .select{width:100%;min-width:0}.manager-reports .toolbar .button{flex:1;min-width:100px}.manager-reports .kpi-top{font-size:13px}.manager-reports .kpi-foot{font-size:12px}}
