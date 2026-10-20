@@ -1,0 +1,13 @@
+{
+  "name":"emerald-field-sales-crm", "version":"0.1.0", "private":true, "type":"module",
+  "scripts": {
+    "build":"tsc --noEmit && node scripts/build.mjs",
+    "dev":"tsx src/server.ts", "start":"tsx src/server.ts",
+    "db:migrate":"tsx scripts/migrate.ts", "db:seed":"tsx scripts/seed.ts",
+    "account:create":"tsx scripts/account.ts", "test":"tsx --test tests/*.test.ts",
+    "test:browser":"tsx scripts/browser.ts", "test:reference":"node scripts/baseline.mjs", "test:integrity":"node scripts/integrity.mjs"
+  },
+  "engines":{"node":">=22"}, "packageManager":"pnpm@11.25.0",
+  "dependencies":{"@electric-sql/pglite":"0.5.10","zod":"4.6.7"},
+  "devDependencies":{"@types/node":"26.6.5","esbuild":"0.28.2","playwright":"1.64.1","tsx":"4.23.15","typescript":"7.0.2"}
+}
