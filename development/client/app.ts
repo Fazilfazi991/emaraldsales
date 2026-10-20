@@ -6,6 +6,7 @@ import {
   shopStatuses,
   type Actor,
 } from "../src/domain.js";
+import { createManagerView } from "./manager.js";
 type Row = Record<string, any>;
 type List = { rows: Row[]; total: number; page: number; pageSize: number };
 type Profile = { shop: Row; visits: Row[]; followups: Row[] };
@@ -65,6 +66,7 @@ let formAction = "",
 const retryKeys = new Map<string, string>();
 const checkinPayloads = new Map<string, unknown>();
 let unconfirmed: { path: string; signature: string } | null = null;
+let managerView: ReturnType<typeof createManagerView> | undefined;
 let retryOperation: { work: () => Promise<unknown>; message: string } | null = null;
 class ApiError extends Error {
   constructor(
@@ -204,6 +206,8 @@ function shell() {
     `<div class="shell"><aside class="sidebar" aria-label="Main navigation"><div class="brand"><img class="brand-thumb" src="/brand.png" alt="Emerald Interlink"><div><b>EMERALD INTERLINK</b><span>Field Sales CRM</span></div></div><div class="workspace-label">FIELD WORKSPACE</div><nav class="nav" id="desktopNav"></nav><div class="sidebar-foot"><b>EMERALD INTERLINK TRADING L.L.C</b><br>Dubai, United Arab Emirates<div class="connection"><span class="dot"></span>Local review · synthetic data</div><div>Online saves · UAE reporting time</div></div></aside><main class="main"><header class="topbar"><div class="crumb">Emerald Interlink / <b id="crumb">Dashboard</b></div><div class="top-actions"><span class="signed-in">${h(me.actor.name)} <small>${h(me.actor.role)}</small></span>${button("Duty", "data-duty")}${button("Sign out", "data-logout")}</div></header><div class="content" id="content" tabindex="-1"></div></main><nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation"></nav></div>`;
 }
 function loginScreen(message = "") {
+  managerView?.dispose();
+  managerView = undefined;
   $("dialog").hasAttribute("open") &&
     ($("dialog") as HTMLDialogElement).close();
   $("application").innerHTML =
@@ -228,6 +232,8 @@ function loginScreen(message = "") {
   });
 }
 function resetWorkspace() {
+  managerView?.dispose();
+  managerView = undefined;
   retryKeys.clear();
   checkinPayloads.clear();
   unconfirmed = null;
@@ -460,6 +466,8 @@ function query() {
   return p.toString();
 }
 async function render() {
+  managerView?.dispose();
+  managerView = undefined;
   const ticket = ++epoch;
   fetching = true;
   $("content")?.setAttribute("aria-busy", "true");
@@ -487,7 +495,7 @@ async function render() {
       serverDay = dashboard.metrics.day;
       markup =
         view === "dashboard"
-          ? renderDashboard()
+          ? supervisor() ? '<div id="managerReports" class="manager-reports"></div>' : renderDashboard()
           : heading(
               "Field team",
               "Sales executives",
@@ -528,6 +536,14 @@ async function render() {
       : nav.find((n) => n[0] === view)![2];
     $("content").innerHTML =
       `<p class="error" role="alert" id="saveError" hidden></p>${retryBanner()}${!visitEnabled() ? '<div class="notice section-gap">Visit recording is awaiting approval. You can search shops and read visit history.</div>' : ""}${markup}`;
+    if (supervisor() && view === "dashboard" && !selected) {
+      managerView = createManagerView({
+        container: $("managerReports"), request: path => api(path), download: downloadReport,
+        openShop: id => { selected = id; void render(); window.scrollTo(0, 0); },
+        today: serverDay, team: meta.team as { id: string; name: string; role?: string }[],
+      });
+      await managerView.load();
+    }
     if (cursor !== null && $("search")) {
       ($("search") as HTMLInputElement).focus();
       ($("search") as HTMLInputElement).setSelectionRange(cursor, cursor);
@@ -540,6 +556,23 @@ async function render() {
       $("content")?.removeAttribute("aria-busy");
     }
   }
+}
+async function downloadReport(path: string) {
+  let response: Response;
+  try { response = await fetch(`/api${path}`, { credentials: "same-origin" }); }
+  catch { throw new Error("The report could not be downloaded. Check your connection and retry."); }
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 401) loginScreen("Your session has expired. Sign in to download a report.");
+    throw new Error(data.error?.message ?? "The report could not be downloaded. Please retry.");
+  }
+  const blob = await response.blob(), url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = response.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "emerald-report";
+  document.body.append(anchor); anchor.click(); anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast("Your report is ready. Download started.");
 }
 function retryBanner() {
   return unconfirmed && retryOperation ? `<div class="notice section-gap" id="retrySave"><strong>Save not yet confirmed</strong><p>Reconnect, then retry the same save. Your original details are kept for this attempt.</p>${button("Retry save", "data-retry-save", true)}</div>` : "";
