@@ -1,8 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext",
-    "strict": true, "noEmit": true, "esModuleInterop": true,
-    "skipLibCheck": true, "lib": ["ES2023", "DOM", "DOM.Iterable"], "types": ["node"]
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts", "client/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "client/**/*.ts",
+    "scripts/**/*.ts",
+    "tests/**/*.ts"
+  ]
 }
