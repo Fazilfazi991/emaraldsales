@@ -56,16 +56,36 @@ export function createManagerView(options:ManagerViewOptions) {
     }catch(e){if(disposed||current!==version)return;activity=undefined;report=undefined;error=e instanceof Error?e.message:"Activity could not be loaded. Check your connection and retry.";}
     finally{if(!disposed&&current===version){busy=false;render();}}
   }
-  const submit=(e:Event)=>{const form=(e.target as HTMLElement).closest<HTMLFormElement>("[data-manager-filters]");if(!form)return;e.preventDefault();const data=new FormData(form);from=String(data.get("from"));to=String(data.get("to"));person=String(data.get("person"));page=0;void load();};
+  const captureFilters=()=>{
+    const form=container.querySelector<HTMLFormElement>("[data-manager-filters]");
+    if(!form||!form.reportValidity())return;
+    const data=new FormData(form),nextFrom=String(data.get("from")),nextTo=String(data.get("to")),nextPerson=String(data.get("person"));
+    const changed=from!==nextFrom||to!==nextTo||person!==nextPerson;
+    from=nextFrom;to=nextTo;person=nextPerson;
+    if(changed)page=0;
+    return {changed};
+  };
+  const submit=(e:Event)=>{if(!(e.target as HTMLElement).closest("[data-manager-filters]"))return;e.preventDefault();if(!captureFilters())return;page=0;void load();};
   const change=(e:Event)=>{const target=e.target as HTMLSelectElement;if(target.matches("[data-manager-follow-status]")){status=target.value;scope=status==="pending"?"outstanding":"range";}else if(target.matches("[data-manager-follow-scope]"))scope=target.value;else return;page=0;void load();};
   const click=async(e:Event)=>{
     const target=(e.target as HTMLElement).closest<HTMLButtonElement>("button");if(!target||!container.contains(target))return;
     if(target.dataset.managerShop){openShop(target.dataset.managerShop);return;}
-    if(target.dataset.managerExport){if(busy)return;target.disabled=true;try{await download(path(target.dataset.managerExport));}catch(e){error=e instanceof Error?e.message:"The report could not be downloaded. Please retry.";render();}finally{target.disabled=false;}return;}
+    if(target.dataset.managerExport){
+      if(busy)return;
+      const filters=captureFilters();if(!filters)return;
+      const format=target.dataset.managerExport;
+      target.disabled=true;
+      try{
+        if(filters.changed||!report||error){await load();if(disposed||!report||error)return;}
+        await download(path(format));
+      }catch(e){error=e instanceof Error?e.message:"The report could not be downloaded. Please retry.";render();}
+      finally{target.disabled=false;}
+      return;
+    }
     if(target.hasAttribute("data-manager-today")){from=options.today;to=options.today;page=0;}
     else if(target.hasAttribute("data-manager-retry")){}
     else if(target.dataset.managerPerson){person=target.dataset.managerPerson;page=0;}
-    else if(target.dataset.managerKind){kind=target.dataset.managerKind as ReportKind;page=0;}
+    else if(target.dataset.managerKind){if(!captureFilters())return;kind=target.dataset.managerKind as ReportKind;page=0;}
     else if(target.dataset.managerPage){page=Math.max(0,page+Number(target.dataset.managerPage));}
     else return;
     await load();
