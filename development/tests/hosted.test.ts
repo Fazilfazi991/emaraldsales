@@ -7,7 +7,8 @@ import { pathToFileURL } from "node:url";
 import { hostedConfig } from "../src/hosted-config.js";
 import { postgresPoolOptions } from "../src/postgres.js";
 import { config } from "../src/config.js";
-import vercelHandler, { clientAddress } from "../src/server.js";
+import { clientAddress } from "../src/server.js";
+import vercelHandler from "../server.js";
 
 const approved = { VERCEL: "1", NODE_ENV: "production", CRM_HOSTED_STAGE: "approved-synthetic-staging",
   APP_ORIGIN: "https://crm-staging.example.invalid", DATABASE_URL: "postgres://runtime@database.example.invalid/staging",
@@ -64,5 +65,11 @@ test("Unapproved hosted requests return controlled no-store 503 without exposing
     const body = await response.json();
     assert.equal(body.error.code, "STAGING_UNAVAILABLE");
     assert.doesNotMatch(JSON.stringify(body), /DATABASE_URL|postgres:|password|stack/i);
+    const html = await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}/`, { headers: { Accept: "text/html" } });
+    assert.equal(html.status, 503);
+    assert.match(html.headers.get("content-type")!, /text\/html/);
+    assert.match(await html.text(), /EMERALD INTERLINK/);
+    const head = await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}/`, { method: "HEAD" });
+    assert.equal(head.status, 503); assert.equal(await head.text(), "");
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
 });
