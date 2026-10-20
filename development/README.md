@@ -2,6 +2,8 @@
 
 Hosted staging preparation is on `prep/vercel-staging`: see [minimum Vercel setup and owner approvals](docs/VERCEL-STAGING-PREPARATION.md). It is not connected or deployed. The local production guard remains intact; the separate hosted entrypoint requires explicit synthetic-staging approval and validated configuration.
 
+The [Vercel runtime investigation](docs/VERCEL-RUNTIME-FIX.md) records the browser-bundle entrypoint fix, local artifact evidence, remaining Linux/hosted checks and the owner-approved replacement sequence.
+
 The application preserves Emerald's existing green interface, five destinations, real authentication and disk-backed PostgreSQL data. Phase 3 adds visible/resettable filters, a clearer mobile manager overview, simpler navigation names, and Unicode PDF reports with selected staff, dates and totals. This is a local owner-review candidate; client acceptance and production release are pending.
 
 ## Run the demonstration

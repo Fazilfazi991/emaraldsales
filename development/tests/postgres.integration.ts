@@ -5,6 +5,8 @@ import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { request as httpRequest } from "node:http";
+import { resolve, join, relative, isAbsolute } from "node:path";
+import { pathToFileURL } from "node:url";
 import { openPostgres, migratePostgres, verifyRuntimeRole, verifySyntheticWorkspace } from "../src/postgres.js";
 import { verifyMigrations, type Database, type Queryable } from "../src/database.js";
 import { seedSynthetic, syntheticId } from "../src/fixtures.js";
@@ -166,11 +168,27 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
       const ca = await readFile(process.env.CRM_LOCAL_PG_TEST_CA!, "utf8");
       const connection = new URL(url); connection.hostname = "localhost";
       const origin = "https://crm-staging.example.invalid";
-      const child = spawn(process.execPath, ["--import", "tsx", "--input-type=module", "-e",
-        "import {createServer} from 'node:http';import handler from './src/server.ts';const server=createServer(handler);server.listen(0,'127.0.0.1',()=>console.log(JSON.stringify({port:server.address().port})));"],
-        { windowsHide: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, VERCEL: "1", NODE_ENV: "production",
+      const artifact = process.env.CRM_VERCEL_ARTIFACT_DIR ? resolve(process.env.CRM_VERCEL_ARTIFACT_DIR) : undefined;
+      let entry = pathToFileURL(resolve("server.ts")).href;
+      if (artifact) {
+        const metadata = JSON.parse(await readFile(join(artifact, "artifact-metadata.json"), "utf8"));
+        const path = resolve(artifact, metadata.handler), rel = relative(artifact, path);
+        assert.ok(rel && !rel.startsWith("..") && !isAbsolute(rel));
+        assert.equal(metadata.runtime, "nodejs22.x");
+        assert.notEqual(metadata.handler, "app.js");
+        entry = pathToFileURL(path).href;
+      }
+      const child = spawn(process.execPath, [...(artifact ? [] : ["--import", "tsx"]), "--input-type=module", "-e",
+        `import {createServer} from 'node:http';import handler from ${JSON.stringify(entry)};const server=createServer(handler);server.listen(0,'127.0.0.1',()=>console.log(JSON.stringify({port:server.address().port})));`],
+        { cwd: artifact, windowsHide: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, VERCEL: "1", NODE_ENV: "production",
           CRM_HOSTED_STAGE: "approved-synthetic-staging", APP_ORIGIN: origin, DATABASE_URL: connection.toString(),
           DATABASE_SSL_CA: ca, VISIT_POLICY: "approved-v2", DUTY_POLICY: "approved-v1" } });
+      const stages: string[] = [];
+      child.stderr.on("data", chunk => {
+        for (const line of String(chunk).split("\n")) {
+          try { const event = JSON.parse(line); if (event.event === "hosted_startup_unavailable" && /^[a-z_]+$/.test(event.stage)) stages.push(event.stage); } catch {}
+        }
+      });
       try {
         const port = await new Promise<number>((resolve, reject) => {
           const timer = setTimeout(() => reject(new Error("Hosted smoke server startup timed out")), 15000);
@@ -189,7 +207,9 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
             response.on("end", () => resolve({ status: response.statusCode!, headers: response.headers, body: Buffer.concat(chunks) }));
           }); request.on("error", reject); request.end(body ? JSON.stringify(body) : undefined);
         });
-        const page = await raw("/"); assert.equal(page.status, 200); assert.match(page.body.toString(), /EMERALD/i);
+        const page = await raw("/"); assert.equal(page.status, 200, `Hosted stages: ${stages.join(",")}`); assert.match(page.body.toString(), /EMERALD/i);
+        for (const asset of ["/app.js", "/style.css", "/brand.png", "/favicon.svg"])
+          assert.equal((await raw(asset)).status, 200, `Hosted asset: ${asset}`);
         const account = fixture.accounts.find(a => a.email === "manager@local.invalid")!;
         const login = await raw("/api/login", {}, { email: account.email, password: account.password });
         assert.equal(login.status, 200); assert.match(login.headers["set-cookie"]![0], /; Secure/);

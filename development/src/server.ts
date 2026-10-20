@@ -1,7 +1,6 @@
 import {
   createServer,
   type IncomingMessage,
-  type ServerResponse,
   type RequestListener,
 } from "node:http";
 import { isIP } from "node:net";
@@ -87,7 +86,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           throw new Fault(405, "METHOD_NOT_ALLOWED", "Method not allowed.");
         const assets: Record<string, [string, string]> = {
           "/": ["index.html", "text/html; charset=utf-8"],
-          "/app.js": ["app.js", "text/javascript; charset=utf-8"],
+          "/app.js": ["emerald-client.js", "text/javascript; charset=utf-8"],
           "/style.css": ["style.css", "text/css; charset=utf-8"],
           "/brand.png": ["brand.png", "image/png"],
           "/favicon.svg": ["favicon.svg", "image/svg+xml"],
@@ -343,10 +342,6 @@ export function clientAddress(req: IncomingMessage, settings: Config) {
   if (typeof value !== "string" || !isIP(value.trim()))
     throw new Fault(503, "CLIENT_ADDRESS_UNAVAILABLE", "Sign-in is temporarily unavailable. Please try again shortly.");
   return value.trim();
-}
-export default async function vercelHandler(req: IncomingMessage, res: ServerResponse) {
-  const { hostedHandler } = await import("./hosted.js");
-  return hostedHandler(req, res);
 }
 if (!process.env.VERCEL && process.argv[1] === fileURLToPath(import.meta.url)) {
   const settings = config(),

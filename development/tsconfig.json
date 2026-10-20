@@ -11,6 +11,7 @@
     "types": ["node"]
   },
   "include": [
+    "server.ts",
     "src/**/*.ts",
     "client/**/*.ts",
     "scripts/**/*.ts",
