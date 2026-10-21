@@ -2,6 +2,8 @@
 
 This directory builds a static, fictional client-review site. It reuses the existing Emerald screens from `development/client` and substitutes `development/demo/transport.ts` at build time. The normal CRM build retains its authenticated server transport. No backend source, authorization rule or migration is changed by the demo.
 
+The attendance additions and owner sharing checkpoint are documented in [ATTENDANCE-REVIEW-HANDOFF.md](ATTENDANCE-REVIEW-HANDOFF.md); the complete capability audit is [FEATURE-AUDIT.md](FEATURE-AUDIT.md). Owner visual approval and real-phone/client acceptance are still required.
+
 ## Run and verify
 
 Use Node 22 and the pinned pnpm version:
@@ -13,9 +15,12 @@ cd development
 pnpm build
 pnpm test
 node --import tsx scripts/demo-browser.ts
+node --import tsx scripts/attendance-browser.ts
 ```
 
 The browser verification script starts a disposable static file server, walks both roles and exports, checks five widths, and saves synthetic evidence in `development/evidence/client-demo`. Set `DEMO_BASE_URL` to the approved preview URL to run the same checks against HTTPS. It uses an empty browser context, without Vercel cookies or authentication bypass. It does not test a physical phone.
+
+The independent attendance harness covers all five destinations, attendance calculations and report reconciliation in `development/evidence/attendance-review/local`. Set `DEMO_EVIDENCE_DIR` for a separate HTTPS evidence directory. Its main journey uses actual browser time. Saved-timestamp fixtures and isolated clock-regression contexts are explicitly identified in the evidence; they do not accelerate the demo's counters.
 
 ## Demo boundaries
 

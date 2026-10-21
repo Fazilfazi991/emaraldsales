@@ -1,0 +1,12 @@
+{
+  "base": "http://127.0.0.1:53451",
+  "at": "2026-10-21T04:43:02.815Z",
+  "checks": [
+    "Separate test clock: Team history advances from saved timestamps without a Today duty card"
+  ],
+  "errors": [],
+  "unexpectedRequests": [],
+  "failedResponses": [],
+  "clockEmulation": "Separate test context only",
+  "physicalPhoneTested": false
+}

@@ -49,7 +49,7 @@ let view = "dashboard",
   selected: string | null = null,
   profile: Profile | null = null,
   dashboard: Row,
-  duty: { sessions: Row[]; rests: Row[] } = { sessions: [], rests: [] };
+  duty: { sessions: Row[]; rests: Row[]; today?: Row } = { sessions: [], rests: [] };
 let list: List = { rows: [], total: 0, page: 0, pageSize: 40 },
   filters: Filter = {
     q: "",
@@ -70,6 +70,7 @@ const checkinPayloads = new Map<string, unknown>();
 let unconfirmed: { path: string; signature: string } | null = null;
 let managerView: ReturnType<typeof createManagerView> | undefined;
 let filtersOpen = false;
+let demoDayRefreshPending = false;
 let retryOperation: { work: () => Promise<unknown>; message: string } | null = null;
 class ApiError extends Error {
   constructor(
@@ -210,6 +211,7 @@ function shell() {
   if (demo) {
     document.querySelector(".sidebar-foot")!.innerHTML = '<b>EMERALD INTERLINK TRADING L.L.C</b><br>Client review · Fictional records<div class="connection"><span class="dot"></span>Saved in this browser only</div><div>Changes do not sync between devices.</div>';
     document.querySelector<HTMLButtonElement>("[data-logout]")!.textContent = "Switch role";
+    document.querySelector<HTMLButtonElement>("[data-duty]")!.textContent = "Duty history";
     const banner = document.createElement("div");
     banner.className = "demo-strip";
     banner.innerHTML = '<strong>DEMO — Sample Data</strong><span>This browser only · Use fictional details</span><button class="button small" type="button" data-demo-reset>Reset Demo Data</button>';
@@ -437,9 +439,12 @@ function currentDuty() {
 }
 function dutyCard() {
   const current = currentDuty();
-  return `<section class="notice duty-card"><div><strong>Your duty · ${current.state === "off" ? "Off duty" : current.state === "rest" ? "On break" : "On duty"}</strong><p>Duty timing is separate from shop visits.</p></div><div class="actions">${me.policies.duty !== "approved-v1" ? badge("Policy pending") : current.state === "off" ? button("Start duty", 'data-duty-action="start"') : current.state === "rest" ? button("Return to duty", 'data-duty-action="return"') : button("Start break", 'data-duty-action="rest"') + button("End duty", 'data-duty-action="end"')}</div></section>`;
+  const hours = demo && duty.today ? `<div class="duty-hours" aria-label="Your working hours today">${[["Total duty","duty_duration"],["Break time","break_duration"],["Net working","net_duration"]].map(([label,key])=>`<div><span>${label}</span><strong data-duty-clock="${key}">${h(duty.today![key])}</strong></div>`).join("")}</div><p class="duty-hours-note">Today · UAE time · Net working excludes recorded breaks</p>` : "";
+  return `<section class="notice duty-card"><div><strong>Your duty · ${current.state === "off" ? "Off duty" : current.state === "rest" ? "On break" : "On duty"}</strong><p>Duty timing is separate from shop visits.</p></div><div class="actions">${me.policies.duty !== "approved-v1" ? badge("Policy pending") : current.state === "off" ? button("Start duty", 'data-duty-action="start"', !!demo) : current.state === "rest" ? button("Return to duty", 'data-duty-action="return"', !!demo) : button("Start break", 'data-duty-action="rest"') + button("End duty", 'data-duty-action="end"')}</div>${hours}</section>`;
 }
 function dutyTable() {
+  const savedHours=(s:Row,key:string)=>`<span data-session-clock="${h(s.id)}|${h(key)}">${h(s[key]??"—")}</span>`;
+  if (demo) return table(["EXECUTIVE", "DUTY START / END", "TOTAL DUTY", "BREAK TIME", "NET WORKING", "BREAK / RETURN HISTORY"], duty.sessions.map(s=>`<tr>${cell("EXECUTIVE",h(s.name))}${cell("DUTY START / END",`${date(s.started_at)} ${time(s.started_at)}<span class="cell-sub">${s.ended_at?`${date(s.ended_at)} ${time(s.ended_at)}`:"Ongoing"}</span>`)}${cell("TOTAL DUTY",savedHours(s,"duty_duration"))}${cell("BREAK TIME",savedHours(s,"break_duration"))}${cell("NET WORKING",savedHours(s,"net_duration"))}${cell("BREAK / RETURN HISTORY",(s.rests??duty.rests.filter(r=>r.session_id===s.id)).map((r:Row)=>`${date(r.started_at)} ${time(r.started_at)} → ${r.ended_at?`${date(r.ended_at)} ${time(r.ended_at)}`:"On break"}`).join("<br>")||"No recorded breaks")}</tr>`).join(""));
   return table(
     ["EXECUTIVE", "START", "END", "REST INTERVALS"],
     duty.sessions
@@ -559,6 +564,8 @@ async function render() {
         openShop: id => { selected = id; void render(); window.scrollTo(0, 0); },
         today: serverDay, team: meta.team as { id: string; name: string; role?: string }[],
         pdfLabel: demo ? "Print / Save as PDF" : undefined,
+        attendanceEnabled: !!demo,
+        currentDay: demo?.currentDay,
       });
       await managerView.load();
     }
@@ -865,7 +872,7 @@ document.addEventListener("click", async (e) => {
       formAction = "";
       dialog(
         executive() ? "Your duty history" : "Team duty history",
-        demo ? "Browser-local sample timing · Asia/Dubai" : "Server-recorded timing · Asia/Dubai",
+        demo ? "Full session hours and individual breaks · UAE time. Today's card counts today only." : "Server-recorded timing · Asia/Dubai",
         `${executive() ? dutyCard() : ""}${dutyTable()}`,
         button("Close", "data-dismiss"),
       );
@@ -982,6 +989,28 @@ window.addEventListener("online", () =>
     demo ? "Connection available. Demo records remain in this browser only." : "Connection available. Refresh history and retry any unconfirmed save.",
   ),
 );
+// Recalculate from saved timestamps and the actual clock; never increment a synthetic counter.
+if (demo) setInterval(() => {
+  if (document.hidden || !me) return;
+  const dayNow=demo.currentDay();
+  if (serverDay && dayNow!==serverDay) {
+    serverDay=dayNow;
+    dashboard=undefined as any;
+    demoDayRefreshPending=executive();
+    document.querySelectorAll<HTMLInputElement>('#dialogForm input[type="date"]').forEach(input=>input.min=dayNow);
+  }
+  if (demoDayRefreshPending && !submitting && !fetching && !($("dialog") as HTMLDialogElement).open) {
+    demoDayRefreshPending=false;void render();return;
+  }
+  if (!executive() || submitting || fetching || !document.querySelector("[data-duty-clock], [data-session-clock]")) return;
+  try {
+    const current = demo.dutyNow();
+    if (!current.today) return;
+    duty = current;
+    document.querySelectorAll<HTMLElement>("[data-duty-clock]").forEach(node => { node.textContent = String(current.today![node.dataset.dutyClock!] ?? "0h 0m"); });
+    document.querySelectorAll<HTMLElement>("[data-session-clock]").forEach(node=>{const [id,key]=node.dataset.sessionClock!.split("|");const session=current.sessions.find(s=>s.id===id);if(session)node.textContent=String(session[key]??"—");});
+  } catch { /* Explicit reload/save actions present storage errors without repeated timer alerts. */ }
+}, 1000);
 bootstrap().catch((error) =>
   loginScreen(
     error instanceof ApiError && error.status === 401

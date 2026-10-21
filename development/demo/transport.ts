@@ -3,9 +3,10 @@ import { profiles } from "./data.js";
 import { DemoStore } from "./store.js";
 import { exportDemoReport } from "./reports.js";
 import type { DemoControls } from "../client/transport.js";
-import { Fault } from "../src/domain.js";
+import { Fault, businessDay } from "../src/domain.js";
+import { formatDuration } from "./attendance.js";
 const store=new DemoStore({getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)},source);
-const controls:DemoControls={profiles,select:id=>store.select(id),reset:()=>store.reset(),download:path=>exportDemoReport(store,path)};
+const controls:DemoControls={profiles,select:id=>store.select(id),reset:()=>store.reset(),download:path=>exportDemoReport(store,path),dutyNow:()=>store.request("/duty"),formatDuration,currentDay:()=>businessDay(new Date())};
 export function getDemoControls(){return controls;}
 export async function request(path:string,init?:RequestInit):Promise<Response>{
   const run=()=>{

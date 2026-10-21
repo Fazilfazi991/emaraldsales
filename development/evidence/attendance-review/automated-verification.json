@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-21",
+  "branch": "demo/attendance-review",
+  "baseline": "d915ebeb90c6d40fd33e6fb7bd8aad1211e9b100",
+  "commands": ["pnpm run build", "node ../client-demo/build.mjs", "pnpm test"],
+  "normalBuild": "passed",
+  "staticBuild": "passed: no functions, backend or credentials",
+  "regularTests": {"tests": 90, "passed": 90, "failed": 0, "cancelled": 0, "skipped": 0},
+  "localBrowserCheckpoints": 28,
+  "localDownloadedWorkbooksReopened": 6,
+  "localGenuineBrowserPdfs": 6,
+  "hostedDatabaseTests": "not run; no hosted database connected",
+  "physicalDeviceAcceptance": "pending actual Android/iPhone testers",
+  "ownerVisualApproval": "pending"
+}

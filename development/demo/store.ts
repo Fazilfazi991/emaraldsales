@@ -1,5 +1,6 @@
 import { businessDay, addDays, dayRange, calendarDate, checkinInput, checkoutInput, leadInput, followupInput, followupCreateInput, followupAssignInput, shopUpdateInput, shopTransferInput, nextDuty, executive, management, owns, Fault, type Actor, type DutyAction } from "../src/domain.js";
 import { createData, profiles, id, type Row, type Source, type DemoState } from "./data.js";
+import { attendanceForRange } from "./attendance.js";
 export const STORAGE_KEY="emerald-client-demo-v1";
 type StorageLike=Pick<Storage,"getItem"|"setItem"|"removeItem">;
 const sorted=(rows:Row[],key:string)=>[...rows].sort((a,b)=>String(b[key]).localeCompare(String(a[key]))||String(a.id).localeCompare(String(b.id)));
@@ -28,28 +29,28 @@ export class DemoStore {
   private audit(s:DemoState,a:Actor,action:string,shopId:string,details:Row={}){s.audit.unshift({id:this.uuid(),actor_id:a.id,actor_name:a.name,shop_id:shopId,action,details,happened_at:this.clock().toISOString()});}
   private follow(s:DemoState,a:Actor,v:Row,due:string){this.future(due);const f={id:this.uuid(),shop_id:v.shop_id,visit_id:v.id,owner_id:a.id,created_by:a.id,due_date:due,status:"pending",version:1,created_at:this.clock().toISOString(),updated_at:this.clock().toISOString()};s.followups.push(f);this.audit(s,a,"followup.create",v.shop_id,{dueDate:due,visitId:v.id});return f;}
   report(kind:string,p:URLSearchParams,all=false):any {
-    const s=this.read(),a=this.actor(s);management(a);need(["activity","duty","followups"].includes(kind),"Report not found.",404);
+    const s=this.read(),a=this.actor(s);management(a);need(["activity","duty","followups","attendance"].includes(kind),"Report not found.",404);
     const {from,to}=this.dates(p),person=p.get("person"),asOf=this.clock().toISOString();
     if(person)need(profiles.some(x=>x.id===person&&x.role==="executive"),"Sales executive not found.",404);
     const [start,end]=dayRange(from,to),inside=(value:string)=>value>=new Date(start).toISOString()&&value<new Date(end).toISOString()&&value<=asOf;
     const choose=(row:Row,key:string)=>!person||row[key]===person;
+    const attendance=attendanceForRange(s.sessions,s.rests,profiles.filter(x=>!person||x.id===person),from,to,asOf,s.visits);
     let rows:Row[];
     if(kind==="activity")rows=sorted(s.visits.filter(v=>choose(v,"visitor_id")&&inside(v.checked_in_at)).map(v=>this.visitRow(s,v)),"checked_in_at");
-    else if(kind==="duty")rows=sorted(s.sessions.filter(d=>choose(d,"executive_id")&&+new Date(d.started_at)<+new Date(end)&&+new Date(d.started_at)<=+new Date(asOf)&&+new Date(d.ended_at??asOf)>+new Date(start)).map(d=>{
-      const rests=s.rests.filter(r=>r.session_id===d.id),lo=Math.max(+new Date(start),+new Date(d.started_at)),hi=Math.min(+new Date(end),+new Date(d.ended_at??asOf),+new Date(asOf));
-      const elapsed=Math.max(0,hi-lo),rest=rests.reduce((n,r)=>n+Math.max(0,Math.min(hi,+new Date(r.ended_at??asOf))-Math.max(lo,+new Date(r.started_at))),0),minutes=(n:number)=>Math.round(n/600)/100;
-      return {...d,executive_name:this.person(d.executive_id),rests,state:d.ended_at?"Ended":rests.some(r=>!r.ended_at)?"On break":"On duty",elapsed_minutes:minutes(elapsed),rest_minutes:minutes(rest),active_minutes:minutes(Math.max(0,elapsed-rest))};
-    }),"started_at");
+    else if(kind==="attendance")rows=attendance.rows;
+    else if(kind==="duty")rows=sorted(attendance.sessions.map(d=>({...d,elapsed_minutes:d.duty_ms/60000,rest_minutes:d.break_ms/60000,active_minutes:d.net_ms/60000})),"started_at");
     else {const status=p.get("status")||"pending",scope=p.get("scope")||"range";need(["pending","completed","cancelled","all"].includes(status)&&["range","outstanding"].includes(scope),"Choose valid follow-up filters.",400);rows=s.followups.filter(f=>choose(f,"owner_id")&&f.due_date<=to&&(scope==="outstanding"?f.status==="pending":f.due_date>=from&&(status==="all"||f.status===status))).map(f=>this.followRow(s,f)).sort((a,b)=>a.due_date.localeCompare(b.due_date));}
     const result:any={...this.page(rows,p),from,to,person,timeZone:"Asia/Dubai",asOf,status:p.get("status")||"pending",scope:p.get("scope")||"range"};
     if(all)result.rows=rows;
+    if(kind==="duty")result.summary=attendance.totals;
+    if(kind==="attendance")Object.assign(result,{totalsByExecutive:attendance.totalsByExecutive,session_details:attendance.sessions,sessions:attendance.sessions,summary:attendance.totals});
     if(kind==="activity"){
       result.staff=profiles.filter(x=>x.role==="executive"&&(!person||x.id===person)).map(x=>{
-        const session=s.sessions.find(d=>d.executive_id===x.id&&!d.ended_at);
-        return {...x,checked_in:s.visits.filter(v=>v.visitor_id===x.id&&inside(v.checked_in_at)).length,completed_visits:s.visits.filter(v=>v.visitor_id===x.id&&v.checked_out_at&&inside(v.checked_out_at)).length,open_visits:s.visits.filter(v=>v.visitor_id===x.id&&v.lifecycle==="open").length,pending_followups:s.followups.filter(f=>f.owner_id===x.id&&f.status==="pending").length,due_followups:s.followups.filter(f=>f.owner_id===x.id&&f.status==="pending"&&f.due_date<=to).length,recorded_sessions:s.sessions.filter(d=>d.executive_id===x.id&&+new Date(d.started_at)<+new Date(end)&&+new Date(d.ended_at??asOf)>+new Date(start)).length,duty_status:!session?"Off duty":s.rests.some(r=>r.session_id===session.id&&!r.ended_at)?"On break":"On duty"};
+        const recorded=attendance.totalsByExecutive.find(d=>d.executive_id===x.id)!;
+        return {...x,...recorded,attendance_status:recorded.status,attendance_rows:attendance.rows.filter(d=>d.executive_id===x.id),session_details:recorded.sessions,checked_in:s.visits.filter(v=>v.visitor_id===x.id&&inside(v.checked_in_at)).length,completed_visits:s.visits.filter(v=>v.visitor_id===x.id&&v.checked_out_at&&inside(v.checked_out_at)).length,open_visits:s.visits.filter(v=>v.visitor_id===x.id&&v.lifecycle==="open").length,pending_followups:s.followups.filter(f=>f.owner_id===x.id&&f.status==="pending").length,due_followups:s.followups.filter(f=>f.owner_id===x.id&&f.status==="pending"&&f.due_date<=to).length,duty_status:recorded.current_status};
       });
       const sum=(key:string)=>result.staff.reduce((n:number,r:Row)=>n+r[key],0);
-      result.summary={executives:result.staff.length,checked_in:sum("checked_in"),completed_visits:sum("completed_visits"),open_visits:sum("open_visits"),pending_followups:sum("pending_followups"),due_followups:sum("due_followups"),recorded_sessions:sum("recorded_sessions")};
+      result.summary={...attendance.totals,executives:result.staff.length,checked_in:sum("checked_in"),completed_visits:sum("completed_visits"),open_visits:sum("open_visits"),pending_followups:sum("pending_followups"),due_followups:sum("due_followups"),recorded_sessions:sum("recorded_sessions")};
     }
     return structuredClone(result);
   }
@@ -60,7 +61,12 @@ export class DemoStore {
     if(body===undefined){
       if(route==="/me")return {actor:a,csrf:"demo-local-only",policies:{visit:"approved-v2",duty:"approved-v1"}};
       if(route==="/metadata")return {team:profiles,areas:[...new Set(s.shops.map(x=>x.area))].sort()};
-      if(route==="/duty"){const sessions=sorted(s.sessions.filter(d=>a.role!=="executive"||d.executive_id===a.id),"started_at").slice(0,100).map((d):Row=>({...d,name:this.person(d.executive_id)}));return {sessions,rests:s.rests.filter(r=>sessions.some(d=>d.id===r.session_id))};}
+      if(route==="/duty"){
+        const visible=profiles.filter(x=>x.role==="executive"&&(a.role!=="executive"||x.id===a.id)),stored=s.sessions.filter(d=>visible.some(x=>x.id===d.executive_id)),first=stored.filter(d=>Number.isFinite(+new Date(d.started_at))).map(d=>businessDay(d.started_at)).sort()[0]??today;
+        const history=attendanceForRange(stored,s.rests,visible,first>today?today:first,today,now,s.visits,false),daily=attendanceForRange(stored,s.rests,visible,today,today,now,s.visits);
+        const sessions=sorted(history.sessions.map((d):Row=>({...d,name:this.person(d.executive_id)})),"started_at").slice(0,100);
+        return {sessions,rests:s.rests.filter(r=>sessions.some(d=>d.id===r.session_id)),today:a.role==="executive"?daily.rows[0]:null,attendance_rows:daily.rows,totalsByExecutive:daily.totalsByExecutive,asOf:now,timeZone:"Asia/Dubai"};
+      }
       if(route==="/shops"){
         const q=(p.get("q")||"").toLocaleLowerCase(),rows=s.shops.filter(x=>[x.name,x.contact,x.phone,x.area,x.location].join(" ").toLocaleLowerCase().includes(q)&&(!p.get("person")||x.assigned_executive_id===p.get("person"))&&(!p.get("area")||x.area===p.get("area"))&&(!p.get("status")||x.status===p.get("status"))&&(p.get("lead")!=="true"||x.status!=="Customer")&&(!p.get("when")||(p.get("when")==="due"?s.followups.some(f=>f.shop_id===x.id&&f.status==="pending"):p.get("when")==="visited"?s.visits.some(v=>v.shop_id===x.id):!s.visits.some(v=>v.shop_id===x.id)))).map(x=>({...x,last_visit:sorted(s.visits.filter(v=>v.shop_id===x.id),"checked_in_at")[0]?.checked_in_at,next_followup:s.followups.filter(f=>f.shop_id===x.id&&f.status==="pending").map(f=>f.due_date).sort()[0],visit_count:s.visits.filter(v=>v.shop_id===x.id).length}));return this.page(rows,p);
       }
