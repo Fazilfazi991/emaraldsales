@@ -29,7 +29,7 @@ export function attendanceForRange(sessions: Row[], rests: Row[], profiles: Row[
   const at = instant(asOf);
   if (!Number.isFinite(at) || from > to || includeDays && (+new Date(to)-+new Date(from))/86400000 > 366) throw new Error("Choose a valid attendance date range and time.");
   const [rangeStart, rangeEnd] = dayRange(from,to), start = instant(rangeStart), end = Math.min(instant(rangeEnd),at);
-  const executives = profiles.filter(person => person.role === "executive");
+  const executives = profiles.filter(person => person.role === "executive" || person.role === "delivery");
   const valid = sessions.filter(s => Number.isFinite(instant(s.started_at)) && (!s.ended_at || Number.isFinite(instant(s.ended_at)) && instant(s.ended_at)>=instant(s.started_at)));
   const activeAt = (personId:string, cutoff:number) => valid.filter(s => s.executive_id === personId && instant(s.started_at)<=cutoff && (!s.ended_at || instant(s.ended_at)>cutoff));
   const onBreak = (active:Row[], cutoff:number) => rests.some(r => (!r.ended_at || instant(r.ended_at)>=instant(r.started_at)) && active.some(s=>s.id===r.session_id) && instant(r.started_at)<=cutoff && (!r.ended_at || instant(r.ended_at)>cutoff));

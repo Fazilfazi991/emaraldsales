@@ -1,6 +1,7 @@
 import { businessDay, addDays, dayRange, calendarDate, checkinInput, checkoutInput, leadInput, followupInput, followupCreateInput, followupAssignInput, shopUpdateInput, shopTransferInput, nextDuty, executive, management, owns, Fault, type Actor, type DutyAction } from "../src/domain.js";
 import { createData, profiles, id, type Row, type Source, type DemoState } from "./data.js";
 import { attendanceForRange } from "./attendance.js";
+import {upgradeCollections,saveDelivery,collectionReport} from './collections.js';
 export const STORAGE_KEY="emerald-client-demo-v1";
 type StorageLike=Pick<Storage,"getItem"|"setItem"|"removeItem">;
 const sorted=(rows:Row[],key:string)=>[...rows].sort((a,b)=>String(b[key]).localeCompare(String(a[key]))||String(a.id).localeCompare(String(b.id)));
@@ -11,9 +12,12 @@ export class DemoStore {
   private read():DemoState {
     let raw:string|null;
     try{raw=this.storage.getItem(STORAGE_KEY);}catch{throw new Error("Browser storage is unavailable. Allow site storage to use this demo.");}
-    if(!raw){const data=createData(this.source,this.clock());this.save(data);return data;}
-    try{const data=JSON.parse(raw);if(data.version!==1||!Number.isInteger(data.revision)||!["shops","visits","followups","sessions","rests","audit"].every(k=>Array.isArray(data[k]))||!data.replays)throw 0;return data;}
+    if(!raw){const data=upgradeCollections(createData(this.source,this.clock())) as DemoState;this.save(data);return data;}
+    let data:Row;
+    try{data=JSON.parse(raw);if(!Number.isInteger(data.revision)||!["shops","visits","followups","sessions","rests","audit"].every(k=>Array.isArray(data[k]))||!data.replays)throw 0;data=upgradeCollections(data);}
     catch{throw new Error("The local demo data could not be read. Use Reset Demo Data to restore the samples.");}
+    if(JSON.parse(raw).version===1)this.save(data as DemoState);
+    return data as DemoState;
   }
   private save(data:DemoState){try{this.storage.setItem(STORAGE_KEY,JSON.stringify(data));}catch{throw new Error("This browser could not save the demo. Free some site storage and retry. No change was saved.");}}
   select(profileId:string){need(profiles.some(p=>p.id===profileId),"Choose a sample profile.");const s=this.read();s.profileId=profileId;this.save(s);}
@@ -31,7 +35,7 @@ export class DemoStore {
   report(kind:string,p:URLSearchParams,all=false):any {
     const s=this.read(),a=this.actor(s);management(a);need(["activity","duty","followups","attendance"].includes(kind),"Report not found.",404);
     const {from,to}=this.dates(p),person=p.get("person"),asOf=this.clock().toISOString();
-    if(person)need(profiles.some(x=>x.id===person&&x.role==="executive"),"Sales executive not found.",404);
+    if(person)need(profiles.some(x=>x.id===person&&(x.role==="executive"||x.role==="delivery")),"Staff member not found.",404);
     const [start,end]=dayRange(from,to),inside=(value:string)=>value>=new Date(start).toISOString()&&value<new Date(end).toISOString()&&value<=asOf;
     const choose=(row:Row,key:string)=>!person||row[key]===person;
     const attendance=attendanceForRange(s.sessions,s.rests,profiles.filter(x=>!person||x.id===person),from,to,asOf,s.visits);
@@ -45,12 +49,13 @@ export class DemoStore {
     if(kind==="duty")result.summary=attendance.totals;
     if(kind==="attendance")Object.assign(result,{totalsByExecutive:attendance.totalsByExecutive,session_details:attendance.sessions,sessions:attendance.sessions,summary:attendance.totals});
     if(kind==="activity"){
-      result.staff=profiles.filter(x=>x.role==="executive"&&(!person||x.id===person)).map(x=>{
+      result.staff=profiles.filter(x=>(x.role==="executive"||x.role==="delivery")&&(!person||x.id===person)).map(x=>{
         const recorded=attendance.totalsByExecutive.find(d=>d.executive_id===x.id)!;
         return {...x,...recorded,attendance_status:recorded.status,attendance_rows:attendance.rows.filter(d=>d.executive_id===x.id),session_details:recorded.sessions,checked_in:s.visits.filter(v=>v.visitor_id===x.id&&inside(v.checked_in_at)).length,completed_visits:s.visits.filter(v=>v.visitor_id===x.id&&v.checked_out_at&&inside(v.checked_out_at)).length,open_visits:s.visits.filter(v=>v.visitor_id===x.id&&v.lifecycle==="open").length,pending_followups:s.followups.filter(f=>f.owner_id===x.id&&f.status==="pending").length,due_followups:s.followups.filter(f=>f.owner_id===x.id&&f.status==="pending"&&f.due_date<=to).length,duty_status:recorded.current_status};
       });
+      for(const person of result.staff)person.confirmed_order_fils=s.visits.filter(v=>v.visitor_id===person.id&&v.order_status==="Order Received"&&v.checked_out_at&&inside(v.checked_out_at)).reduce((n,v)=>n+Math.round((v.order_value??0)*100),0);
       const sum=(key:string)=>result.staff.reduce((n:number,r:Row)=>n+r[key],0);
-      result.summary={...attendance.totals,executives:result.staff.length,checked_in:sum("checked_in"),completed_visits:sum("completed_visits"),open_visits:sum("open_visits"),pending_followups:sum("pending_followups"),due_followups:sum("due_followups"),recorded_sessions:sum("recorded_sessions")};
+      result.summary={...attendance.totals,confirmed_order_fils:sum("confirmed_order_fils"),executives:result.staff.filter((x:Row)=>x.role==="executive").length,checked_in:sum("checked_in"),completed_visits:sum("completed_visits"),open_visits:sum("open_visits"),pending_followups:sum("pending_followups"),due_followups:sum("due_followups"),recorded_sessions:sum("recorded_sessions")};
     }
     return structuredClone(result);
   }
@@ -61,11 +66,12 @@ export class DemoStore {
     if(body===undefined){
       if(route==="/me")return {actor:a,csrf:"demo-local-only",policies:{visit:"approved-v2",duty:"approved-v1"}};
       if(route==="/metadata")return {team:profiles,areas:[...new Set(s.shops.map(x=>x.area))].sort()};
+      if(route==="/collections")return structuredClone(collectionReport(s,a,p,profiles,now));
       if(route==="/duty"){
-        const visible=profiles.filter(x=>x.role==="executive"&&(a.role!=="executive"||x.id===a.id)),stored=s.sessions.filter(d=>visible.some(x=>x.id===d.executive_id)),first=stored.filter(d=>Number.isFinite(+new Date(d.started_at))).map(d=>businessDay(d.started_at)).sort()[0]??today;
+        const visible=profiles.filter(x=>(x.role==="executive"||x.role==="delivery")&&((a.role==="manager"||a.role==="admin")||x.id===a.id)),stored=s.sessions.filter(d=>visible.some(x=>x.id===d.executive_id)),first=stored.filter(d=>Number.isFinite(+new Date(d.started_at))).map(d=>businessDay(d.started_at)).sort()[0]??today;
         const history=attendanceForRange(stored,s.rests,visible,first>today?today:first,today,now,s.visits,false),daily=attendanceForRange(stored,s.rests,visible,today,today,now,s.visits);
         const sessions=sorted(history.sessions.map((d):Row=>({...d,name:this.person(d.executive_id)})),"started_at").slice(0,100);
-        return {sessions,rests:s.rests.filter(r=>sessions.some(d=>d.id===r.session_id)),today:a.role==="executive"?daily.rows[0]:null,attendance_rows:daily.rows,totalsByExecutive:daily.totalsByExecutive,asOf:now,timeZone:"Asia/Dubai"};
+        return {sessions,rests:s.rests.filter(r=>sessions.some(d=>d.id===r.session_id)),today:a.role==="executive"||String(a.role)==="delivery"?daily.rows[0]:null,attendance_rows:daily.rows,totalsByExecutive:daily.totalsByExecutive,asOf:now,timeZone:"Asia/Dubai"};
       }
       if(route==="/shops"){
         const q=(p.get("q")||"").toLocaleLowerCase(),rows=s.shops.filter(x=>[x.name,x.contact,x.phone,x.area,x.location].join(" ").toLocaleLowerCase().includes(q)&&(!p.get("person")||x.assigned_executive_id===p.get("person"))&&(!p.get("area")||x.area===p.get("area"))&&(!p.get("status")||x.status===p.get("status"))&&(p.get("lead")!=="true"||x.status!=="Customer")&&(!p.get("when")||(p.get("when")==="due"?s.followups.some(f=>f.shop_id===x.id&&f.status==="pending"):p.get("when")==="visited"?s.visits.some(v=>v.shop_id===x.id):!s.visits.some(v=>v.shop_id===x.id)))).map(x=>({...x,last_visit:sorted(s.visits.filter(v=>v.shop_id===x.id),"checked_in_at")[0]?.checked_in_at,next_followup:s.followups.filter(f=>f.shop_id===x.id&&f.status==="pending").map(f=>f.due_date).sort()[0],visit_count:s.visits.filter(v=>v.shop_id===x.id).length}));return this.page(rows,p);
@@ -81,6 +87,10 @@ export class DemoStore {
       throw new Fault(404,"DEMO_ROUTE","This action is not part of the client demonstration.");
     }
     need(key,"Please retry the same demo save.",400);
+    if(route==="/delivery-records"){
+      const prior=Object.hasOwn(s.collection_operations!,a.id+':'+key);
+      const result=saveDelivery(s,a,body,key,now,this.uuid);if(!prior){s.revision++;this.save(s);}return structuredClone(result);
+    }
     const replayKey=a.id+":"+key,signature=JSON.stringify([route,body]),previous=s.replays[replayKey];
     if(previous){need(previous.signature===signature,"This retry belongs to a different action.");return structuredClone(previous.result);}
     let result:any={};
@@ -99,7 +109,7 @@ export class DemoStore {
       else{executive(a);owns(a,f!.owner_id);const data=followupInput.parse(body);if(data.action==="reschedule"){this.future(data.dueDate);f!.due_date=data.dueDate;}else f!.status=data.action==="complete"?"completed":"cancelled";this.audit(s,a,"followup."+data.action,f!.shop_id,{reason:data.reason});}
       f!.version++;f!.updated_at=now;result={followup:f};
     }else if(route.startsWith("/duty/")){
-      executive(a);const action=route.split("/")[2] as DutyAction,session=s.sessions.find(d=>d.executive_id===a.id&&!d.ended_at),rest=session?s.rests.find(r=>r.session_id===session.id&&!r.ended_at):undefined;need((session?.id??null)===body.expectedSessionId,"Duty changed. Refresh before trying again.");const state=nextDuty(!session?"off":rest?"rest":"on",action);
+      if(String(a.role)!=="delivery")executive(a);const action=route.split("/")[2] as DutyAction,session=s.sessions.find(d=>d.executive_id===a.id&&!d.ended_at),rest=session?s.rests.find(r=>r.session_id===session.id&&!r.ended_at):undefined;need((session?.id??null)===body.expectedSessionId,"Duty changed. Refresh before trying again.");const state=nextDuty(!session?"off":rest?"rest":"on",action);
       let sessionId=session?.id;if(action==="start"){sessionId=this.uuid();s.sessions.push({id:sessionId,executive_id:a.id,started_at:now,ended_at:null});}else if(action==="rest")s.rests.push({id:this.uuid(),session_id:sessionId,started_at:now,ended_at:null});else if(action==="return")rest!.ended_at=now;else if(action==="end")session!.ended_at=now;result={state,sessionId};
     }else if(route==="/leads"){
       executive(a);const data=leadInput.parse({...body,location:body.location??"",notes:body.notes??""});owns(a,data.assignedExecutiveId);need(!data.checkIn,"Save the sample shop, then check in.");const shop={id:this.uuid(),name:data.name,contact:data.contact,phone:data.phone,area:data.area,location:data.location,notes:data.notes,status:"New Lead",assigned_executive_id:a.id,created_by:a.id,created_at:now,synthetic:true,version:1};s.shops.push(shop);this.audit(s,a,"shop.create",shop.id);result={shop};

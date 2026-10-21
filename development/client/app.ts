@@ -69,6 +69,7 @@ const retryKeys = new Map<string, string>();
 const checkinPayloads = new Map<string, unknown>();
 let unconfirmed: { path: string; signature: string } | null = null;
 let managerView: ReturnType<typeof createManagerView> | undefined;
+let collectionView: {dispose:()=>void}|undefined;
 let filtersOpen = false;
 let demoDayRefreshPending = false;
 let retryOperation: { work: () => Promise<unknown>; message: string } | null = null;
@@ -204,6 +205,9 @@ const fact = (label: string, value: unknown) =>
   `<div class="fact"><label>${label}</label><strong>${h(value ?? "—")}</strong></div>`;
 const visitEnabled = () => me.policies.visit === "approved-v2";
 const executive = () => me.actor.role === "executive";
+const delivery = () => !!demo && String(me.actor.role)==="delivery";
+const dutyWorker = () => executive() || delivery();
+const visibleNav = () => delivery() ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [...nav,...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
 const supervisor = () => me.actor.role === "manager" || me.actor.role === "admin";
 function shell() {
   $("application").innerHTML =
@@ -219,12 +223,13 @@ function shell() {
   }
 }
 function loginScreen(message = "") {
+  collectionView?.dispose();collectionView=undefined;
   managerView?.dispose();
   managerView = undefined;
   $("dialog").hasAttribute("open") &&
     ($("dialog") as HTMLDialogElement).close();
   if (demo) {
-    $("application").innerHTML = `<main class="login-wrap"><section class="panel login-card"><img class="login-logo" src="/brand.png" alt="Emerald Interlink"><div class="panel-body"><p class="eyebrow">DEMO — Sample Data</p><h1>Choose your demo role</h1><p class="subheading">Explore Emerald with fictional shops and staff.</p><div class="demo-roles">${demo.profiles.map(p => button(`${h(p.role === "manager" ? "Manager" : "Sales Executive")} · ${h(p.name)}`, `data-demo-profile="${h(p.id)}"`, p.role === "executive")).join("")}</div><p class="help">Role selection is for demonstration, not secure sign-in. Changes stay in this browser and do not sync between devices. Use fictional information only.</p><p class="error" role="alert">${h(message)}</p>${button("Reset Demo Data", "data-demo-reset")}</div></section></main>`;
+    $("application").innerHTML = `<main class="login-wrap"><section class="panel login-card"><img class="login-logo" src="/brand.png" alt="Emerald Interlink"><div class="panel-body"><p class="eyebrow">DEMO — Sample Data</p><h1>Choose your demo role</h1><p class="subheading">Explore Emerald with fictional shops and staff.</p><div class="demo-roles">${demo.profiles.map(p => button(`${h(p.role === "manager" ? "Manager" : p.role === "delivery" ? "Delivery Person" : "Sales Executive")} · ${h(p.name)}`, `data-demo-profile="${h(p.id)}"`, p.role === "executive")).join("")}</div><p class="help">Role selection is for demonstration, not secure sign-in. Changes stay in this browser and do not sync between devices. Use fictional information only.</p><p class="error" role="alert">${h(message)}</p>${button("Reset Demo Data", "data-demo-reset")}</div></section></main>`;
     return;
   }
   $("application").innerHTML =
@@ -444,7 +449,7 @@ function dutyCard() {
 }
 function dutyTable() {
   const savedHours=(s:Row,key:string)=>`<span data-session-clock="${h(s.id)}|${h(key)}">${h(s[key]??"—")}</span>`;
-  if (demo) return table(["EXECUTIVE", "DUTY START / END", "TOTAL DUTY", "BREAK TIME", "NET WORKING", "BREAK / RETURN HISTORY"], duty.sessions.map(s=>`<tr>${cell("EXECUTIVE",h(s.name))}${cell("DUTY START / END",`${date(s.started_at)} ${time(s.started_at)}<span class="cell-sub">${s.ended_at?`${date(s.ended_at)} ${time(s.ended_at)}`:"Ongoing"}</span>`)}${cell("TOTAL DUTY",savedHours(s,"duty_duration"))}${cell("BREAK TIME",savedHours(s,"break_duration"))}${cell("NET WORKING",savedHours(s,"net_duration"))}${cell("BREAK / RETURN HISTORY",(s.rests??duty.rests.filter(r=>r.session_id===s.id)).map((r:Row)=>`${date(r.started_at)} ${time(r.started_at)} → ${r.ended_at?`${date(r.ended_at)} ${time(r.ended_at)}`:"On break"}`).join("<br>")||"No recorded breaks")}</tr>`).join(""));
+  if (demo) return table(["STAFF MEMBER", "DUTY START / END", "TOTAL DUTY", "BREAK TIME", "NET WORKING", "BREAK / RETURN HISTORY"], duty.sessions.map(s=>`<tr>${cell("STAFF MEMBER",h(s.name))}${cell("DUTY START / END",`${date(s.started_at)} ${time(s.started_at)}<span class="cell-sub">${s.ended_at?`${date(s.ended_at)} ${time(s.ended_at)}`:"Ongoing"}</span>`)}${cell("TOTAL DUTY",savedHours(s,"duty_duration"))}${cell("BREAK TIME",savedHours(s,"break_duration"))}${cell("NET WORKING",savedHours(s,"net_duration"))}${cell("BREAK / RETURN HISTORY",(s.rests??duty.rests.filter(r=>r.session_id===s.id)).map((r:Row)=>`${date(r.started_at)} ${time(r.started_at)} → ${r.ended_at?`${date(r.ended_at)} ${time(r.ended_at)}`:"On break"}`).join("<br>")||"No recorded breaks")}</tr>`).join(""));
   return table(
     ["EXECUTIVE", "START", "END", "REST INTERVALS"],
     duty.sessions
@@ -487,6 +492,7 @@ function query() {
   return p.toString();
 }
 async function render() {
+  collectionView?.dispose();collectionView=undefined;
   managerView?.dispose();
   managerView = undefined;
   const ticket = ++epoch;
@@ -500,7 +506,10 @@ async function render() {
       dashboard = await api("/dashboard");
       serverDay = dashboard.metrics.day;
     }
-    if (selected) {
+    if (demo && (delivery() || view==="collections")) {
+      if(delivery()&&view!=='record-delivery'){duty=await api('/duty');markup=dutyCard();}
+      markup+='<div id="collectionWorkspace" class="collection-workspace"></div>';
+    } else if (selected) {
       const [result, currentDashboard] = await Promise.all([api(`/shops/${selected}`), api("/dashboard")]);
       if (ticket !== epoch) return;
       profile = result;
@@ -546,18 +555,20 @@ async function render() {
     }
     if (ticket !== epoch || !$("content")) return;
     for (const id of ["desktopNav", "mobileNav"])
-      $(id).innerHTML = nav
+      $(id).innerHTML = visibleNav()
         .map(
           ([value, icon, label]) =>
-            `<button type="button" data-view="${value}" aria-current="${value === view ? "page" : "false"}"><span class="icon" aria-hidden="true">${icon}</span><span>${value === "dashboard" ? executive() ? "Today" : "Overview" : label}</span></button>`,
+            `<button type="button" data-view="${value}" aria-current="${value === view ? "page" : "false"}"><span class="icon" aria-hidden="true">${icon}</span><span>${value === "dashboard" ? delivery()?"My Deliveries":executive() ? "Today" : "Overview" : label}</span></button>`,
         )
         .join("");
+    if(demo)$("mobileNav").style.gridTemplateColumns=`repeat(${visibleNav().length},1fr)`;
     $("crumb").textContent = selected
       ? "Shop profile"
-      : view === "dashboard" ? executive() ? "Today" : "Overview" : nav.find((n) => n[0] === view)![2];
+      : view === "dashboard" ? delivery()?"My Deliveries":executive() ? "Today" : "Overview" : visibleNav().find((n) => n[0] === view)![2];
     $("content").innerHTML =
       `<p class="error" role="alert" id="saveError" hidden></p>${retryBanner()}${!visitEnabled() ? '<div class="notice section-gap">Visit recording is awaiting approval. You can search shops and read visit history.</div>' : ""}${markup}`;
     if (demo) document.querySelectorAll<HTMLAnchorElement>('a[href^="tel:"]').forEach(a => { a.removeAttribute("href"); a.title="Fictional sample number"; });
+    if(demo&&$("collectionWorkspace"))collectionView=demo.mountCollections($("collectionWorkspace"),{request:(p,b)=>api(p,b,b!==undefined),download:downloadReport,manager:supervisor(),staff:meta.team,today:serverDay,record:view==='record-delivery'});
     if (supervisor() && view === "dashboard" && !selected) {
       managerView = createManagerView({
         container: $("managerReports"), request: path => api(path), download: downloadReport,
@@ -566,6 +577,7 @@ async function render() {
         pdfLabel: demo ? "Print / Save as PDF" : undefined,
         attendanceEnabled: !!demo,
         currentDay: demo?.currentDay,
+        collectionSummary: demo ? date => api("/collections?date="+date) : undefined,
       });
       await managerView.load();
     }
@@ -643,7 +655,7 @@ function checkoutForm(id: string) {
       true,
       "Regular Visit",
       outcomes.map((x) => [x, x]),
-    )}${field("notes", demo ? "Visit notes / customer discussion" : "What did you discuss?", "textarea", true)}${field("followUpDate", "Follow-up date (optional)", "date")}</div>${demo ? "" : `<details class="section"><summary>Order details (optional)</summary><div class="form-grid section">${field(
+    )}${field("notes", demo ? "Visit notes / customer discussion" : "What did you discuss?", "textarea", true)}${field("followUpDate", "Follow-up date (optional)", "date")}</div>${demo ? `<details><summary>Confirmed order amount (optional)</summary>${field('orderValue','Confirmed order total · AED','number')}<p class="help">Enter only for a confirmed order. This records the sales value, not money collected. Formal orders stay in Zoho.</p></details>` : `<details class="section"><summary>Order details (optional)</summary><div class="form-grid section">${field(
       "orderStatus",
       "Order status",
       "select",
@@ -654,6 +666,7 @@ function checkoutForm(id: string) {
     submit(demo ? "Check Out &amp; Save" : "Check Out · Save Visit"),
   );
   if (demo) $("dialog").classList.add("demo-visit-checkout");
+  if(demo)($('field-orderValue') as HTMLInputElement).min='0.01';
 }
 function leadForm() {
   formAction = "lead";
@@ -873,14 +886,15 @@ document.addEventListener("click", async (e) => {
       duty = await api("/duty");
       formAction = "";
       dialog(
-        executive() ? "Your duty history" : "Team duty history",
+        dutyWorker() ? "Your duty history" : "Team duty history",
         demo ? "Full session hours and individual breaks · UAE time. Today's card counts today only." : "Server-recorded timing · Asia/Dubai",
-        `${executive() ? dutyCard() : ""}${dutyTable()}`,
+        `${dutyWorker() ? dutyCard() : ""}${dutyTable()}`,
         button("Close", "data-dismiss"),
       );
       return;
     }
     if (d.dutyAction) {
+      if(document.querySelector("[data-delivery-form]")){toast("Save or cancel the delivery form before changing duty.");return;}
       duty = await api("/duty");
       const current = currentDuty();
       await mutateWork(
@@ -949,7 +963,7 @@ $("dialogForm").addEventListener("submit", (e) => {
         `/visits/${id}/checkout`,
         {
           ...data,
-          ...(demo ? { orderStatus: "No Order", orderNote: "", orderValue: null } : { orderValue: data.orderValue === "" ? null : Number(data.orderValue) }),
+          ...(demo ? { orderStatus: data.orderValue ? "Order Received" : "No Order", orderNote: "", orderValue: data.orderValue ? Number(data.orderValue) : null } : { orderValue: data.orderValue === "" ? null : Number(data.orderValue) }),
           followUpDate: data.followUpDate || null,
         },
         true,
@@ -1001,10 +1015,10 @@ if (demo) setInterval(() => {
     demoDayRefreshPending=executive();
     document.querySelectorAll<HTMLInputElement>('#dialogForm input[type="date"]').forEach(input=>input.min=dayNow);
   }
-  if (demoDayRefreshPending && !submitting && !fetching && !($("dialog") as HTMLDialogElement).open) {
+  if (demoDayRefreshPending && !submitting && !fetching && !document.querySelector("[data-delivery-form]") && !($("dialog") as HTMLDialogElement).open) {
     demoDayRefreshPending=false;void render();return;
   }
-  if (!executive() || submitting || fetching || !document.querySelector("[data-duty-clock], [data-session-clock]")) return;
+  if (!dutyWorker() || submitting || fetching || !document.querySelector("[data-duty-clock], [data-session-clock]")) return;
   try {
     const current = demo.dutyNow();
     if (!current.today) return;

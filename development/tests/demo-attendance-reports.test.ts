@@ -22,7 +22,7 @@ const path=(from="2026-10-21",to=from,person="")=>`/reports/attendance/export?fr
 
 test("Attendance exports reconcile daily, staff, session and break totals across UAE midnight",()=>{
   const {store}=fixture(),report=demoReport(store,path()),ahmed=report.rows.find((r:any)=>r.executive_id===profiles[0].id);
-  assert.equal(report.title,"Staff Attendance & Working Hours");assert.equal(report.rows.length,3);
+  assert.equal(report.title,"Staff Attendance & Working Hours");assert.equal(report.rows.length,4);
   assert.equal(ahmed.duty_ms,285*60000);assert.equal(ahmed.break_ms,45*60000);assert.equal(ahmed.net_ms,240*60000);
   assert.equal(ahmed.duty_duration,"4h 45m");assert.equal(ahmed.net_duration,"4h 0m");
   assert.equal(ahmed.first_start,"20/10/2026, 23:15:00");assert.equal(ahmed.last_end,"21/10/2026, 13:00:00");

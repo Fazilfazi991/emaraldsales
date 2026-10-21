@@ -2,7 +2,8 @@ import { addDays, businessDay } from "../src/domain.js";
 export type Row = Record<string, any>;
 export interface Source { shops: Row[]; visits: Row[] }
 export interface DemoState {
-  version: 1; revision: number; anchor: string; profileId: string | null;
+  version: 1 | 2; revision: number; anchor: string; profileId: string | null;
+  deliveries?: Row[]; collections?: Row[]; collection_operations?: Record<string,any>;
   shops: Row[]; visits: Row[]; followups: Row[]; sessions: Row[]; rests: Row[]; audit: Row[];
   replays: Record<string, {signature: string; result: any}>;
 }
@@ -12,6 +13,7 @@ export const profiles = [
   {id:id(2),name:"Shihab K.",role:"executive",active:true},
   {id:id(3),name:"Naseer M.",role:"executive",active:true},
   {id:id(4),name:"Manager",role:"manager",active:true},
+  {id:id(5),name:"Samir Demo",role:"delivery",active:true},
 ];
 export function createData(source: Source, now: Date): DemoState {
   const day=businessDay(now), at=(offset:number,hour=9)=>new Date(`${addDays(day,offset)}T${String(hour).padStart(2,"0")}:00:00+04:00`).toISOString();

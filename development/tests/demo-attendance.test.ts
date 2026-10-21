@@ -121,6 +121,6 @@ test("Demo duty, manager activity and attendance reports reconcile across roles 
   const attendance=fresh.report("attendance",params,true),activity=fresh.report("activity",params),legacy=fresh.report("duty",params);
   assert.equal(attendance.rows.length,1);assert.equal(attendance.summary.net_ms,executive.today.net_ms);assert.equal(activity.staff[0].net_ms,attendance.summary.net_ms);assert.equal(activity.summary.net_ms,attendance.summary.net_ms);
   assert.equal(legacy.rows[0].elapsed_minutes*60000,attendance.summary.duty_ms);assert.equal(legacy.summary.net_ms,attendance.summary.net_ms);assert.equal(attendance.sessions[0].rests.length,1);
-  assert.equal(fresh.report("attendance",new URLSearchParams({from:"2026-10-21"})).rows.length,3);
+  assert.equal(fresh.report("attendance",new URLSearchParams({from:"2026-10-21"})).rows.length,4);
   fresh.reset();fresh.select(profiles[3].id);assert.equal(fresh.report("attendance",params).rows[0].status,"No duty recorded");
 });

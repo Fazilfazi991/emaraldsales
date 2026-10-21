@@ -4,7 +4,9 @@ This directory builds a static, fictional client-review site. It reuses the exis
 
 The attendance additions and owner sharing checkpoint are documented in [ATTENDANCE-REVIEW-HANDOFF.md](ATTENDANCE-REVIEW-HANDOFF.md); the complete capability audit is [FEATURE-AUDIT.md](FEATURE-AUDIT.md). Owner visual approval and real-phone/client acceptance are still required.
 
-The latest [client feedback scope](CLIENT-FEEDBACK-SCOPE.md) cancels product catalogue/item-wise inquiries and prepares a simpler local visit checkout. That candidate is not deployed; the public attendance preview remains unchanged until owner approval.
+The [client feedback scope](CLIENT-FEEDBACK-SCOPE.md) cancels product catalogue/item-wise inquiries. The simplified checkout is retained in the subsequently approved Delivery & Collections candidate described below.
+
+The approved [Delivery & Collections owner review](DELIVERY-COLLECTIONS-HANDOFF.md) retains that simple checkout, adds only an optional confirmed sales amount, and introduces a separate fictional delivery workflow and Daily Collection Slip. Its data-version upgrade, role boundaries, test evidence and isolated Preview details are documented there.
 
 ## Run and verify
 

@@ -1,0 +1,28 @@
+{
+  "checks": [
+    {
+      "file": "daily-current.pdf",
+      "pages": 1,
+      "fontsEmbedded": {
+        "/AAAAAA+NotoSans-Bold": true,
+        "/BAAAAA+NotoSans-Regular": true,
+        "/CAAAAA+NotoSansMalayalam-Regular": true,
+        "/DAAAAA+NotoSansArabic-Regular": true
+      },
+      "arabicCharacters": 5,
+      "malayalamCharacters": 14
+    },
+    {
+      "file": "daily-reference.pdf",
+      "pages": 1,
+      "fontsEmbedded": {
+        "/AAAAAA+NotoSans-Bold": true,
+        "/BAAAAA+NotoSans-Regular": true
+      },
+      "arabicCharacters": 0,
+      "malayalamCharacters": 0
+    }
+  ],
+  "visualReview": "Both rendered pages inspected: one A4 portrait page each; readable totals and headers; Arabic and Malayalam visible; no clipped rows or footer.",
+  "physicalPrinterTested": false
+}
