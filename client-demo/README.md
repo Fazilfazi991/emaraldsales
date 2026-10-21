@@ -4,6 +4,8 @@ This directory builds a static, fictional client-review site. It reuses the exis
 
 The attendance additions and owner sharing checkpoint are documented in [ATTENDANCE-REVIEW-HANDOFF.md](ATTENDANCE-REVIEW-HANDOFF.md); the complete capability audit is [FEATURE-AUDIT.md](FEATURE-AUDIT.md). Owner visual approval and real-phone/client acceptance are still required.
 
+The latest [client feedback scope](CLIENT-FEEDBACK-SCOPE.md) cancels product catalogue/item-wise inquiries and prepares a simpler local visit checkout. That candidate is not deployed; the public attendance preview remains unchanged until owner approval.
+
 ## Run and verify
 
 Use Node 22 and the pinned pnpm version:

@@ -620,6 +620,7 @@ function dialog(
   body: string,
   actions: string,
 ) {
+  $("dialog").classList.remove("demo-visit-checkout");
   $("dialogTitle").textContent = title;
   $("dialogDescription").textContent = description;
   $("dialogBody").innerHTML =
@@ -635,23 +636,24 @@ function checkoutForm(id: string) {
   dialog(
     "Complete your visit",
     profile!.shop.name,
-    `<div class="form-grid">${field(
+    `<div class="form-grid${demo ? " demo-visit-form" : ""}">${field(
       "outcome",
       "Visit outcome",
       "select",
       true,
       "Regular Visit",
       outcomes.map((x) => [x, x]),
-    )}${field("notes", "What did you discuss?", "textarea", true)}${field("followUpDate", "Follow-up date (optional)", "date")}</div><details class="section"><summary>Order details (optional)</summary><div class="form-grid section">${field(
+    )}${field("notes", demo ? "Visit notes / customer discussion" : "What did you discuss?", "textarea", true)}${field("followUpDate", "Follow-up date (optional)", "date")}</div>${demo ? "" : `<details class="section"><summary>Order details (optional)</summary><div class="form-grid section">${field(
       "orderStatus",
       "Order status",
       "select",
       true,
       "No Order",
       orderStates.map((x) => [x, x]),
-    )}${field("orderNote", "Order note / reference")}${field("orderValue", "Approximate order value · AED", "number")}</div><p class="help">Order interest only. This does not create an invoice.</p></details><p class="help section">A follow-up date creates a new item for you. Existing follow-ups stay unchanged.</p>`,
-    submit("Check Out · Save Visit"),
+    )}${field("orderNote", "Order note / reference")}${field("orderValue", "Approximate order value · AED", "number")}</div><p class="help">Order interest only. This does not create an invoice.</p></details>`}<p class="help section">A follow-up date creates a new item for you. Existing follow-ups stay unchanged.</p>`,
+    submit(demo ? "Check Out &amp; Save" : "Check Out · Save Visit"),
   );
+  if (demo) $("dialog").classList.add("demo-visit-checkout");
 }
 function leadForm() {
   formAction = "lead";
@@ -947,7 +949,7 @@ $("dialogForm").addEventListener("submit", (e) => {
         `/visits/${id}/checkout`,
         {
           ...data,
-          orderValue: data.orderValue === "" ? null : Number(data.orderValue),
+          ...(demo ? { orderStatus: "No Order", orderNote: "", orderValue: null } : { orderValue: data.orderValue === "" ? null : Number(data.orderValue) }),
           followUpDate: data.followUpDate || null,
         },
         true,
