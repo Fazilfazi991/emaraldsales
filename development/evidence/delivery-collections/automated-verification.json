@@ -17,12 +17,19 @@
       768,
       1024,
       1440
-    ]
+    ],
+    "deliveryHttps": 16,
+    "regressionHttps": 31
   },
   "localDownloads": {
     "excel": 8,
     "pdf": 8
   },
   "physicalDeviceTested": false,
-  "hostedDatabaseConnected": false
+  "hostedDatabaseConnected": false,
+  "hostedDownloads": {
+    "excel": 8,
+    "pdf": 8
+  },
+  "hostedStaticArtifactsCompared": 14
 }

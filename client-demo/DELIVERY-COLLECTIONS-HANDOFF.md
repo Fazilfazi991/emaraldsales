@@ -71,4 +71,15 @@ No Supabase, hosted PostgreSQL, payment gateway, real employee/customer account,
 
 ## Publication and approval checkpoint
 
-Pending final local verification, publication to the isolated demo branch, and a static **Preview** in the existing `emerald-sales-client-demo` project only. No production target, main branch, original `development` project or production aliases may change. Stop for owner review before client sharing.
+Owner-review Preview: **https://emerald-sales-client-demo-p3d1secrl-faziils-projects.vercel.app/**
+
+- Deployed source commit: `7fa11096ab23811641845d0d5f4157fcdce440bb` on `demo/delivery-collections`.
+- Deployment: `dpl_4hUFx1uCdU7MqzsG9m83gtnWd9fh`, project `emerald-sales-client-demo`, READY, target `null` (Preview). Root `client-demo`, Node 22.x, output `dist`. No functions/backend bundle; no new services or secrets. Deployment automation remains disabled.
+- HTTPS acceptance passed **16 delivery/collection + 31 regression checkpoints**. Eight Excel and eight PDF downloads were exercised and checked. New slip PDFs have embedded fonts and were rendered and visually reviewed. All five required viewport widths passed. The 14 hosted static artifacts compare to the verified local build after Git line-ending and generated chunk-name normalization; their hashes and security headers are recorded in `https-artifacts.json`.
+- The original `development` project/deployment, its production domains and protection are unchanged. Remote `main` remains `9296cf36c94173e418abf1e57a367bdb48c3ff8c`; staging remains `825db7a09a07e9053b1f48a898ad2e6b5cb60332`; accepted attendance remains `f053278a482b59f7673221d8935a0de8ace60730`.
+- Gitleaks scanned all 34 source-history commits with no leaks. The complementary audit scanned 1,028 blobs, extracted 88 PDFs / 104 workbooks across history, compared 10 private local passwords, and found no prohibited files or real credentials after reviewing six synthetic test matches. No original slip photograph or private local files are published.
+- A following documentation/evidence-only commit records the completed hosted checks; it does not alter the deployed application. Use `git log -1` for that handoff commit.
+
+Evidence: `development/evidence/delivery-collections/https/` and `https-regression/`; deployment details/build log in `publication.json`. Screenshots: `https/owner-delivery-mobile.png`, `https/owner-delivery-form-full.png`, `https/owner-manager-collections.png`. Reference examples: `https/daily-reference.xlsx` and `https/daily-reference.pdf`.
+
+**Stop here for owner approval before client sharing.** No client acceptance is claimed. Physical Android/iPhone and native Print / Save as PDF checks still need a human. Browser-local role selection is demonstration behavior and must not be used for real financial data. The correction, cheque-clearing and reconciliation policies above remain pending. Existing saved records are retained when upgrading this same origin; a new Preview origin starts its own independent sample copy.
