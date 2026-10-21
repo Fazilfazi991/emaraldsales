@@ -19,6 +19,10 @@ test("Demo seeds 700 deterministic fictional shops and selects a role without cr
   const fresh=new DemoStore(f.storage,source);assert.equal(fresh.request("/me").actor.id,profiles[0].id);
   assert.doesNotMatch(f.values.get(STORAGE_KEY)!,/password|DATABASE_URL|access_token/);
 });
+test("Demo initial breaks remain chronological just after UAE midnight",()=>{
+  const now=new Date("2026-10-20T20:01:00Z"),data=createData(source,now);
+  for(const rest of data.rests){assert.ok(+new Date(rest.started_at)<=+now);if(rest.ended_at)assert.ok(rest.started_at<=rest.ended_at&&+new Date(rest.ended_at)<=+now);}
+});
 test("Demo complete executive day, follow-up lifecycle, fresh role and manager reports share saved state",()=>{
   const f=fixture();f.store.select(profiles[0].id);
   const duty=f.post("/duty/start",{expectedSessionId:null});

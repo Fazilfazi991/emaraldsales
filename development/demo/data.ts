@@ -32,7 +32,7 @@ export function createData(source: Source, now: Date): DemoState {
     due_date:addDays(day,i%4-1),status:i===8?"completed":"pending",created_at:at(-2),updated_at:at(-1),version:1}));
   const start=Math.max(+new Date(`${day}T00:00:00+04:00`),+now-90*60000);
   const sessions=[1,2].map((p,i)=>({id:id(4000+i),executive_id:profiles[p].id,started_at:new Date(start).toISOString(),ended_at:null}));
-  const rests=[{id:id(5000),session_id:sessions[0].id,started_at:new Date(start+5*60000).toISOString(),ended_at:new Date(start+10*60000).toISOString()},
+  const rests=[{id:id(5000),session_id:sessions[0].id,started_at:new Date(Math.min(+now,start+5*60000)).toISOString(),ended_at:new Date(Math.min(+now,start+10*60000)).toISOString()},
     {id:id(5001),session_id:sessions[1].id,started_at:new Date(Math.max(start,+now-15*60000)).toISOString(),ended_at:null}];
   // Keep the seeded morning history in the past even if a tester opens the demo early.
   for(const v of visits) if(+new Date(v.checked_out_at)>+now){v.checked_in_at=new Date(+now-120000).toISOString();v.checked_out_at=new Date(+now-60000).toISOString();}
