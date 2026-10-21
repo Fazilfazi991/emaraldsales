@@ -1,0 +1,11 @@
+{
+  "name": "emerald-sales-client-demo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {"build": "node build.mjs"},
+  "engines": {"node": "22.x"},
+  "packageManager": "pnpm@11.25.0",
+  "dependencies": {"exceljs": "4.4.0", "zod": "4.6.7"},
+  "devDependencies": {"esbuild": "0.28.2"}
+}

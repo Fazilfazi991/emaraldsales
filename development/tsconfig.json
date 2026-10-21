@@ -14,6 +14,7 @@
     "server.ts",
     "src/**/*.ts",
     "client/**/*.ts",
+    "demo/**/*.ts",
     "scripts/**/*.ts",
     "tests/**/*.ts"
   ]

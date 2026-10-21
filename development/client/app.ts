@@ -7,6 +7,8 @@ import {
   type Actor,
 } from "../src/domain.js";
 import { createManagerView } from "./manager.js";
+import { request, getDemoControls } from "./transport.js";
+const demo = getDemoControls();
 type Row = Record<string, any>;
 type List = { rows: Row[]; total: number; page: number; pageSize: number };
 type Profile = { shop: Row; visits: Row[]; followups: Row[] };
@@ -92,7 +94,7 @@ async function api(
   }
   let response: Response;
   try {
-    response = await fetch(`/api${path}`, {
+    response = await request(path, {
       method: body === undefined ? "GET" : "POST",
       credentials: "same-origin",
       headers: {
@@ -205,12 +207,24 @@ const supervisor = () => me.actor.role === "manager" || me.actor.role === "admin
 function shell() {
   $("application").innerHTML =
     `<div class="shell"><aside class="sidebar" aria-label="Main navigation"><div class="brand"><img class="brand-thumb" src="/brand.png" alt="Emerald Interlink"><div><b>EMERALD INTERLINK</b><span>Field Sales CRM</span></div></div><div class="workspace-label">FIELD WORKSPACE</div><nav class="nav" id="desktopNav"></nav><div class="sidebar-foot"><b>EMERALD INTERLINK TRADING L.L.C</b><br>Dubai, United Arab Emirates<div class="connection"><span class="dot"></span>Local review · synthetic data</div><div>Online saves · UAE reporting time</div></div></aside><main class="main"><header class="topbar"><div class="crumb">Emerald Interlink / <b id="crumb">Dashboard</b></div><div class="top-actions"><span class="signed-in">${h(me.actor.name)} <small>${h(me.actor.role)}</small></span>${button("Duty", "data-duty")}${button("Sign out", "data-logout")}</div></header><div class="content" id="content" tabindex="-1"></div></main><nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation"></nav></div>`;
+  if (demo) {
+    document.querySelector(".sidebar-foot")!.innerHTML = '<b>EMERALD INTERLINK TRADING L.L.C</b><br>Client review · Fictional records<div class="connection"><span class="dot"></span>Saved in this browser only</div><div>Changes do not sync between devices.</div>';
+    document.querySelector<HTMLButtonElement>("[data-logout]")!.textContent = "Switch role";
+    const banner = document.createElement("div");
+    banner.className = "demo-strip";
+    banner.innerHTML = '<strong>DEMO — Sample Data</strong><span>This browser only · Use fictional details</span><button class="button small" type="button" data-demo-reset>Reset Demo Data</button>';
+    $("application").prepend(banner);
+  }
 }
 function loginScreen(message = "") {
   managerView?.dispose();
   managerView = undefined;
   $("dialog").hasAttribute("open") &&
     ($("dialog") as HTMLDialogElement).close();
+  if (demo) {
+    $("application").innerHTML = `<main class="login-wrap"><section class="panel login-card"><img class="login-logo" src="/brand.png" alt="Emerald Interlink"><div class="panel-body"><p class="eyebrow">DEMO — Sample Data</p><h1>Choose your demo role</h1><p class="subheading">Explore Emerald with fictional shops and staff.</p><div class="demo-roles">${demo.profiles.map(p => button(`${h(p.role === "manager" ? "Manager" : "Sales Executive")} · ${h(p.name)}`, `data-demo-profile="${h(p.id)}"`, p.role === "executive")).join("")}</div><p class="help">Role selection is for demonstration, not secure sign-in. Changes stay in this browser and do not sync between devices. Use fictional information only.</p><p class="error" role="alert">${h(message)}</p>${button("Reset Demo Data", "data-demo-reset")}</div></section></main>`;
+    return;
+  }
   $("application").innerHTML =
     `<main class="login-wrap"><section class="panel login-card"><img class="login-logo" src="/brand.png" alt="Emerald Interlink"><div class="panel-body"><p class="eyebrow">Field Sales CRM</p><h1>Sign in to your workspace</h1><p class="subheading">Shared shop history. Attributable field visits.</p><form id="loginForm"><label for="email">Email</label><input class="input" id="email" type="email" autocomplete="username" required><label for="password">Password</label><input class="input" id="password" type="password" autocomplete="current-password" required><p class="error" id="loginError" role="alert">${h(message)}</p><button class="button primary" type="submit">Sign in</button></form><p class="help">Local review workspace · synthetic records. Your administrator provisions accounts.</p></div></section></main>`;
   $("loginForm").addEventListener("submit", async (e) => {
@@ -538,11 +552,13 @@ async function render() {
       : view === "dashboard" ? executive() ? "Today" : "Overview" : nav.find((n) => n[0] === view)![2];
     $("content").innerHTML =
       `<p class="error" role="alert" id="saveError" hidden></p>${retryBanner()}${!visitEnabled() ? '<div class="notice section-gap">Visit recording is awaiting approval. You can search shops and read visit history.</div>' : ""}${markup}`;
+    if (demo) document.querySelectorAll<HTMLAnchorElement>('a[href^="tel:"]').forEach(a => { a.removeAttribute("href"); a.title="Fictional sample number"; });
     if (supervisor() && view === "dashboard" && !selected) {
       managerView = createManagerView({
         container: $("managerReports"), request: path => api(path), download: downloadReport,
         openShop: id => { selected = id; void render(); window.scrollTo(0, 0); },
         today: serverDay, team: meta.team as { id: string; name: string; role?: string }[],
+        pdfLabel: demo ? "Print / Save as PDF" : undefined,
       });
       await managerView.load();
     }
@@ -560,8 +576,9 @@ async function render() {
   }
 }
 async function downloadReport(path: string) {
+  if (demo) { await demo.download(path); return; }
   let response: Response;
-  try { response = await fetch(`/api${path}`, { credentials: "same-origin" }); }
+  try { response = await request(path, { credentials: "same-origin" }); }
   catch { throw new Error("The report could not be downloaded. Check your connection and retry."); }
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -660,6 +677,7 @@ async function auditHistory(page = 0) {
   dialog("Record history", profile!.shop.name, rows || '<p class="empty">No changes recorded yet.</p>', button("Previous", `data-audit-page="${page - 1}" ${page === 0 ? "disabled" : ""}`) + button("Next", `data-audit-page="${page + 1}" ${(page + 1) * result.pageSize >= result.total ? "disabled" : ""}`) + button("Close", "data-dismiss"));
 }
 async function gps() {
+  if (demo) return { availability: "not_requested" };
   if (!navigator.geolocation || !isSecureContext)
     return { availability: "unavailable" };
   return new Promise((resolve) =>
@@ -737,6 +755,11 @@ document.addEventListener("click", async (e) => {
   if (!target || target.disabled || submitting) return;
   const d = target.dataset;
   try {
+    if (demo && d.demoReset !== undefined) {
+      if (window.confirm("Reset all demo changes in this browser and restore the fictional sample data?")) { demo.reset(); resetWorkspace(); loginScreen(); }
+      return;
+    }
+    if (demo && d.demoProfile) { demo.select(d.demoProfile); resetWorkspace(); await bootstrap(); return; }
     if (d.retrySave !== undefined && retryOperation) {
       const operation = retryOperation;
       document.querySelectorAll("#retrySave").forEach(node => node.remove());
@@ -842,7 +865,7 @@ document.addEventListener("click", async (e) => {
       formAction = "";
       dialog(
         executive() ? "Your duty history" : "Team duty history",
-        "Server-recorded timing · Asia/Dubai",
+        demo ? "Browser-local sample timing · Asia/Dubai" : "Server-recorded timing · Asia/Dubai",
         `${executive() ? dutyCard() : ""}${dutyTable()}`,
         button("Close", "data-dismiss"),
       );
@@ -951,12 +974,12 @@ $("dialogForm").addEventListener("submit", (e) => {
 });
 window.addEventListener("offline", () =>
   toast(
-    "Connection lost. Reconnect before saving; changes are not stored offline.",
+    demo ? "Demo changes stay in this browser. No server connection is needed for the open demo." : "Connection lost. Reconnect before saving; changes are not stored offline.",
   ),
 );
 window.addEventListener("online", () =>
   toast(
-    "Connection available. Refresh history and retry any unconfirmed save.",
+    demo ? "Connection available. Demo records remain in this browser only." : "Connection available. Refresh history and retry any unconfirmed save.",
   ),
 );
 bootstrap().catch((error) =>

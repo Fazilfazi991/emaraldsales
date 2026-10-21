@@ -8,3 +8,5 @@ dist/
 *.log
 *.zip
 .worktrees/
+client-demo/build-manifest.json
+.vercel/

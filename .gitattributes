@@ -1,6 +1,7 @@
 reference/** -text
 emerald-crm/** -text
 development/** text=auto eol=lf
+client-demo/** text=auto eol=lf
 *.png binary
 *.pdf binary
 *.xlsx binary
