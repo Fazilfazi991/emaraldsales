@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-21",
+  "branch": "demo/attendance-review",
+  "applicationCommit": "6b3ffc9606971a6f2c2389c03053d3b5ed33a30a",
+  "githubBranch": "https://github.com/Fazilfazi991/emaraldsales/tree/demo/attendance-review",
+  "remoteSourceVerified": true,
+  "committedSourceRegularTests": {"passed": 90, "failed": 0, "cancelled": 0, "skipped": 0},
+  "securityReview": {
+    "gitleaksReachableCommits": 31,
+    "gitleaksLeaks": 0,
+    "historicalPathsReviewed": 718,
+    "blobObjectsReviewed": 822,
+    "pdfObjectsExtracted": 68,
+    "xlsxObjectsExtracted": 84,
+    "prohibitedPaths": [],
+    "binaryExtractionErrors": [],
+    "actualSensitiveFindings": [],
+    "reviewedFixtureMatches": "Two historical invalid-domain URL rejection tests and four partial password prefixes concatenated with randomUUID; no usable credentials",
+    "newReportFilesScanned": {"pdfs": 6, "workbooks": 6},
+    "privateLocalPasswordsComparedWithoutDisclosure": 10,
+    "finalEvidencePrecommitScan": {"paths": 61, "pdfsExtracted": 6, "workbooksExtracted": 6, "sensitiveFindings": 0, "gitleaksLeaks": 0}
+  },
+  "preservedRemoteBranches": {
+    "main": "9296cf36c94173e418abf1e57a367bdb48c3ff8c",
+    "prep/vercel-staging": "825db7a09a07e9053b1f48a898ad2e6b5cb60332",
+    "fix/vercel-function-entrypoint": "529fcd2e80edaaabf3411a429c148c470d09c314",
+    "demo/client-review": "d915ebeb90c6d40fd33e6fb7bd8aad1211e9b100"
+  },
+  "deployment": {
+    "id": "dpl_6HFfeixQFke1CRTpj9cxtEywdjRu",
+    "url": "https://emerald-sales-client-demo-euswu9jl0-faziils-projects.vercel.app",
+    "project": "emerald-sales-client-demo",
+    "projectId": "prj_pSdVrjDpiMvOphxDcJ36g9VMTx5S",
+    "team": "faziils-projects",
+    "environment": "Preview",
+    "target": null,
+    "root": "client-demo",
+    "framework": null,
+    "buildNode": "22.x",
+    "output": "dist",
+    "readyState": "READY",
+    "publicHttpsVerification": "passed:29 browser checkpoints,6 Excel,6 PDFs,all five widths,zero API/external requests or errors",
+    "staticAssets": 14,
+    "functionsSectionPresent": false
+  },
+  "originalDevelopmentProject": {
+    "inspectionOnly": true,
+    "recheckedUnchangedAfterPreviewDeployment": true,
+    "projectId": "prj_HWelKq23QzmNgdfRpsyWON7pqXug",
+    "deploymentId": "dpl_7HYdjP8TYFCctHsvUiD9KsiU9rb2",
+    "nodeVersion": "24.x",
+    "deploymentProtection": "all_except_custom_domains",
+    "aliases": ["development-alpha-smoky.vercel.app", "development-faziils-projects.vercel.app", "development-git-main-faziils-projects.vercel.app"]
+  },
+  "externalDatabaseConnected": false,
+  "newServiceConnected": false,
+  "backendOrMigrationChanges": false,
+  "physicalPhoneTested": false,
+  "ownerVisualApproval": "pending"
+}

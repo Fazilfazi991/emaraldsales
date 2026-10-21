@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-21T04:48:39.2896743Z",
+  "url": "https://emerald-sales-client-demo-euswu9jl0-faziils-projects.vercel.app/",
+  "status": 200,
+  "headers": {
+    "X-Frame-Options": "",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    "Content-Type": "text/html; charset=utf-8",
+    "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+    "Cache-Control": "public, must-revalidate, max-age=0",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff"
+  },
+  "authenticationUsed": false
+}

@@ -1,0 +1,29 @@
+{
+  "deployment": "dpl_6HFfeixQFke1CRTpj9cxtEywdjRu",
+  "state": "READY",
+  "environment": "Preview",
+  "target": null,
+  "sourceBranch": "demo/attendance-review",
+  "sourceCommit": "6b3ffc9606971a6f2c2389c03053d3b5ed33a30a",
+  "project": "emerald-sales-client-demo",
+  "originalDevelopmentProjectChanged": false,
+  "buildLogExcerpts": [
+    "Running build in Washington, D.C., USA (East) – iad1",
+    "Cloning github.com/Fazilfazi991/emaraldsales (Branch: demo/attendance-review, Commit: 6b3ffc9)",
+    "Running install command: pnpm install --frozen-lockfile",
+    "Done in 1.2s using pnpm v11.25.0",
+    "$ node build.mjs",
+    "Static Emerald demo built. No functions, backend or credentials.",
+    "Build Completed in /vercel/output [6s]",
+    "Deployment completed"
+  ],
+  "resourceInventory": {
+    "method": "Read-only Vercel dashboard Resources page",
+    "url": "https://vercel.com/faziils-projects/emerald-sales-client-demo/6HFfeixQFke1CRTpj9cxtEywdjRu/resources",
+    "staticAssets": 14,
+    "functionsSectionPresent": false,
+    "screenshot": "static-resource-inventory.png",
+    "apiFileTree": "Unavailable: list_deployment_files returned File tree not found; dashboard used instead"
+  },
+  "scope": "Static frontend build on Vercel; no claim of Linux backend/database/PDF-server integration verification"
+}

@@ -8,6 +8,15 @@ The isolated branch `demo/attendance-review` starts at `d915ebeb90c6d40fd33e6fb7
 
 The new preview URL, deployed application SHA and final public verification are recorded below after publication. Publication is restricted to the existing `emerald-sales-client-demo` project, team `faziils-projects`, as an isolated static Preview. The original `development` project, its aliases, `main`, backend and staging branches are preserved.
 
+| Contributor | Separate ownership and review |
+| --- | --- |
+| Attendance agent | Demo calculation, local store/report data and attendance tests; reviewed date boundaries and coordinator integration |
+| Reports agent | Demo Excel/print formatting, print CSS and export tests; cross-reviewed midnight and overlapping records |
+| Independent QA agent | Browser harness, synthetic evidence and feature audit; no application feature edits |
+| Coordinator | Demo-gated executive/manager UI, transport contract, style integration, final review, source scans, publication and owner handoff |
+
+All work used the single isolated branch with explicit file ownership. No agent overwrote another agent's owned code. Regular backend source and migrations were not changed. Local run and repeat-verification commands are in [README.md](README.md).
+
 ## Completed changes
 
 - Executive Today shows total duty, break time and net working hours, beside the existing four duty actions. Duty history shows previous sessions and each break/return. Running values are recalculated from actual saved timestamps; no accelerated counters or artificial elapsed time are used.
@@ -54,7 +63,7 @@ Feedback checklist: can a first-time executive find each duty action, today's ho
 
 ## Storage and release boundary
 
-**No Supabase, PostgreSQL, backend service, real employee account, hosted secret, real customer import, GPS or Zoho connection was created or connected.** No backend authentication/authorization or production guard was weakened. The normal build retains its authenticated API transport; only the static demo aliases that transport to browser-local synthetic storage. The demo CSP blocks network connections (`connect-src 'none'`) and external form submissions.
+**No Supabase, external PostgreSQL, backend service, real employee account, hosted secret, real customer import, GPS or Zoho connection was created or connected for the demo.** No backend authentication/authorization or production guard was weakened. The normal build retains its authenticated API transport; only the static demo aliases that transport to browser-local synthetic storage. The demo CSP blocks network connections (`connect-src 'none'`) and external form submissions.
 
 Role switching and refresh reuse `emerald-client-demo-v1` in this browser and origin. Other devices, browsers, incognito contexts and preview URLs have independent copies. Clearing storage or closing incognito sessions can discard changes. This is neither multi-device synchronization nor real-time employee monitoring. Use fictional information only.
 
@@ -62,4 +71,28 @@ Remote branch and Vercel-project preservation, secret scans, exact publication S
 
 ## Publication and owner checkpoint
 
-Pending final source publication and anonymous HTTPS verification. Stop for owner visual approval after the concrete preview and evidence are available; do not label it client approved.
+Source is pushed at [application commit `6b3ffc9606971a6f2c2389c03053d3b5ed33a30a`](https://github.com/Fazilfazi991/emaraldsales/commit/6b3ffc9606971a6f2c2389c03053d3b5ed33a30a) on [demo/attendance-review](https://github.com/Fazilfazi991/emaraldsales/tree/demo/attendance-review).
+
+The new [owner-review Preview](https://emerald-sales-client-demo-euswu9jl0-faziils-projects.vercel.app) is READY: deployment `dpl_6HFfeixQFke1CRTpj9cxtEywdjRu`, environment Preview (`target: null`), exact application SHA above. Vercel's Linux static build completed, and the dashboard resource inventory contains 14 static assets with no Functions section. The file-tree API was unavailable, so the actual dashboard inventory and screenshot were used. This does not claim Linux backend/database/server-PDF integration testing.
+
+Source/history scans found no actual secrets or prohibited paths: Gitleaks scanned 31 reachable commits; the additional scan reviewed 822 blob objects, extracted 68 PDF / 84 XLSX objects and compared current private local passwords without disclosure. Six historical heuristic matches were reviewed as invalid-domain rejection tests or randomized test-password prefixes. None was a usable credential. New sample exports contain synthetic records only.
+
+Remote `main`, `prep/vercel-staging`, `fix/vercel-function-entrypoint` and `demo/client-review` retain the exact baseline SHAs in [publication evidence](../development/evidence/attendance-review/publication.json). The original Vercel `development` project's deployment, Node 24 setting, protection and all aliases were rechecked unchanged after publishing. Git deployment automation remains disabled; no main merge, promotion, new project, service, secret or database operation occurred.
+
+Final anonymous HTTPS verification passed **29/29 browser checkpoints** at all five required widths, including both roles, all five destinations, duty/breaks, shops/visits/follow-ups, filters, attendance details, refresh, reset and independent browser storage. Six downloaded Excel workbooks reopened and six genuine Chromium PDFs were generated; all nine PDF pages were rendered and inspected, with embedded fonts and readable Arabic/Malayalam examples. There were zero API/external requests, failed assets, console or uncaught errors. Anonymous HTTP status was 200 and the static security headers were verified. No authentication cookies or bypass tokens were used.
+
+| Final review material | Link |
+| --- | --- |
+| Executive mobile | [390px screenshot](../development/evidence/attendance-review/https/executive-390.png) |
+| Manager desktop | [1440px attendance screenshot](../development/evidence/attendance-review/https/manager-attendance-1440.png) |
+| Manager mobile | [390px attendance cards](../development/evidence/attendance-review/https/manager-attendance-390.png) |
+| Attendance Excel | [Recorded fictional day, four worksheets](../development/evidence/attendance-review/https/recorded-fixture-attendance.xlsx) |
+| Attendance PDF | [Recorded fictional day, two printed pages](../development/evidence/attendance-review/https/recorded-fixture-attendance.pdf) |
+| Overnight example | [Excel](../development/evidence/attendance-review/https/overnight-range-attendance.xlsx) / [PDF](../development/evidence/attendance-review/https/overnight-range-attendance.pdf) |
+| Automated and browser results | [90 regular tests](../development/evidence/attendance-review/automated-verification.json) / [29 HTTPS checks](../development/evidence/attendance-review/https/verification.json) |
+| PDF and headers | [Font/render inspection](../development/evidence/attendance-review/https/pdf-inspection.json) / [Anonymous HTTP headers](../development/evidence/attendance-review/https/header-verification.json) |
+| Deployment evidence | [Static build/resource inventory](../development/evidence/attendance-review/build-verification.json) / [Publication and branch preservation](../development/evidence/attendance-review/publication.json) |
+
+The subsequent evidence-only commit records these final hosted screenshots, report samples and results; it does not change the deployed application source. Its exact SHA is the branch HEAD (`git log -1`) and is included in the owner delivery message. The new preview origin starts with its own local data; records from the previous preview do not transfer or synchronize.
+
+**Stop here for owner visual approval.** No confirmed functional blocker remains in the executed static-demo journeys. Actual Android/iPhone usability, human first-time-user feedback, physical printing, the business decisions above and client acceptance remain pending. Do not describe this review as client approved or enable real operations from it.

@@ -6,49 +6,49 @@ Audit scope: isolated static Emerald client demonstration, fictional browser-loc
 
 Independent browser harness: `development/scripts/attendance-browser.ts`. It serves only built static files locally, or targets the explicitly approved isolated Preview through `DEMO_BASE_URL`. It records requests, failed assets, browser console errors, downloaded workbooks and genuine Chromium print PDFs. Separate synthetic timestamp fixtures exercise past days, multiple sessions and overnight clipping without changing the application's clock. Fresh anonymous contexts check role selection and device/browser isolation. Existing client-demo evidence is preserved.
 
-Integrated local acceptance passed. Results: **28 full-journey browser checkpoints plus one targeted final-build Team-clock regression**, six reopened Excel workbooks, six genuine Chromium PDFs, and zero unexpected API/external requests, failed asset responses or browser errors. TypeScript no-emit check passed. Screens were checked at 390, 430, 768, 1024 and 1440px. Public HTTPS verification is recorded separately after the isolated Preview is deployed; local results do not claim hosted acceptance.
+Integrated local acceptance passed. Results: **28 full-journey browser checkpoints plus one targeted final-build Team-clock regression**, six reopened Excel workbooks, six genuine Chromium PDFs, and zero unexpected API/external requests, failed asset responses or browser errors. TypeScript no-emit check passed. Screens were checked at 390, 430, 768, 1024 and 1440px. The exact deployed source was then verified through a fresh anonymous HTTPS browser context: all 29 checkpoints passed. Details and final artifacts are listed below.
 
 ## Five navigation destinations
 
 | Destination | Essential controls audited | Initial code review | Integrated browser result |
 | --- | --- | --- | --- |
-| Today / Overview | Executive duty, hours, next visit, follow-ups; manager attendance, date/person filters, reports | Existing daily actions present; attendance hours missing before this change | Working — executed local browser evidence |
-| Shops | Search, optional filters, pagination, shop profile/history, check-in, new shop | Present | Working — executed local browser evidence |
-| Visits | Saved visit list, search, person/area/outcome/date filters, open shop | Present | Working — executed local browser evidence |
-| New shops | Discoveries, search/filter, Add New Shop, first visit | Present; save opens the new profile for check-in | Working — executed local browser evidence |
-| Team | Three fictional executives, per-person activity, permitted duty history | Present; executive sees only their own duty records | Working — executed local browser evidence |
+| Today / Overview | Executive duty, hours, next visit, follow-ups; manager attendance, date/person filters, reports | Existing daily actions present; attendance hours missing before this change | Working — executed local and HTTPS browser evidence |
+| Shops | Search, optional filters, pagination, shop profile/history, check-in, new shop | Present | Working — executed local and HTTPS browser evidence |
+| Visits | Saved visit list, search, person/area/outcome/date filters, open shop | Present | Working — executed local and HTTPS browser evidence |
+| New shops | Discoveries, search/filter, Add New Shop, first visit | Present; save opens the new profile for check-in | Working — executed local and HTTPS browser evidence |
+| Team | Three fictional executives, per-person activity, permitted duty history | Present; executive sees only their own duty records | Working — executed local and HTTPS browser evidence |
 
 ## Executive workflow inventory
 
 | Capability | Status before changes | Final status / evidence |
 | --- | --- | --- |
-| Choose role and enter workspace without password | Present | Working — executed local browser evidence |
-| Duty start / break / return / end independent from shop visits | Present | Working — executed local browser evidence |
-| Working hours directly on Today | Missing | Working — executed local browser evidence |
-| Previous sessions and individual breaks | Session history present; break/return timestamps present | Working — executed local browser evidence |
-| Multiple sessions and multiple breaks | Local transitions present | Working — executed local browser evidence |
-| Search and open customer history | Present | Working — executed local browser evidence |
-| Check-in, notes, outcome, optional order details, checkout | Present | Working — executed local browser evidence |
-| New independent follow-up, reschedule, complete, cancel | Present | Working — executed local browser evidence |
-| Add shop and perform its first visit | Present | Working — executed local browser evidence |
-| Refresh and switch roles retain the same local records | Present | Working — executed local browser evidence |
-| Reset Demo Data with confirmation | Present | Working — executed local browser evidence |
+| Choose role and enter workspace without password | Present | Working — executed local and HTTPS browser evidence |
+| Duty start / break / return / end independent from shop visits | Present | Working — executed local and HTTPS browser evidence |
+| Working hours directly on Today | Missing | Working — executed local and HTTPS browser evidence |
+| Previous sessions and individual breaks | Session history present; break/return timestamps present | Working — executed local and HTTPS browser evidence |
+| Multiple sessions and multiple breaks | Local transitions present | Working — executed local and HTTPS browser evidence |
+| Search and open customer history | Present | Working — executed local and HTTPS browser evidence |
+| Check-in, notes, outcome, optional order details, checkout | Present | Working — executed local and HTTPS browser evidence |
+| New independent follow-up, reschedule, complete, cancel | Present | Working — executed local and HTTPS browser evidence |
+| Add shop and perform its first visit | Present | Working — executed local and HTTPS browser evidence |
+| Refresh and switch roles retain the same local records | Present | Working — executed local and HTTPS browser evidence |
+| Reset Demo Data with confirmation | Present | Working — executed local and HTTPS browser evidence |
 
 ## Manager workflow inventory
 
 | Capability | Status before changes | Final status / evidence |
 | --- | --- | --- |
-| Three executives visible in default overview | Present | Working — executed local browser evidence |
-| Attendance status, first start, last end, duty, breaks, net hours and completed visits | Incomplete: live status and session count only | Working — executed local browser evidence |
-| Person detail with individual duty and break/return timestamps | Duty report present; direct per-person attendance detail missing | Working — executed local browser evidence |
-| Past-date status derived from selected saved sessions | Incomplete: original view labelled live duty status | Working — executed local browser evidence |
-| No-record status without assuming absence | Missing daily attendance summary | Working — executed local browser evidence |
-| Simple date/range/person filter | Present | Working — executed local browser evidence |
-| Visit and pending/overdue follow-up reports | Present | Working — executed local browser evidence |
-| Shop history and reasoned assignment transfer | Present | Working — executed local browser evidence |
-| Edit shop / assign follow-up with reason and retained history | Present | Working — executed local browser evidence |
-| Visits, duty/breaks and follow-up Excel / print | Present | Working — executed local browser evidence |
-| Staff Attendance & Working Hours Excel / print with daily summary and detail | Missing | Working — executed local browser evidence |
+| Three executives visible in default overview | Present | Working — executed local and HTTPS browser evidence |
+| Attendance status, first start, last end, duty, breaks, net hours and completed visits | Incomplete: live status and session count only | Working — executed local and HTTPS browser evidence |
+| Person detail with individual duty and break/return timestamps | Duty report present; direct per-person attendance detail missing | Working — executed local and HTTPS browser evidence |
+| Past-date status derived from selected saved sessions | Incomplete: original view labelled live duty status | Working — executed local and HTTPS browser evidence |
+| No-record status without assuming absence | Missing daily attendance summary | Working — executed local and HTTPS browser evidence |
+| Simple date/range/person filter | Present | Working — executed local and HTTPS browser evidence |
+| Visit and pending/overdue follow-up reports | Present | Working — executed local and HTTPS browser evidence |
+| Shop history and reasoned assignment transfer | Present | Working — executed local and HTTPS browser evidence |
+| Edit shop / assign follow-up with reason and retained history | Present | Working — executed local and HTTPS browser evidence |
+| Visits, duty/breaks and follow-up Excel / print | Present | Working — executed local and HTTPS browser evidence |
+| Staff Attendance & Working Hours Excel / print with daily summary and detail | Missing | Working — executed local and HTTPS browser evidence |
 
 ## Usability and integrity review
 
@@ -74,6 +74,22 @@ All six PDFs reopen with embedded fonts. The activity PDF contains embedded Noto
 Two additional, explicitly isolated regression contexts use Playwright's fixed test clock across UAE midnight. They prove that open duty-history durations recalculate from saved timestamps, an open follow-up form updates its earliest allowed date without losing the form, Today refreshes after the dialog closes, and the manager retains selected person/dates while historical/current status labels refresh. The Today shortcut then selects the new UAE date. This emulation is confined to the test harness; the main acceptance journey and recorded-fixture reconciliation use the actual application clock. No clock simulation or artificial elapsed-time counter was added to the shipped application.
 
 The final small UI correction also refreshes duty-duration cells on the executive Team screen, which has history without a Today duty card. A [targeted final-build regression](../development/evidence/attendance-review/local/team-clock-verification.json) passed: saved 11:00 duty start at test clock 12:00 displays 1h 0m, then the real timer callback recalculates 1h 1m when the isolated test clock reads 12:01. [Team history evidence](../development/evidence/attendance-review/local/clock-regression-team-history.png). The full harness includes this case for the subsequent HTTPS rerun; the local full journey records 28 checks and this separate final-build check adds one.
+
+## Final public HTTPS verification
+
+21 October 2026, Asia/Dubai. [Isolated static Preview](https://emerald-sales-client-demo-euswu9jl0-faziils-projects.vercel.app), deployed application source `6b3ffc9606971a6f2c2389c03053d3b5ed33a30a` on `demo/attendance-review`. This verification used a new Playwright browser context without Vercel login cookies, authentication headers, a protection bypass token or existing demo state.
+
+**29 browser checkpoints passed; zero failed.** All five widths, all ten role/navigation combinations, full executive and manager journeys, local role/state persistence, reset, new-shop first visit, attendance edge fixtures, three isolated clock regressions and all four report actions were executed against this HTTPS Preview. Six Excel downloads reopened successfully; six PDFs (nine pages) were rendered and visually reviewed. Exact per-person daily and overnight/range totals agree between manager rows, workbooks and print views. No API or external requests, failed asset responses, uncaught exceptions, browser console errors or GPS requests were observed.
+
+An independent anonymous GET returned HTTP 200. CSP includes `connect-src 'none'`, `form-action 'none'` and `frame-ancestors 'none'`; nosniff, no-referrer and HSTS are present, and geolocation/camera/microphone are disabled. This is static-demo network isolation, not production authentication.
+
+- [All executed checkpoints and network/error inventory](../development/evidence/attendance-review/https/verification.json), [header evidence](../development/evidence/attendance-review/https/header-verification.json), [PDF font/text inspection](../development/evidence/attendance-review/https/pdf-inspection.json).
+- [Executive mobile](../development/evidence/attendance-review/https/executive-390.png), [manager desktop](../development/evidence/attendance-review/https/manager-attendance-1440.png), [manager full mobile](../development/evidence/attendance-review/https/manager-attendance-390.png), [mobile attendance viewport from a separate initial-state anonymous context](../development/evidence/attendance-review/https/manager-attendance-viewport-390-initial.png).
+- [Manager desktop viewport for owner visual approval](../development/evidence/attendance-review/https/manager-attendance-viewport-1440-initial.png) shows the initial no-record, on-duty and on-break staff states together at 1440 × 1000. These additional viewport screenshots are read-only initial-state captures; the full journey screenshots remain available above.
+- [Attendance workbook](../development/evidence/attendance-review/https/recorded-fixture-attendance.xlsx), [attendance PDF](../development/evidence/attendance-review/https/recorded-fixture-attendance.pdf), [overnight workbook](../development/evidence/attendance-review/https/overnight-range-attendance.xlsx), [overnight PDF](../development/evidence/attendance-review/https/overnight-range-attendance.pdf).
+- [Multilingual visit report render](../development/evidence/attendance-review/https/sample-activity-render-1.png), [attendance summary render](../development/evidence/attendance-review/https/recorded-fixture-attendance-render-1.png), [attendance session/break render](../development/evidence/attendance-review/https/recorded-fixture-attendance-render-2.png). Other report files, widths and navigation screenshots are in the same HTTPS evidence folder.
+
+No application/source feature changes were made during this HTTPS acceptance. Browser-local records from this run do not modify any other browser or device. Physical-device behavior, native phone print dialogs, physical printers, owner visual approval and client acceptance remain pending.
 
 ## Not implemented / client policy confirmation required
 
