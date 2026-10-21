@@ -1,0 +1,144 @@
+{
+  "base": "https://emerald-sales-client-demo-1c4oid27p-faziils-projects.vercel.app",
+  "sourceSha": "b99a500ea90ca7686181187b5370fc228cc05402",
+  "status": 200,
+  "headers": {
+    "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    "permissions-policy": "geolocation=(), camera=(), microphone=()",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "no-referrer",
+    "x-robots-tag": "noindex, nofollow"
+  },
+  "assets": [
+    {
+      "localPath": "brand.png",
+      "hostedPath": "brand.png",
+      "status": 200,
+      "hostedSha256": "325f78e49845256cecfdece958066bbda169e39689332ced763d12bc536ba19b",
+      "localSha256": "325f78e49845256cecfdece958066bbda169e39689332ced763d12bc536ba19b",
+      "equivalentContent": true,
+      "comparison": "exact bytes"
+    },
+    {
+      "localPath": "demo-print.css",
+      "hostedPath": "demo-print.css",
+      "status": 200,
+      "hostedSha256": "178f22d327e205a9fa480b88bc915e974847a2d5d11f027b7e1d00ae0b0a3386",
+      "localSha256": "178f22d327e205a9fa480b88bc915e974847a2d5d11f027b7e1d00ae0b0a3386",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    },
+    {
+      "localPath": "demo.css",
+      "hostedPath": "demo.css",
+      "status": 200,
+      "hostedSha256": "93f70f66bd29ca6f6a1a1a62c22e5f153b6a97f402fae033281c5c41cb93c7b7",
+      "localSha256": "af7a7abfbdfc03088507eb594b231c6b453c3981be638c762657d02e4fce97be",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    },
+    {
+      "localPath": "emerald-demo.js",
+      "hostedPath": "emerald-demo.js",
+      "status": 200,
+      "hostedSha256": "d83ffd1dc07ebe49393e56f46b2f2e15c4950c4438d39e653d8d9bbb9e331b51",
+      "localSha256": "d83ffd1dc07ebe49393e56f46b2f2e15c4950c4438d39e653d8d9bbb9e331b51",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    },
+    {
+      "localPath": "favicon.svg",
+      "hostedPath": "favicon.svg",
+      "status": 200,
+      "hostedSha256": "f0c1c5cd5ec1eccbce056e8c792812c049687c285d0e0561f99abcdcf6f02889",
+      "localSha256": "31e9be81678379ac89900e1f6eaf54400c71bb2000f1d7d38ff654c5a531164e",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    },
+    {
+      "localPath": "index.html",
+      "hostedPath": "index.html",
+      "status": 200,
+      "hostedSha256": "745a41cbde7d44d95dbb0da7cf1a07517e35f42886dad257f4c2330fb6b32748",
+      "localSha256": "745a41cbde7d44d95dbb0da7cf1a07517e35f42886dad257f4c2330fb6b32748",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    },
+    {
+      "localPath": "style.css",
+      "hostedPath": "style.css",
+      "status": 200,
+      "hostedSha256": "b0b8fec7572077f0d6f3901d2b3a098fa5ade811c2ff2a43e118b2013245459a",
+      "localSha256": "b0b8fec7572077f0d6f3901d2b3a098fa5ade811c2ff2a43e118b2013245459a",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    },
+    {
+      "localPath": "fonts/NotoSans-Bold.ttf",
+      "hostedPath": "fonts/NotoSans-Bold.ttf",
+      "status": 200,
+      "hostedSha256": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a",
+      "localSha256": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a",
+      "equivalentContent": true,
+      "comparison": "exact bytes"
+    },
+    {
+      "localPath": "fonts/NotoSans-Regular.ttf",
+      "hostedPath": "fonts/NotoSans-Regular.ttf",
+      "status": 200,
+      "hostedSha256": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
+      "localSha256": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
+      "equivalentContent": true,
+      "comparison": "exact bytes"
+    },
+    {
+      "localPath": "fonts/NotoSansArabic-Regular.ttf",
+      "hostedPath": "fonts/NotoSansArabic-Regular.ttf",
+      "status": 200,
+      "hostedSha256": "ceea25b464a656dc3b26849bab9356740401af62aedf1bfa8b7f0d9b75925b1b",
+      "localSha256": "ceea25b464a656dc3b26849bab9356740401af62aedf1bfa8b7f0d9b75925b1b",
+      "equivalentContent": true,
+      "comparison": "exact bytes"
+    },
+    {
+      "localPath": "fonts/NotoSansMalayalam-Regular.ttf",
+      "hostedPath": "fonts/NotoSansMalayalam-Regular.ttf",
+      "status": 200,
+      "hostedSha256": "42eb462ff13e820ebbeaaec4e7b426bd1de145d02cef8b634f5a3efd376b513c",
+      "localSha256": "42eb462ff13e820ebbeaaec4e7b426bd1de145d02cef8b634f5a3efd376b513c",
+      "equivalentContent": true,
+      "comparison": "exact bytes"
+    },
+    {
+      "localPath": "fonts/OFL.txt",
+      "hostedPath": "fonts/OFL.txt",
+      "status": 200,
+      "hostedSha256": "0dab92d0544f7b233403f14b84a663bdbfa746982eda629e7f4f9ffe1b036feb",
+      "localSha256": "0dab92d0544f7b233403f14b84a663bdbfa746982eda629e7f4f9ffe1b036feb",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    },
+    {
+      "localPath": "chunks/chunk-AMNRAVVD.js",
+      "hostedPath": "chunks/chunk-AMNRAVVD.js",
+      "status": 200,
+      "hostedSha256": "19ddce18212beb519f4765ccf006ce7f06b63c44bfa87a66d3baefbc4ab52852",
+      "localSha256": "19ddce18212beb519f4765ccf006ce7f06b63c44bfa87a66d3baefbc4ab52852",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    },
+    {
+      "localPath": "chunks/exceljs.min-GQE3DOGI.js",
+      "hostedPath": "chunks/exceljs.min-GQE3DOGI.js",
+      "status": 200,
+      "hostedSha256": "ede5b4f2e5e6fab6a62d4c6a01ec2dc3075023829222d0ba2dcd0b7d1f4d56b1",
+      "localSha256": "ede5b4f2e5e6fab6a62d4c6a01ec2dc3075023829222d0ba2dcd0b7d1f4d56b1",
+      "equivalentContent": true,
+      "comparison": "Git LF normalized; JS chunk references compared by content and stem"
+    }
+  ],
+  "static": true,
+  "functions": 0,
+  "backendInputs": [],
+  "note": "Windows checkout CRLF vs Linux Git LF; esbuild platform-dependent chunk filenames differ, but chunk contents and normalized entry module compare equal."
+}

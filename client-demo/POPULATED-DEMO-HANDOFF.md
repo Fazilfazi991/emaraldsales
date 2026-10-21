@@ -52,4 +52,15 @@ No original collection-slip photo, actual customer/staff names or actual invoice
 
 ## Publication
 
-Pending verified source push and an isolated static Preview in the existing `emerald-sales-client-demo` project. Original `development` project, main and backend branches must remain untouched. Owner review and physical-phone/client acceptance remain pending.
+Working owner-review Preview: **https://emerald-sales-client-demo-1c4oid27p-faziils-projects.vercel.app/**
+
+- Deployed source commit: `b99a500ea90ca7686181187b5370fc228cc05402`, pushed on `demo/populated-collections`. A subsequent documentation/evidence-only commit records these hosted results; the deployed application is unchanged by it.
+- Vercel deployment `dpl_9JRgSEm7zcDafuMngJwsnjDrkfuK`, project `emerald-sales-client-demo`, READY, target `null` (Preview), static root `client-demo`, Node 22.x. No functions or hosted services.
+- HTTPS verification: **13 populated-data + 16 manual-collection + 31 visit/attendance checkpoints passed** (60 total), ten Excel and ten PDF downloads checked, all five viewport widths. Populated and historical slip PDF pages were rendered and visually inspected. Both have embedded fonts and fit one portrait page.
+- All 14 hosted static assets compare with the verified source build after Git LF and platform-generated chunk-reference normalization; file hashes and security headers are saved in `https-artifacts.json`. No API calls, external requests, failed assets or browser errors occurred.
+- Source scan: Gitleaks checked 36 commits with no leaks; staged audit extracted ten PDFs/ten workbooks and compared ten private local passwords with no findings. No original slip photograph, private logs or local accounts are published.
+- Original `development` Vercel project, latest production deployment, domains and protection compare unchanged before/after this Preview. Remote main remains `9296cf36c94173e418abf1e57a367bdb48c3ff8c`; original delivery branch remains `6c953e178431c217c2ac7bd2fc307212df2d72a9`. No branch is force-pushed or merged.
+
+Hosted screenshots: `development/evidence/populated-collections/https/samir-populated-summary-390.png` and `manager-dashboard-viewport-1440.png`. Samples: `https/populated-today.xlsx` and `https/populated-today.pdf`. Complete hosted records: `https`, `https-manual`, `https-regression`; deployment/build evidence: `publication.json`.
+
+**Ready for owner review. Physical-phone, native print and real-user acceptance are pending; no client acceptance is claimed.** No new integration or production action is authorized by this demo.

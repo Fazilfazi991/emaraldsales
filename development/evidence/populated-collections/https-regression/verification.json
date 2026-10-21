@@ -1,0 +1,172 @@
+{
+  "base": "https://emerald-sales-client-demo-1c4oid27p-faziils-projects.vercel.app",
+  "at": "2026-10-21T08:41:18.099Z",
+  "checks": [
+    "Anonymous role selector and browser-local limitations are visible",
+    "Executive sees no-record day and working-hour totals directly on Today",
+    "Three fictional executives demonstrate no-duty, on-duty and on-break statuses without absence assumptions",
+    "Start duty uses real browser time and gives clear saved feedback",
+    "Checkout has only outcome, one compact notes field and optional date; one body scrollbar and visible save action at five widths and short viewport",
+    "Required short visit discussion is validated before checkout",
+    "Search, history, check-in, refresh, outcome, Unicode discussion and checkout work",
+    "Refresh preserves the exact discussion on the original customer, visit and executive with one independent follow-up and no new order details",
+    "Independent follow-up creation, completion, reschedule and confirmed cancellation work",
+    "Two breaks, refresh, return, end duty and second real-time session persist",
+    "Executive can open previous duty sessions and individual break timings",
+    "Add shop and immediately complete its first visit without duplicate entry",
+    "All five executive destinations, team links, visit/shop search, filters and pagination work",
+    "Executive readable without horizontal page overflow at five required widths",
+    "Manager default overview contains all three fictional executives",
+    "Manager attendance cards/table readable at all five required widths",
+    "One-tap executive attendance opens filtered sessions and individual break/return detail",
+    "All four report Excel files reopen; print views produce genuine browser PDFs with Unicode",
+    "Follow-up pending/completed/cancelled/all and selected-date/overdue controls work",
+    "Manager person filter and shop visit/discussion history share executive saves",
+    "Manager edit, reasoned transfer, follow-up assignment and retained local audit history work",
+    "All five manager destinations work; manager role and changes survive refresh",
+    "Recorded fixture: manager and exact per-person Excel/print totals reconcile across multiple sessions, breaks, overnight and historical/current statuses",
+    "Overnight range and selected executive reconcile with full saved session and break duration",
+    "Attendance pagination, invalid-date message, Retry and Today recovery work",
+    "New anonymous context has independent synthetic data and no role/account requirement",
+    "Reset preserves the demo feature and restores original 700 shops plus six fictional delivery shops without workflow changes",
+    "Separate test clock: open duty history advances; midnight updates date minimum safely and refreshes Today",
+    "Separate test clock: manager retains date/person filters across UAE midnight and Today selects new business date",
+    "Separate test clock: Team history advances from saved timestamps without a Today duty card",
+    "No API/external requests, GPS access, failed assets, uncaught errors or console errors"
+  ],
+  "exports": [
+    {
+      "prefix": "sample",
+      "kind": "activity",
+      "worksheets": [
+        {
+          "name": "Sample report",
+          "rows": 20
+        }
+      ],
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\sample-activity.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\sample-activity.pdf"
+    },
+    {
+      "prefix": "sample",
+      "kind": "duty",
+      "worksheets": [
+        {
+          "name": "Sample report",
+          "rows": 14
+        }
+      ],
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\sample-duty.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\sample-duty.pdf"
+    },
+    {
+      "prefix": "sample",
+      "kind": "followups",
+      "worksheets": [
+        {
+          "name": "Sample report",
+          "rows": 15
+        }
+      ],
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\sample-followups.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\sample-followups.pdf"
+    },
+    {
+      "prefix": "sample",
+      "kind": "attendance",
+      "worksheets": [
+        {
+          "name": "Daily attendance",
+          "rows": 14
+        },
+        {
+          "name": "Staff totals",
+          "rows": 14
+        },
+        {
+          "name": "Duty sessions",
+          "rows": 15
+        },
+        {
+          "name": "Break and return times",
+          "rows": 15
+        }
+      ],
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\sample-attendance.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\sample-attendance.pdf"
+    },
+    {
+      "prefix": "recorded-fixture",
+      "kind": "attendance",
+      "worksheets": [
+        {
+          "name": "Daily attendance",
+          "rows": 14
+        },
+        {
+          "name": "Staff totals",
+          "rows": 14
+        },
+        {
+          "name": "Duty sessions",
+          "rows": 13
+        },
+        {
+          "name": "Break and return times",
+          "rows": 14
+        }
+      ],
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\recorded-fixture-attendance.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\recorded-fixture-attendance.pdf"
+    },
+    {
+      "prefix": "overnight-range",
+      "kind": "attendance",
+      "worksheets": [
+        {
+          "name": "Daily attendance",
+          "rows": 12
+        },
+        {
+          "name": "Staff totals",
+          "rows": 11
+        },
+        {
+          "name": "Duty sessions",
+          "rows": 11
+        },
+        {
+          "name": "Break and return times",
+          "rows": 11
+        }
+      ],
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\overnight-range-attendance.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https-regression\\overnight-range-attendance.pdf"
+    }
+  ],
+  "errors": [],
+  "unexpectedRequests": [],
+  "failedResponses": [],
+  "widths": [
+    390,
+    430,
+    768,
+    1024,
+    1440
+  ],
+  "physicalPhoneTested": false,
+  "storage": "browser-local",
+  "sync": false,
+  "fixture": {
+    "day": "2026-10-19",
+    "previous": "2026-10-18",
+    "clockSimulation": false,
+    "source": "Separate context, synthetic ISO timestamp records only"
+  },
+  "clockRegression": {
+    "isolatedContexts": true,
+    "before": "2026-10-19T19:58:30Z",
+    "after": "2026-10-19T20:00:05Z",
+    "mechanism": "Playwright setFixedTime with actual timer callbacks; no app clock changes"
+  }
+}

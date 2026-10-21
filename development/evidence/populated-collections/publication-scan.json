@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "b99a500ea90ca7686181187b5370fc228cc05402",
+  "gitleaks": {
+    "commits": 36,
+    "leaks": 0
+  },
+  "stagedSourceScan": {
+    "files": 120,
+    "pdfsExtracted": 10,
+    "workbooksExtracted": 10,
+    "privateLocalPasswordsCompared": 10,
+    "sensitiveFindings": 0
+  },
+  "noOriginalCollectionPhoto": true,
+  "noNewCredentialsOrPrivateLogs": true,
+  "status": "passed"
+}

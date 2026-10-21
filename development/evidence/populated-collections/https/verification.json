@@ -1,0 +1,46 @@
+{
+  "base": "https://emerald-sales-client-demo-1c4oid27p-faziils-projects.vercel.app",
+  "at": "2026-10-21T08:40:29.765Z",
+  "day": "2026-10-21",
+  "checks": [
+    "Fresh browser and first role selection show five deliveries,805cash,645credit,475cheques;180oldcash included once",
+    "Populated Samir dashboard and slip are readable at all five widths",
+    "Daily Slip Excel and actual PDF match saved screen amounts,staff,date,invoice,voucher,cheques and oldbill rows",
+    "Refresh and reopening same-origin page retain role and identical collection IDs,amounts,timestamps",
+    "Manager sees separate1200confirmed sales and truthful Samir attendance with recorded break/net hours",
+    "Manager same-browser and person filter match805cash,645credit,475cheques across five widths",
+    "Recent-date filters isolate populated history without adding it to today",
+    "Historical Reference Slip remains exact13rows,1610cash,2562credit andzero cheques in screen,Excel andPDF",
+    "Initialized v2 browser upgrade adds samples once,keeping user payment,discussion,followups,duty,audit and retry keys",
+    "Completed sample shifts do not block new duty,break,return orend and never affect collection totals",
+    "Reset restores the same sample IDs,scenarios and exact totals without user test receipts",
+    "Independent fresh browser gets complete fictional samples without another browser records",
+    "No API,external requests,GPS,failed assets orbrowser errors"
+  ],
+  "exports": [
+    {
+      "prefix": "populated-today",
+      "sheets": 2,
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https\\populated-today.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https\\populated-today.pdf"
+    },
+    {
+      "prefix": "reference-preserved",
+      "sheets": 2,
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https\\reference-preserved.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\https\\reference-preserved.pdf"
+    }
+  ],
+  "errors": [],
+  "unexpectedRequests": [],
+  "failedResponses": [],
+  "widths": [
+    390,
+    430,
+    768,
+    1024,
+    1440
+  ],
+  "physicalPhoneTested": false,
+  "databaseConnected": false
+}

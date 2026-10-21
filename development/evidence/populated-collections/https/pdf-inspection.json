@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "file": "populated-today.pdf",
+      "pages": 1,
+      "fontsEmbedded": {
+        "/AAAAAA+NotoSans-Bold": true,
+        "/BAAAAA+NotoSans-Regular": true
+      },
+      "arabicCharacters": 0,
+      "malayalamCharacters": 0
+    },
+    {
+      "file": "reference-preserved.pdf",
+      "pages": 1,
+      "fontsEmbedded": {
+        "/AAAAAA+NotoSans-Bold": true,
+        "/BAAAAA+NotoSans-Regular": true
+      },
+      "arabicCharacters": 0,
+      "malayalamCharacters": 0
+    }
+  ],
+  "visualReview": "Both hosted PDFs rendered and inspected: one portrait page each; references, rows, totals and footer readable with embedded fonts and no clipping.",
+  "physicalPrinterTested": false
+}

@@ -25,5 +25,15 @@
     1440
   ],
   "physicalPhoneTested": false,
-  "hostedDatabaseConnected": false
+  "hostedDatabaseConnected": false,
+  "httpsBrowser": {
+    "populatedData": 13,
+    "manualCollections": 16,
+    "visitsAttendance": 31
+  },
+  "httpsDownloads": {
+    "xlsx": 10,
+    "pdf": 10
+  },
+  "hostedArtifactsCompared": 14
 }
