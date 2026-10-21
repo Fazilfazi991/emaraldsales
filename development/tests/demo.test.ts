@@ -12,10 +12,10 @@ function fixture(){
   const store=new DemoStore(storage,source,()=>new Date("2026-10-21T12:00:00Z"));
   return {store,storage,values,fill:()=>{full=true;},post:(path:string,body:any,key=randomUUID())=>store.request(path,body,key)};
 }
-test("Demo seeds 700 deterministic fictional shops and selects a role without credentials",()=>{
+test("Demo preserves 700 original shops plus six fictional delivery shops and selects a role without credentials",()=>{
   assert.deepEqual(createData(source,new Date("2026-10-21T12:00:00Z")),createData(source,new Date("2026-10-21T12:00:00Z")));
   const f=fixture();assert.throws(()=>f.store.request("/me"),/Choose a demo role/);f.store.select(profiles[0].id);
-  assert.equal(f.store.request("/shops").total,700);assert.equal(f.store.request("/me").actor.name,"Ahmed Hassan");
+  assert.equal(f.store.request("/shops").total,706);assert.equal(f.store.request("/me").actor.name,"Ahmed Hassan");
   const fresh=new DemoStore(f.storage,source);assert.equal(fresh.request("/me").actor.id,profiles[0].id);
   assert.doesNotMatch(f.values.get(STORAGE_KEY)!,/password|DATABASE_URL|access_token/);
 });
@@ -77,7 +77,7 @@ test("Demo report dates, staff filters, Unicode names and overnight duty totals 
   const f=fixture();f.store.select(profiles[3].id);
   const report=demoReport(f.store,"/reports/activity/export?from=2026-10-21&to=2026-10-21&format=xlsx");
   assert.ok(report.rows.some((r:any)=>r.shop_name.includes("مؤسسة")));assert.ok(report.rows.some((r:any)=>r.shop_name.includes("മാതൃക")));
-  assert.equal(report.total,6);assert.throws(()=>f.store.report("activity",new URLSearchParams({from:"2026-10-22",to:"2026-10-21"})),/start date/);
+  assert.equal(report.total,9);assert.throws(()=>f.store.report("activity",new URLSearchParams({from:"2026-10-22",to:"2026-10-21"})),/start date/);
   const state=JSON.parse(f.values.get(STORAGE_KEY)!);state.sessions.push({id:randomUUID(),executive_id:profiles[0].id,started_at:"2026-10-20T22:00:00Z",ended_at:"2026-10-21T02:00:00Z"});f.storage.setItem(STORAGE_KEY,JSON.stringify(state));
   const duty=f.store.report("duty",new URLSearchParams({from:"2026-10-21",to:"2026-10-21",person:profiles[0].id}));assert.equal(duty.rows[0].elapsed_minutes,240);
 });

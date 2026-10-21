@@ -2,6 +2,7 @@ import { businessDay, addDays, dayRange, calendarDate, checkinInput, checkoutInp
 import { createData, profiles, id, type Row, type Source, type DemoState } from "./data.js";
 import { attendanceForRange } from "./attendance.js";
 import {upgradeCollections,saveDelivery,collectionReport} from './collections.js';
+import {populateSamples} from './samples.js';
 export const STORAGE_KEY="emerald-client-demo-v1";
 type StorageLike=Pick<Storage,"getItem"|"setItem"|"removeItem">;
 const sorted=(rows:Row[],key:string)=>[...rows].sort((a,b)=>String(b[key]).localeCompare(String(a[key]))||String(a.id).localeCompare(String(b.id)));
@@ -12,12 +13,13 @@ export class DemoStore {
   private read():DemoState {
     let raw:string|null;
     try{raw=this.storage.getItem(STORAGE_KEY);}catch{throw new Error("Browser storage is unavailable. Allow site storage to use this demo.");}
-    if(!raw){const data=upgradeCollections(createData(this.source,this.clock())) as DemoState;this.save(data);return data;}
+    if(!raw){const data=populateSamples(upgradeCollections(createData(this.source,this.clock())),this.clock()) as DemoState;this.save(data);return data;}
     let data:Row;
     try{data=JSON.parse(raw);if(!Number.isInteger(data.revision)||!["shops","visits","followups","sessions","rests","audit"].every(k=>Array.isArray(data[k]))||!data.replays)throw 0;data=upgradeCollections(data);}
     catch{throw new Error("The local demo data could not be read. Use Reset Demo Data to restore the samples.");}
-    if(JSON.parse(raw).version===1)this.save(data as DemoState);
-    return data as DemoState;
+    const populated=populateSamples(data,this.clock());
+    if(JSON.parse(raw).version===1||populated!==data)this.save(populated as DemoState);
+    return populated as DemoState;
   }
   private save(data:DemoState){try{this.storage.setItem(STORAGE_KEY,JSON.stringify(data));}catch{throw new Error("This browser could not save the demo. Free some site storage and retry. No change was saved.");}}
   select(profileId:string){need(profiles.some(p=>p.id===profileId),"Choose a sample profile.");const s=this.read();s.profileId=profileId;this.save(s);}

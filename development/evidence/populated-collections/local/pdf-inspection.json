@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "file": "populated-today.pdf",
+      "pages": 1,
+      "fontsEmbedded": {
+        "/AAAAAA+NotoSans-Bold": true,
+        "/BAAAAA+NotoSans-Regular": true
+      },
+      "arabicCharacters": 0,
+      "malayalamCharacters": 0
+    },
+    {
+      "file": "reference-preserved.pdf",
+      "pages": 1,
+      "fontsEmbedded": {
+        "/AAAAAA+NotoSans-Bold": true,
+        "/BAAAAA+NotoSans-Regular": true
+      },
+      "arabicCharacters": 0,
+      "malayalamCharacters": 0
+    }
+  ],
+  "visualReview": "Both rendered pages inspected: one portrait page each, readable references and monetary totals, no clipped content.",
+  "physicalPrinterTested": false
+}

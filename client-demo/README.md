@@ -10,6 +10,8 @@ The approved [Delivery & Collections owner review](DELIVERY-COLLECTIONS-HANDOFF.
 
 ## Run and verify
 
+The latest [populated sample-data handoff](POPULATED-DEMO-HANDOFF.md) adds Samir's five deliveries and exact 805 cash / 645 credit / 475 cheques, recent history and attendance through a one-time additive browser-data upgrade. The original Reference slip remains unchanged.
+
 Use Node 22 and the pinned pnpm version:
 
 ```powershell
@@ -28,8 +30,8 @@ The independent attendance harness covers all five destinations, attendance calc
 
 ## Demo boundaries
 
-- 700 fictional shops reuse the existing synthetic fixture names and areas, with Arabic and Malayalam examples. Initial records are deterministic relative to the UAE date when local data is first created/reset.
-- Manager and three fictional executive profiles are role selections, **not secure authentication**. No passwords or staff accounts are provisioned.
+- 700 original fictional shops plus six delivery sample shops reuse synthetic names and areas, with Arabic and Malayalam examples retained. Initial records are deterministic relative to the UAE date when local data is first created/reset; saved examples are never silently moved to another date.
+- Manager, three fictional executives and Samir Demo (Delivery Person) are role selections, **not secure authentication**. No passwords or staff accounts are provisioned.
 - Changes are stored only in this browser's `localStorage` key `emerald-client-demo-v1`. They survive refresh and role switching. Different browsers, incognito sessions, devices and preview origins have independent copies. Closing an incognito session or clearing site storage removes changes.
 - Reset Demo Data asks for confirmation, deletes only that demo key, and restores the samples. It never changes a backend database. Corrupt/blocked/full storage shows an error rather than claiming a successful save.
 - Use fictional details only. No entered form details are uploaded. CSP disables network connections and form submissions; the bundle contains no real API transport. GPS, camera and microphone are disabled; sample check-ins do not request location. Sample telephone links are disabled.

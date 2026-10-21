@@ -4,6 +4,7 @@ export interface Source { shops: Row[]; visits: Row[] }
 export interface DemoState {
   version: 1 | 2; revision: number; anchor: string; profileId: string | null;
   deliveries?: Row[]; collections?: Row[]; collection_operations?: Record<string,any>;
+  sample_data?: {version:1;set:string;anchor:string;loaded_at:string};
   shops: Row[]; visits: Row[]; followups: Row[]; sessions: Row[]; rests: Row[]; audit: Row[];
   replays: Record<string, {signature: string; result: any}>;
 }

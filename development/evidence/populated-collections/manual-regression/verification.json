@@ -1,0 +1,48 @@
+{
+  "base": "http://127.0.0.1:56067",
+  "at": "2026-10-21T08:30:32.911Z",
+  "checks": [
+    "Fictional delivery role has three clear destinations and own browser-local view",
+    "Delivery staff duty,break,refresh and return use shared attendance model independently",
+    "Full cash,partial,credit,cheque,mixed,older bill and uncompleted delivery recorded through conditional form",
+    "Cash235.10,credit285,cheques340 andold cash60 reconcile without double count or invoice-unique assumptions",
+    "Delivery history,totals and short form fit all five required widths",
+    "Storage failure preserves form and all saved records;retry saves once",
+    "Delivery records,payment components and ended duty survive refresh",
+    "Manager sees delivery staff attendance separately and shared same-browser collections",
+    "Manager staff/date filters and collection dashboard fit all five widths",
+    "Current Daily Collection Slip Excel and actual browser PDF preserve mixed entries,Unicode andseparate totals",
+    "Reference slip has exact13approved amounts:1610cash,2562credit,0cheques,no inferred settlement",
+    "Date filter isolates prior day and displays useful empty state",
+    "Simplified checkout records optional confirmed500.25 separately;cash collections remain245.10",
+    "Browser v1upgrade preserves visits,discussions,duty andfollowups",
+    "Reset restores synthetic reference records without sharing data across devices",
+    "No console errors,failed assets,API/external calls orGPS"
+  ],
+  "exports": [
+    {
+      "prefix": "daily-current",
+      "sheets": 2,
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\manual-regression\\daily-current.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\manual-regression\\daily-current.pdf"
+    },
+    {
+      "prefix": "daily-reference",
+      "sheets": 2,
+      "excel": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\manual-regression\\daily-reference.xlsx",
+      "pdf": "C:\\Users\\User\\Desktop\\Projects\\Emarald Sales\\development\\evidence\\populated-collections\\manual-regression\\daily-reference.pdf"
+    }
+  ],
+  "errors": [],
+  "unexpectedRequests": [],
+  "failedResponses": [],
+  "widths": [
+    390,
+    430,
+    768,
+    1024,
+    1440
+  ],
+  "physicalPhoneTested": false,
+  "databaseConnected": false
+}
