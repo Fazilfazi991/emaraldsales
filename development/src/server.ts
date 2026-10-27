@@ -235,6 +235,11 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         send(200, await crm.convertLead(actor, key, z.string().uuid().parse(conversion[1]), await jsonBody(req)));
         return;
       }
+      const leadStatus = path.match(/^\/api\/leads\/([^/]+)\/status$/);
+      if (leadStatus && method === "POST") {
+        send(200, await crm.updateLeadStatus(actor, key, z.string().uuid().parse(leadStatus[1]), await jsonBody(req)));
+        return;
+      }
       const followup = path.match(/^\/api\/followups\/([^/]+)$/);
       if (path === "/api/followups" && method === "POST") {
         send(200, await crm.createFollowup(actor, key, await jsonBody(req)));
@@ -326,7 +331,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
       console.error(
         JSON.stringify({
           requestId,
-          error: settings.trustedProxy ? "REQUEST_FAILED" : error instanceof Error ? error.message : "Unexpected error",
+          error: "REQUEST_FAILED",
         }),
       );
       send(500, {

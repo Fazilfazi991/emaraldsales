@@ -10,7 +10,10 @@ const rowSchema = z.object({
   kind: z.enum(["customer", "lead"]), row: z.number().int().min(2),
   name: z.string().trim().min(1).max(160), contact: z.string().max(120),
   phone: z.string().max(1000), phoneType: cellType,
+  phoneFormat: z.string().max(1000).default(""),
   whatsapp: z.string().max(1000), whatsappType: cellType,
+  whatsappFormat: z.string().max(1000).default(""),
+  reviewCodes: z.array(z.string().max(100)).max(100).default([]),
   area: z.string().max(100), emirate: z.string().max(100), country: z.string().max(100),
   zohoId: z.string().max(300), ownerId: z.string().uuid().nullable(),
 }).strict();
@@ -45,7 +48,7 @@ export async function importPilotBatch(db: Database, actor: Actor, input: unknow
     for (const r of batch.rows) {
       const id = randomUUID();
       await tx.query("INSERT INTO shops(id,organization_id,name,contact,phone,area,location,notes,status,assigned_executive_id,created_by,synthetic,import_batch_id,emirate,country,whatsapp,zoho_contact_id) VALUES($1,$2,$3,$4,$5,$6,'','',$7,$8,$9,false,$10,$11,$12,$13,$14)", [id,actor.organizationId,r.name,r.contact,r.phone,r.area,r.kind === 'customer' ? 'Customer' : 'New Lead',r.ownerId,actor.id,batchId,r.emirate,r.country,r.whatsapp,r.zohoId]);
-      await tx.query("INSERT INTO import_source_rows(organization_id,batch_id,source_kind,source_row,shop_id,phone_cell_type,whatsapp_cell_type) VALUES($1,$2,$3,$4,$5,$6,$7)", [actor.organizationId,batchId,r.kind,r.row,id,r.phoneType,r.whatsappType]);
+      await tx.query("INSERT INTO import_source_rows(organization_id,batch_id,source_kind,source_row,shop_id,phone_cell_type,whatsapp_cell_type,phone_format,whatsapp_format,review_codes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)", [actor.organizationId,batchId,r.kind,r.row,id,r.phoneType,r.whatsappType,r.phoneFormat,r.whatsappFormat,JSON.stringify(r.reviewCodes)]);
     }
     await tx.query("UPDATE import_batches SET status='committed' WHERE id=$1", [batchId]);
     const customers = batch.rows.filter((r) => r.kind === "customer").length, leads = batch.rows.length - customers;

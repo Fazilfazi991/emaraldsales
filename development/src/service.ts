@@ -28,6 +28,10 @@ import {
 import type { Config } from "./config.js";
 import { z } from "zod";
 type Row = Record<string, any>;
+// Avoid copying possible phone or tax identifiers from free-text reasons into audit logs.
+function auditReason(reason: string) {
+  return reason.replace(/\+?\d(?:[\d ()+./-]*\d)?/g, match => (match.match(/\d/g) ?? []).length >= 7 ? "[number redacted]" : match);
+}
 export async function audit(
   tx: Queryable,
   actor: Actor,
@@ -187,6 +191,19 @@ export class CRM {
       return { shop };
     });
   }
+  updateLeadStatus(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    const data = z.object({ version: z.number().int().positive(), status: z.enum(["New Lead", "Contacted", "Interested", "Not Interested"]) }).strict().parse(body);
+    return this.mutate(actor, key, `lead.status:${id}`, data, async tx => {
+      const before = await one(tx, "SELECT id,status,version,assigned_executive_id FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE", [actor.organizationId,id]);
+      if (actor.role === "executive" && before.assigned_executive_id !== actor.id) throw new Fault(403,"FORBIDDEN","Only the assigned salesperson can update this enquiry.");
+      if (before.status === "Customer") throw new Fault(409,"ALREADY_CUSTOMER","This record is already a customer.");
+      if (before.version !== data.version) throw new Fault(409,"STALE_RECORD","This enquiry changed. Refresh and try again.");
+      if (before.status === data.status) throw new Fault(422,"NO_CHANGE","Choose a different status.");
+      const shop = await one(tx,"UPDATE shops SET status=$3,version=version+1,updated_at=now() WHERE organization_id=$1 AND id=$2 RETURNING id,status,version",[actor.organizationId,id,data.status]);
+      await audit(tx,actor,"lead.status","shop",id,{before:{status:before.status,version:before.version},after:{status:shop.status,version:shop.version}});
+      return {shop};
+    });
+  }
   async profile(actor: Actor, id: string) {
     const shop = await one(
       this.db,
@@ -226,7 +243,8 @@ export class CRM {
       if (before.version !== data.version)
         throw new Fault(409, "STALE_RECORD", "Shop details changed. Refresh before editing.");
       const shop = await one(tx, `UPDATE shops SET name=$3,contact=$4,phone=$5,area=$6,location=$7,notes=$8,version=version+1,updated_at=now() WHERE organization_id=$1 AND id=$2 RETURNING *`, [actor.organizationId, id, data.name, data.contact, data.phone, data.area, data.location, data.notes]);
-      await audit(tx, actor, "shop.update", "shop", id, { before, after: shop, reason: data.reason });
+      const changedFields = ["name", "contact", "phone", "area", "location", "notes"].filter(field => before[field] !== shop[field]);
+      await audit(tx, actor, "shop.update", "shop", id, { changedFields, beforeVersion: before.version, afterVersion: shop.version, reason: auditReason(data.reason) });
       return { shop };
     });
   }
@@ -249,7 +267,7 @@ export class CRM {
       await audit(tx, actor, "shop.transfer", "shop", id, {
         before: { assignedExecutiveId: before.assigned_executive_id, version: before.version },
         after: { assignedExecutiveId: shop.assigned_executive_id, version: shop.version },
-        reason: data.reason,
+        reason: auditReason(data.reason),
       });
       return { shop };
     });
@@ -286,7 +304,7 @@ export class CRM {
       if (before.owner_id === data.ownerId)
         throw new Fault(422, "NO_CHANGE", "This executive already owns the follow-up.");
       const followup = await one(tx, `UPDATE followups SET owner_id=$3,updated_at=now(),version=version+1 WHERE organization_id=$1 AND id=$2 RETURNING *,due_date::text`, [actor.organizationId, id, data.ownerId]);
-      await audit(tx, actor, "followup.assign", "followup", id, { before, after: followup, reason: data.reason });
+      await audit(tx, actor, "followup.assign", "followup", id, { before, after: followup, reason: auditReason(data.reason) });
       return { followup };
     });
   }
@@ -346,6 +364,8 @@ export class CRM {
       await this.db.query<Row>(
         `SELECT
       (SELECT count(*)::int FROM memberships WHERE organization_id=$1 AND role='executive') AS executives,
+      (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND status='Customer') AS customers,
+      (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND status<>'Customer') AS enquiries,
       (SELECT count(*)::int FROM visits WHERE organization_id=$1 AND ($2::uuid IS NULL OR visitor_id=$2) AND checked_in_at >= (date_trunc('day',now() AT TIME ZONE 'Asia/Dubai') AT TIME ZONE 'Asia/Dubai') AND checked_in_at < ((date_trunc('day',now() AT TIME ZONE 'Asia/Dubai')+interval '1 day') AT TIME ZONE 'Asia/Dubai')) AS today,
       (SELECT count(*)::int FROM visits WHERE organization_id=$1 AND ($2::uuid IS NULL OR visitor_id=$2) AND lifecycle='completed' AND (checked_in_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date) AS completed,
       (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND ($2::uuid IS NULL OR created_by=$2) AND (created_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date) AS new_shops,
@@ -376,7 +396,7 @@ export class CRM {
       (SELECT count(*)::int FROM visits v WHERE v.organization_id=m.organization_id AND v.visitor_id=u.id AND (v.checked_in_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date AND v.lifecycle='completed') AS completed,
       (SELECT count(*)::int FROM visits v WHERE v.organization_id=m.organization_id AND v.visitor_id=u.id AND v.lifecycle='open') AS active,
       (SELECT count(*)::int FROM visits v WHERE v.organization_id=m.organization_id AND v.visitor_id=u.id AND (v.checked_in_at AT TIME ZONE 'Asia/Dubai')::date BETWEEN (now() AT TIME ZONE 'Asia/Dubai')::date-6 AND (now() AT TIME ZONE 'Asia/Dubai')::date) AS week,
-      (SELECT count(*)::int FROM shops s WHERE s.organization_id=m.organization_id AND s.created_by=u.id AND s.status<>'Customer') AS leads,
+      (SELECT count(*)::int FROM shops s WHERE s.organization_id=m.organization_id AND s.assigned_executive_id=u.id AND s.status<>'Customer') AS leads,
       (SELECT count(*)::int FROM followups f WHERE f.organization_id=m.organization_id AND f.owner_id=u.id AND f.status='pending') AS pending
       FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1 AND m.role='executive' ORDER BY u.name`,
         [actor.organizationId],
@@ -492,8 +512,9 @@ export class CRM {
         });
       }
       // Assignment and canonical shop status never change as a side effect of checkout.
+      const { notes: _notes, orderNote: _orderNote, ...checkoutAudit } = data;
       await audit(tx, actor, "visit.checkout", "visit", id, {
-        ...data,
+        ...checkoutAudit,
         previousVersion: v.version,
       });
       return { visit, followup };
@@ -598,7 +619,7 @@ export class CRM {
       await audit(tx, actor, `followup.${data.action}`, "followup", id, {
         before: old,
         after: updated,
-        reason: data.reason,
+        reason: auditReason(data.reason),
       });
       return { followup: updated };
     });

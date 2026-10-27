@@ -172,8 +172,8 @@ const time = (s: unknown) =>
         minute: "2-digit",
       }).format(new Date(String(s)))
     : "—";
-const person = (id: string) =>
-  meta.team.find((p) => p.id === id)?.name ?? "Unavailable account";
+const person = (id: string | null) =>
+  id ? meta.team.find((p) => p.id === id)?.name ?? "Unavailable account" : "Unassigned";
 const avatar = (id: string) =>
   `<span class="avatar" aria-hidden="true">${h(
     person(id)
@@ -207,7 +207,7 @@ const visitEnabled = () => me.policies.visit === "approved-v2";
 const executive = () => me.actor.role === "executive";
 const delivery = () => !!demo && String(me.actor.role)==="delivery";
 const dutyWorker = () => executive() || delivery();
-const visibleNav = () => delivery() ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [...nav,...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
+const visibleNav = () => delivery() ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [...nav.map(item => !demo && item[0] === "shops" ? [item[0],item[1],"Customers"] : !demo && item[0] === "leads" ? [item[0],item[1],"Enquiries"] : item),...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
 const supervisor = () => me.actor.role === "manager" || me.actor.role === "admin";
 function shell() {
   $("application").innerHTML =
@@ -381,12 +381,12 @@ function renderShops() {
       view === "leads"
         ? "New accounts from the field"
         : "Your customer directory",
-      view === "leads" ? "New shops" : "Shops",
+      view === "leads" ? (demo ? "New shops" : "Enquiries") : (demo ? "Shops" : "Customers"),
       "Search your shop network. Open a shop to review every past visit.",
       executive() ? button("＋ Add New Shop", "data-add", true) : "",
     ) +
     panel(
-      view === "leads" ? "New shops" : "All shops",
+      view === "leads" ? (demo ? "New shops" : "Enquiries") : (demo ? "All shops" : "Customers"),
       "Shared history across the field team",
       toolbar() +
         table(
@@ -474,6 +474,8 @@ function query() {
   for (const k of ["person", "area", "status"] as const)
     if (filters[k]) p.set(k, filters[k]);
   if (view === "leads") p.set("lead", "true");
+  if (!demo && view === "leads") p.set("kind", "lead");
+  if (!demo && view === "shops") p.set("kind", "customer");
   if (view !== "visits" && filters.when) p.set("when", filters.when);
   if (view === "visits" && filters.when) {
     const day = serverDay || businessDay(new Date());
@@ -516,6 +518,11 @@ async function render() {
       dashboard = currentDashboard;
       serverDay = dashboard.metrics.day;
       markup = renderProfile();
+      if (!demo && profile!.shop.status !== "Customer") {
+        const canUpdate = supervisor() || (executive() && profile!.shop.assigned_executive_id === me.actor.id);
+        const actions = (canUpdate ? button("Update enquiry status", "data-lead-status") : "") + (supervisor() ? button("Convert to customer", "data-convert-lead") : "");
+        if (actions) markup += panel("Enquiry actions", "Changes are saved in the record history.", `<div class="panel-body actions">${actions}</div>`);
+      }
     } else if (view === "dashboard" || view === "team") {
       const result = await api("/dashboard"),
         history = await api("/duty");
@@ -525,7 +532,7 @@ async function render() {
       serverDay = dashboard.metrics.day;
       markup =
         view === "dashboard"
-          ? supervisor() ? '<div id="managerReports" class="manager-reports"></div>' : renderDashboard()
+          ? supervisor() ? (!demo ? panel("Customers and enquiries", "Shared records · open a list to search", `<div class="panel-body actions">${button(`Customers: ${dashboard.metrics.customers}`, 'data-view="shops"')}${button(`Enquiries: ${dashboard.metrics.enquiries}`, 'data-view="leads"')}</div>`) + panel("Enquiries by salesperson", "Assigned enquiries; unassigned records remain in the enquiry list", `<div class="panel-body">${dashboard.team.map((p:Row)=>`<p>${h(p.name)} · ${h(p.leads)} enquiries</p>`).join("")}</div>`) : "") + '<div id="managerReports" class="manager-reports"></div>' : renderDashboard()
           : heading(
               "Field team",
               "Sales executives",
@@ -788,7 +795,7 @@ document.addEventListener("click", async (e) => {
       await mutateWork(operation.work, operation.message);
       return;
     }
-    if (unconfirmed && (d.add !== undefined || d.checkout || d.checkin || d.followup || d.addFollowup !== undefined || d.editShop !== undefined || d.transferShop !== undefined || d.dutyAction)) {
+    if (unconfirmed && (d.add !== undefined || d.checkout || d.checkin || d.followup || d.addFollowup !== undefined || d.editShop !== undefined || d.transferShop !== undefined || d.dutyAction || d.convertLead !== undefined || d.leadStatus !== undefined)) {
       showError(new Error("Your previous save is unconfirmed. Use Retry save first."));
       return;
     }
@@ -857,6 +864,17 @@ document.addEventListener("click", async (e) => {
     }
     if (d.editShop !== undefined || d.transferShop !== undefined) {
       shopManagementForm(d.transferShop !== undefined);
+      return;
+    }
+    if (d.convertLead !== undefined && !demo && profile) {
+      const id=profile.shop.id, version=profile.shop.version;
+      if (!window.confirm("Convert this enquiry to a customer? Its visits and follow-ups will be kept.")) return;
+      await mutateWork(() => api(`/leads/${id}/convert`,{version},true), "Enquiry converted to customer.");
+      return;
+    }
+    if (d.leadStatus !== undefined && !demo && profile) {
+      formAction="lead-status"; formId=profile.shop.id;
+      dialog("Update enquiry status",profile.shop.name,field("status","Status","select",true,profile.shop.status,[["New Lead","New"],["Contacted","Contacted"],["Interested","Interested"],["Not Interested","Not interested"]]),submit("Save status"));
       return;
     }
     if (d.addFollowup !== undefined) { addFollowupForm(); return; }
@@ -984,6 +1002,7 @@ $("dialogForm").addEventListener("submit", (e) => {
     }
     if (action === "shop-update" || action === "transfer")
       await api(`/shops/${id}/${action === "transfer" ? "transfer" : "update"}`, {...data, version}, true);
+    if (action === "lead-status") await api(`/leads/${id}/status`, {...data, version}, true);
     if (action === "followup-create")
       await api("/followups", data, true);
     if (action.startsWith("followup:")) {

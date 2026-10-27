@@ -18,9 +18,16 @@ test("manager conversion preserves history and separates enquiry and customer li
     const manager = makeActor("manager"), executive = makeActor("executive");
     const crm = new CRM(db, { visitPolicy: "approved-v2", dutyPolicy: "approved-v1" });
     const leads = await crm.listShops(manager, new URLSearchParams("kind=lead"));
-    const lead = leads.rows[0];
+    const lead = leads.rows.find((item) => item.assigned_executive_id === executive.id)!;
     assert.ok(lead && lead.status !== "Customer");
     const before = await crm.profile(manager, lead.id);
+    const other = fixture.accounts.find(a => a.role === "executive" && a.id !== executive.id)!;
+    const otherActor: Actor = {id:other.id,name:other.name,role:other.role,organizationId:fixture.organizationId};
+    await assert.rejects(() => crm.updateLeadStatus(otherActor, randomUUID(), lead.id, {version:lead.version,status:"Contacted"}), (e: unknown) => e instanceof Fault && e.status === 403);
+    const newStatus = lead.status === "Interested" ? "Contacted" : "Interested";
+    await crm.updateLeadStatus(executive, randomUUID(), lead.id, {version:lead.version,status:newStatus});
+    lead.version++;
+    lead.status=newStatus;
     assert.throws(() => crm.convertLead(executive, randomUUID(), lead.id, { version: lead.version }), (e: unknown) => e instanceof Fault && e.status === 403);
     const key = randomUUID();
     const [a, b] = await Promise.all([

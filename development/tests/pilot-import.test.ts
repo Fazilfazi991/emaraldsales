@@ -5,6 +5,7 @@ import { openDatabase, migrate, type Database, type Queryable } from "../src/dat
 import { createAccount } from "../src/auth.js";
 import { importPilotBatch } from "../src/pilot-import.js";
 import { Fault, type Actor } from "../src/domain.js";
+import { CRM } from "../src/service.js";
 
 test("pilot import atomically preserves distinct source rows and retries safely", async () => {
   const db = await openDatabase();
@@ -34,6 +35,10 @@ test("pilot import atomically preserves distinct source rows and retries safely"
     const shops = (await db.query<{status: string; phone: string; assigned_executive_id: string | null}>("SELECT status,phone,assigned_executive_id FROM shops WHERE organization_id=$1 ORDER BY status",[org])).rows;
     assert.equal(shops.length,2); assert.ok(shops.every((s) => s.phone === "0012345"));
     assert.equal(shops.find((s) => s.status === "New Lead")?.assigned_executive_id,null);
+    const lead=(await db.query<{id:string;version:number}>("SELECT id,version FROM shops WHERE organization_id=$1 AND status='New Lead'",[org])).rows[0];
+    const crm=new CRM(db,{visitPolicy:"approved-v2",dutyPolicy:"approved-v1"});
+    await crm.transferShop(manager,randomUUID(),lead.id,{version:lead.version,assignedExecutiveId:execId,reason:"Manager assigned enquiry."});
+    assert.equal((await db.query<{assigned_executive_id:string}>("SELECT assigned_executive_id FROM shops WHERE id=$1",[lead.id])).rows[0].assigned_executive_id,execId);
     await assert.rejects(() => importPilotBatch(db, manager, {...batch,rows:[batch.rows[0]]}), (e: unknown) => e instanceof Fault && e.code === "IMPORT_MISMATCH");
     await assert.rejects(() => importPilotBatch(db, manager, {...batch,sourceHash:"b".repeat(64)}), (e: unknown) => e instanceof Fault && e.code === "WORKSPACE_NOT_EMPTY");
   } finally { await db.close(); }
