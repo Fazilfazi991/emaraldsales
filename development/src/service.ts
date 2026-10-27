@@ -125,6 +125,7 @@ export class CRM {
     }
   }
   async listShops(actor: Actor, p: URLSearchParams) {
+    const kind = z.enum(["all", "customer", "lead"]).parse(p.get("kind") ?? "all");
     const page = z.coerce
       .number()
       .int()
@@ -145,11 +146,13 @@ export class CRM {
       p.get("status") || null,
       p.get("lead") === "true",
       p.get("when") || null,
+      kind,
     ];
     if (filters[2]) z.string().uuid().parse(filters[2]);
     const where = `s.organization_id=$1 AND concat_ws(' ',s.name,s.contact,s.phone,s.area,s.location) ILIKE $2
       AND ($3::uuid IS NULL OR s.assigned_executive_id=$3) AND ($4::text IS NULL OR s.area=$4)
       AND ($5::text IS NULL OR s.status=$5) AND (NOT $6::boolean OR s.status<>'Customer')
+      AND ($8::text='all' OR ($8='customer' AND s.status='Customer') OR ($8='lead' AND s.status<>'Customer'))
       AND ($7::text IS NULL OR ($7='due' AND EXISTS(SELECT 1 FROM followups f WHERE f.shop_id=s.id AND f.status='pending'))
         OR ($7='visited' AND EXISTS(SELECT 1 FROM visits v WHERE v.shop_id=s.id))
         OR ($7='never' AND NOT EXISTS(SELECT 1 FROM visits v WHERE v.shop_id=s.id)))`;
@@ -164,11 +167,25 @@ export class CRM {
         `SELECT s.*, (SELECT count(*)::int FROM visits v WHERE v.shop_id=s.id) AS visit_count,
       (SELECT max(checked_in_at) FROM visits v WHERE v.shop_id=s.id) AS last_visit,
       (SELECT min(due_date)::text FROM followups f WHERE f.shop_id=s.id AND f.status='pending') AS next_followup
-      FROM shops s WHERE ${where} ORDER BY lower(s.name),s.id LIMIT 40 OFFSET $8`,
+      FROM shops s WHERE ${where} ORDER BY lower(s.name),s.id LIMIT 40 OFFSET $9`,
         [...filters, page * 40],
       )
     ).rows;
     return { rows, total: count, page, pageSize: 40 };
+  }
+  convertLead(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    management(actor);
+    const data = z.object({ version: z.number().int().positive() }).strict().parse(body);
+    return this.mutate(actor, key, `lead.convert:${id}`, data, async (tx) => {
+      const before = await one(tx, "SELECT id,status,version FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE", [actor.organizationId, id]);
+      if (before.version !== data.version)
+        throw new Fault(409, "STALE_RECORD", "This enquiry changed. Refresh and try again.");
+      if (before.status === "Customer")
+        throw new Fault(409, "ALREADY_CUSTOMER", "This enquiry is already a customer.");
+      const shop = await one(tx, "UPDATE shops SET status='Customer',version=version+1,updated_at=now() WHERE organization_id=$1 AND id=$2 RETURNING id,status,version", [actor.organizationId, id]);
+      await audit(tx, actor, "lead.convert", "shop", id, { before: { status: before.status, version: before.version }, after: { status: shop.status, version: shop.version } });
+      return { shop };
+    });
   }
   async profile(actor: Actor, id: string) {
     const shop = await one(

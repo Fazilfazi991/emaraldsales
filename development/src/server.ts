@@ -230,6 +230,11 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         send(200, await crm.lead(actor, key, await jsonBody(req)));
         return;
       }
+      const conversion = path.match(/^\/api\/leads\/([^/]+)\/convert$/);
+      if (conversion && method === "POST") {
+        send(200, await crm.convertLead(actor, key, z.string().uuid().parse(conversion[1]), await jsonBody(req)));
+        return;
+      }
       const followup = path.match(/^\/api\/followups\/([^/]+)$/);
       if (path === "/api/followups" && method === "POST") {
         send(200, await crm.createFollowup(actor, key, await jsonBody(req)));
