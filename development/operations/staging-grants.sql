@@ -9,7 +9,7 @@ GRANT INSERT ON users, memberships, shops, visits, followups, duty_sessions,
   rest_intervals, audit_events, idempotency, sessions, login_attempts TO emerald_runtime;
 GRANT UPDATE ON shops, visits, followups, duty_sessions, rest_intervals, login_attempts TO emerald_runtime;
 -- PostgreSQL needs an UPDATE privilege for the joined FOR UPDATE authorization lock.
-GRANT UPDATE(active) ON users TO emerald_runtime;
+GRANT UPDATE(active,password_hash) ON users TO emerald_runtime;
 GRANT UPDATE(role) ON memberships TO emerald_runtime;
 GRANT DELETE ON sessions, login_attempts TO emerald_runtime;
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_events FROM emerald_runtime;

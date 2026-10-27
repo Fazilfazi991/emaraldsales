@@ -7,8 +7,10 @@ import { seedSynthetic } from "../src/fixtures.js";
 import { application } from "../src/server.js";
 import type { Config } from "../src/config.js";
 import { businessDay } from "../src/domain.js";
+import { createAccount } from "../src/auth.js";
 
 const db=await openDatabase(); await migrate(db); const fixture=await seedSynthetic(db,36);
+await createAccount(db,fixture.organizationId,"delivery@synthetic.invalid","Delivery Staff","delivery","fictional-password-123456");
 const config:Config={host:"127.0.0.1",port:0,origin:"http://127.0.0.1",dataDir:"",secure:false,visitPolicy:"approved-v2",dutyPolicy:"approved-v1"};
 const server=application(db,config); await new Promise<void>(r=>server.listen(0,"127.0.0.1",r));
 config.origin=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
@@ -73,6 +75,16 @@ try {
       await mp.locator(`${mnav} [data-view="leads"]`).click(); await mp.locator(`[data-shop="${lead.id}"]`).first().click();
       await mp.getByText("Fictional enquiry discussion.").waitFor(); await mc.close();
     }
-    await ectx.close(); console.log(`PASS synthetic manager and executive ${width}px`);
+    await ectx.close();
+    if(width===390){
+      const dctx=await browser.newContext({viewport:{width,height:900}}), dp=await dctx.newPage();
+      await dp.goto(config.origin);await dp.getByLabel("Email",{exact:true}).fill("delivery@synthetic.invalid");await dp.getByLabel("Password",{exact:true}).fill("fictional-password-123456");await dp.getByRole("button",{name:"Sign in",exact:true}).click();
+      await dp.getByRole("heading",{name:"Your duty"}).waitFor(); await dp.getByRole("button",{name:"Start duty",exact:true}).click();
+      await dp.getByRole("button",{name:"Start break",exact:true}).click(); await dp.getByRole("button",{name:"Return to duty",exact:true}).click(); await dp.getByRole("button",{name:"End duty",exact:true}).click();
+      await dp.getByRole("button",{name:"Start duty",exact:true}).waitFor();
+      assert.equal(await dp.locator('[data-view="collections"]').count(),0);
+      await dp.screenshot({path:`${evidence}/delivery-duty-${width}.png`,fullPage:true}); await dctx.close();
+    }
+    console.log(`PASS synthetic manager and executive ${width}px`);
   }
 } finally { await browser.close(); await new Promise<void>(r=>server.close(()=>r())); await db.close(); }

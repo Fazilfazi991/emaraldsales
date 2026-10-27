@@ -205,13 +205,14 @@ const fact = (label: string, value: unknown) =>
   `<div class="fact"><label>${label}</label><strong>${h(value ?? "—")}</strong></div>`;
 const visitEnabled = () => me.policies.visit === "approved-v2";
 const executive = () => me.actor.role === "executive";
-const delivery = () => !!demo && String(me.actor.role)==="delivery";
+const delivery = () => String(me.actor.role)==="delivery";
 const dutyWorker = () => executive() || delivery();
-const visibleNav = () => delivery() ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [...nav.map(item => !demo && item[0] === "shops" ? [item[0],item[1],"Customers"] : !demo && item[0] === "leads" ? [item[0],item[1],"Enquiries"] : item),...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
+const visibleNav = () => delivery() ? (demo ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [["dashboard","▦","My duty"]]) : [...nav.map(item => !demo && item[0] === "shops" ? [item[0],item[1],"Customers"] : !demo && item[0] === "leads" ? [item[0],item[1],"Enquiries"] : item),...(!demo && me.actor.role === "admin" ? [["accounts","♙","Accounts"]] : []),...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
 const supervisor = () => me.actor.role === "manager" || me.actor.role === "admin";
 function shell() {
   $("application").innerHTML =
     `<div class="shell"><aside class="sidebar" aria-label="Main navigation"><div class="brand"><img class="brand-thumb" src="/brand.png" alt="Emerald Interlink"><div><b>EMERALD INTERLINK</b><span>Field Sales CRM</span></div></div><div class="workspace-label">FIELD WORKSPACE</div><nav class="nav" id="desktopNav"></nav><div class="sidebar-foot"><b>EMERALD INTERLINK TRADING L.L.C</b><br>Dubai, United Arab Emirates<div class="connection"><span class="dot"></span>Local review · synthetic data</div><div>Online saves · UAE reporting time</div></div></aside><main class="main"><header class="topbar"><div class="crumb">Emerald Interlink / <b id="crumb">Dashboard</b></div><div class="top-actions"><span class="signed-in">${h(me.actor.name)} <small>${h(me.actor.role)}</small></span>${button("Duty", "data-duty")}${button("Sign out", "data-logout")}</div></header><div class="content" id="content" tabindex="-1"></div></main><nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation"></nav></div>`;
+  if (!demo) document.querySelector(".sidebar-foot .connection")!.textContent="Secure team workspace";
   if (demo) {
     document.querySelector(".sidebar-foot")!.innerHTML = '<b>EMERALD INTERLINK TRADING L.L.C</b><br>Client review · Fictional records<div class="connection"><span class="dot"></span>Saved in this browser only</div><div>Changes do not sync between devices.</div>';
     document.querySelector<HTMLButtonElement>("[data-logout]")!.textContent = "Switch role";
@@ -233,7 +234,7 @@ function loginScreen(message = "") {
     return;
   }
   $("application").innerHTML =
-    `<main class="login-wrap"><section class="panel login-card"><img class="login-logo" src="/brand.png" alt="Emerald Interlink"><div class="panel-body"><p class="eyebrow">Field Sales CRM</p><h1>Sign in to your workspace</h1><p class="subheading">Shared shop history. Attributable field visits.</p><form id="loginForm"><label for="email">Email</label><input class="input" id="email" type="email" autocomplete="username" required><label for="password">Password</label><input class="input" id="password" type="password" autocomplete="current-password" required><p class="error" id="loginError" role="alert">${h(message)}</p><button class="button primary" type="submit">Sign in</button></form><p class="help">Local review workspace · synthetic records. Your administrator provisions accounts.</p></div></section></main>`;
+    `<main class="login-wrap"><section class="panel login-card"><img class="login-logo" src="/brand.png" alt="Emerald Interlink"><div class="panel-body"><p class="eyebrow">Field Sales CRM</p><h1>Sign in to your workspace</h1><p class="subheading">Shared shop history. Attributable field visits.</p><form id="loginForm"><label for="email">Email</label><input class="input" id="email" type="email" autocomplete="username" required><label for="password">Password</label><input class="input" id="password" type="password" autocomplete="current-password" required><p class="error" id="loginError" role="alert">${h(message)}</p><button class="button primary" type="submit">Sign in</button></form><p class="help">Contact your administrator if you need help signing in.</p></div></section></main>`;
   $("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const submit = $("loginForm").querySelector("button")!;
@@ -504,11 +505,14 @@ async function render() {
   const cursor = focused?.id === "search" ? focused.selectionStart : null;
   try {
     let markup = "";
-    if (!dashboard) {
+    if (!dashboard && !(delivery() && !demo)) {
       dashboard = await api("/dashboard");
       serverDay = dashboard.metrics.day;
     }
-    if (demo && (delivery() || view==="collections")) {
+    if (delivery() && !demo) {
+      duty=await api("/duty"); serverDay=businessDay(new Date());
+      markup=heading("Field workspace","Your duty",date(serverDay))+dutyCard()+panel("Delivery records","Delivery and collection recording is not yet available.",'<div class="panel-body"><p>Use this screen to record your duty and breaks.</p></div>');
+    } else if (demo && (delivery() || view==="collections")) {
       if(delivery()&&view!=='record-delivery'){duty=await api('/duty');markup=dutyCard();}
       markup+='<div id="collectionWorkspace" class="collection-workspace"></div>';
     } else if (selected) {
@@ -523,6 +527,9 @@ async function render() {
         const actions = (canUpdate ? button("Update enquiry status", "data-lead-status") : "") + (supervisor() ? button("Convert to customer", "data-convert-lead") : "");
         if (actions) markup += panel("Enquiry actions", "Changes are saved in the record history.", `<div class="panel-body actions">${actions}</div>`);
       }
+    } else if (view === "accounts" && !demo && me.actor.role === "admin") {
+      const accounts=await api("/accounts");
+      markup=heading("Administration","Staff accounts","Individual sign-in accounts",button("Add account","data-account-add",true))+panel("Accounts","Only administrators can manage access",table(["Name","Sign-in email","Role","Status","Actions"],accounts.map((a:Row)=>`<tr>${cell("Name",h(a.name))}${cell("Sign-in email",h(a.email))}${cell("Role",h(a.role))}${cell("Status",a.active?"Active":"Disabled")}${cell("Actions",button("Reset password",`data-account-reset="${h(a.id)}"`)+(a.id!==me.actor.id?button(a.active?"Disable":"Enable",`data-account-status="${h(a.id)}" data-next-active="${a.active?"false":"true"}"`):""))}</tr>`)));
     } else if (view === "dashboard" || view === "team") {
       const result = await api("/dashboard"),
         history = await api("/duty");
@@ -565,13 +572,13 @@ async function render() {
       $(id).innerHTML = visibleNav()
         .map(
           ([value, icon, label]) =>
-            `<button type="button" data-view="${value}" aria-current="${value === view ? "page" : "false"}"><span class="icon" aria-hidden="true">${icon}</span><span>${value === "dashboard" ? delivery()?"My Deliveries":executive() ? "Today" : "Overview" : label}</span></button>`,
+            `<button type="button" data-view="${value}" aria-current="${value === view ? "page" : "false"}"><span class="icon" aria-hidden="true">${icon}</span><span>${value === "dashboard" ? delivery()?(demo?"My Deliveries":"My duty"):executive() ? "Today" : "Overview" : label}</span></button>`,
         )
         .join("");
-    if(demo)$("mobileNav").style.gridTemplateColumns=`repeat(${visibleNav().length},1fr)`;
+    $("mobileNav").style.gridTemplateColumns=`repeat(${visibleNav().length},1fr)`;
     $("crumb").textContent = selected
       ? "Shop profile"
-      : view === "dashboard" ? delivery()?"My Deliveries":executive() ? "Today" : "Overview" : visibleNav().find((n) => n[0] === view)![2];
+      : view === "dashboard" ? delivery()?(demo?"My Deliveries":"My duty"):executive() ? "Today" : "Overview" : visibleNav().find((n) => n[0] === view)![2];
     $("content").innerHTML =
       `<p class="error" role="alert" id="saveError" hidden></p>${retryBanner()}${!visitEnabled() ? '<div class="notice section-gap">Visit recording is awaiting approval. You can search shops and read visit history.</div>' : ""}${markup}`;
     if (demo) document.querySelectorAll<HTMLAnchorElement>('a[href^="tel:"]').forEach(a => { a.removeAttribute("href"); a.title="Fictional sample number"; });
@@ -630,8 +637,8 @@ function field(
   value = "",
   choices?: [string, string][],
 ) {
-  const max = ({name:160, contact:120, phone:40, area:100, location:300, reason:1000, notes:5000, orderNote:1000} as Record<string,number>)[name] ?? 300;
-  return `<div class="form-field ${type === "textarea" ? "full" : ""}"><label for="field-${name}">${label}${required ? " *" : ""}</label>${choices ? `<select class="select" name="${name}" id="field-${name}" ${required ? "required" : ""}>${options(choices, value)}</select>` : type === "textarea" ? `<textarea name="${name}" id="field-${name}" ${required ? "required" : ""} maxlength="${max}">${h(value)}</textarea>` : `<input class="input" name="${name}" id="field-${name}" type="${type}" value="${h(value)}" ${required ? "required" : ""} ${type === "date" ? `min="${serverDay}"` : type === "number" ? 'min="0" step="0.01" max="999999999"' : `maxlength="${max}"`} ${name === "area" ? 'list="known-areas"' : ""}>${name === "area" ? `<datalist id="known-areas">${meta.areas.map(a => `<option value="${h(a)}"></option>`).join("")}</datalist>` : ""}`}</div>`;
+  const max = ({name:160, contact:120, phone:40, area:100, location:300, reason:1000, notes:5000, orderNote:1000, password:128} as Record<string,number>)[name] ?? 300;
+  return `<div class="form-field ${type === "textarea" ? "full" : ""}"><label for="field-${name}">${label}${required ? " *" : ""}</label>${choices ? `<select class="select" name="${name}" id="field-${name}" ${required ? "required" : ""}>${options(choices, value)}</select>` : type === "textarea" ? `<textarea name="${name}" id="field-${name}" ${required ? "required" : ""} maxlength="${max}">${h(value)}</textarea>` : `<input class="input" name="${name}" id="field-${name}" type="${type}" value="${h(value)}" ${required ? "required" : ""} ${type === "password" ? 'minlength="14" autocomplete="new-password"' : ""} ${type === "date" ? `min="${serverDay}"` : type === "number" ? 'min="0" step="0.01" max="999999999"' : `maxlength="${max}"`} ${name === "area" ? 'list="known-areas"' : ""}>${name === "area" ? `<datalist id="known-areas">${meta.areas.map(a => `<option value="${h(a)}"></option>`).join("")}</datalist>` : ""}`}</div>`;
 }
 function dialog(
   title: string,
@@ -795,7 +802,7 @@ document.addEventListener("click", async (e) => {
       await mutateWork(operation.work, operation.message);
       return;
     }
-    if (unconfirmed && (d.add !== undefined || d.checkout || d.checkin || d.followup || d.addFollowup !== undefined || d.editShop !== undefined || d.transferShop !== undefined || d.dutyAction || d.convertLead !== undefined || d.leadStatus !== undefined)) {
+    if (unconfirmed && (d.add !== undefined || d.checkout || d.checkin || d.followup || d.addFollowup !== undefined || d.editShop !== undefined || d.transferShop !== undefined || d.dutyAction || d.convertLead !== undefined || d.leadStatus !== undefined || d.accountAdd !== undefined || d.accountReset || d.accountStatus)) {
       showError(new Error("Your previous save is unconfirmed. Use Retry save first."));
       return;
     }
@@ -861,6 +868,19 @@ document.addEventListener("click", async (e) => {
     if (d.add !== undefined) {
       leadForm();
       return;
+    }
+    if (d.accountAdd !== undefined && !demo && me.actor.role === "admin") {
+      formAction="account-add";formId="";
+      dialog("Add staff account","Use a separate account for each person.",`<div class="form-grid">${field("name","Name","text",true)}${field("email","Sign-in email","email",true)}${field("role","Role","select",true,"executive",[["executive","Sales executive"],["manager","Manager"],["admin","Administrator"],["delivery","Delivery staff"]])}${field("password","Temporary password (at least 14 characters)","password",true)}</div><p class="help">Share the password privately with this person.</p>`,submit("Create account"));return;
+    }
+    if (d.accountReset && !demo && me.actor.role === "admin") {
+      formAction="account-reset";formId=d.accountReset;
+      dialog("Reset password","This signs the person out on all devices.",field("password","New temporary password (at least 14 characters)","password",true),submit("Reset password"));return;
+    }
+    if (d.accountStatus && !demo && me.actor.role === "admin") {
+      const active=d.nextActive === "true";
+      if(!active && !window.confirm("Disable this account and sign it out on all devices?"))return;
+      await mutateWork(()=>api(`/accounts/${d.accountStatus}/status`,{active},true),active?"Account enabled.":"Account disabled.");return;
     }
     if (d.editShop !== undefined || d.transferShop !== undefined) {
       shopManagementForm(d.transferShop !== undefined);
@@ -1003,6 +1023,8 @@ $("dialogForm").addEventListener("submit", (e) => {
     if (action === "shop-update" || action === "transfer")
       await api(`/shops/${id}/${action === "transfer" ? "transfer" : "update"}`, {...data, version}, true);
     if (action === "lead-status") await api(`/leads/${id}/status`, {...data, version}, true);
+    if (action === "account-add") await api("/accounts", data, true);
+    if (action === "account-reset") await api(`/accounts/${id}/reset-password`, data, true);
     if (action === "followup-create")
       await api("/followups", data, true);
     if (action.startsWith("followup:")) {

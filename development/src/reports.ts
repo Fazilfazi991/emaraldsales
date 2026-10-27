@@ -21,7 +21,7 @@ const notes: Record<ReportKind, string[]> = {
   followups: ["Date filters use the follow-up due date. Outstanding scope includes all pending items due on or before the end date, including overdue items.", "Status and owner describe the current saved record, not a historical snapshot on the due date."],
 };
 const columns: Record<ReportKind, { key: string; label: string }[]> = {
-  activity: [ ["visitor_name", "Sales executive"], ["shop_name", "Shop"], ["area", "Area"], ["checked_in_at", "Check in (UAE)"], ["checked_out_at", "Check out (UAE)"], ["lifecycle", "Visit state"], ["outcome", "Outcome"] ].map(([key,label])=>({key,label})),
+  activity: [ ["visitor_name", "Sales executive"], ["shop_name", "Shop"], ["area", "Area"], ["checked_in_at", "Check in (UAE)"], ["checked_out_at", "Check out (UAE)"], ["lifecycle", "Visit state"], ["outcome", "Outcome"], ["notes", "Visit discussion"], ["order_status", "Order status"], ["order_value", "Order value (AED)"], ["order_note", "Order note"] ].map(([key,label])=>({key,label})),
   duty: [["executive_name", "Sales executive"], ["started_at", "Duty started (UAE)"], ["ended_at", "Duty ended (UAE)"], ["state", "Session state"], ["elapsed_minutes", "Recorded duty minutes"], ["rest_minutes", "Recorded rest minutes"], ["active_minutes", "Duty less rest minutes"], ["rest_history", "Break / return history (UAE)"]].map(([key,label])=>({key,label})),
   followups: [["owner_name", "Assigned executive"], ["shop_name", "Shop"], ["area", "Area"], ["due_date", "Due date (UAE)"], ["status", "Status"], ["created_at", "Created (UAE)"], ["updated_at", "Last updated (UAE)"]].map(([key,label])=>({key,label})),
 };
@@ -46,7 +46,7 @@ export class Reports {
     if (actor.role !== "manager" && actor.role !== "admin") throw new Fault(403, "FORBIDDEN", "Only managers and administrators can view team reports.");
     const current = (await tx.query<Row>("SELECT m.role,u.active FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1 AND m.user_id=$2", [actor.organizationId,actor.id])).rows[0];
     if (!current?.active || current.role !== actor.role) throw new Fault(403, "FORBIDDEN", "Account permissions have changed. Sign in again.");
-    if (person && !(await tx.query("SELECT 1 FROM memberships WHERE organization_id=$1 AND user_id=$2 AND role='executive'", [actor.organizationId,person])).rows.length) throw new Fault(404, "NOT_FOUND", "Sales executive not found in this workspace.");
+    if (person && !(await tx.query("SELECT 1 FROM memberships WHERE organization_id=$1 AND user_id=$2 AND role IN ('executive','delivery')", [actor.organizationId,person])).rows.length) throw new Fault(404, "NOT_FOUND", "Staff member not found in this workspace.");
   }
   private metadata(f: Filters) {
     return {from:f.from,to:f.to,person:f.person,timeZone:"Asia/Dubai" as const,asOf:f.asOf,page:f.page,pageSize:f.pageSize};
@@ -76,7 +76,7 @@ export class Reports {
         (SELECT count(*)::int FROM followups f WHERE f.organization_id=m.organization_id AND f.owner_id=u.id AND f.status='pending' AND f.due_date <= $6::date) AS due_followups,
         (SELECT count(*)::int FROM duty_sessions d WHERE d.organization_id=m.organization_id AND d.executive_id=u.id AND d.started_at < $4::timestamptz AND d.started_at <= $5::timestamptz AND COALESCE(d.ended_at,$5::timestamptz)>$3::timestamptz) AS recorded_sessions,
         COALESCE((SELECT CASE WHEN EXISTS(SELECT 1 FROM rest_intervals r WHERE r.organization_id=d.organization_id AND r.session_id=d.id AND r.ended_at IS NULL) THEN 'On break' ELSE 'On duty' END FROM duty_sessions d WHERE d.organization_id=m.organization_id AND d.executive_id=u.id AND d.ended_at IS NULL LIMIT 1),'Off duty') AS duty_status
-        FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1 AND m.role='executive' AND ($2::uuid IS NULL OR u.id=$2) ORDER BY u.name,u.id`,[...args,f.to])).rows;
+        FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1 AND m.role IN ('executive','delivery') AND ($2::uuid IS NULL OR u.id=$2) ORDER BY u.name,u.id`,[...args,f.to])).rows;
       result.staff=staff;
       const sum=(key:string)=>staff.reduce((n,r)=>n+Number(r[key]),0);
       result.summary={executives:staff.length,checked_in:sum("checked_in"),completed_visits:sum("completed_visits"),open_visits:sum("open_visits"),pending_followups:sum("pending_followups"),due_followups:sum("due_followups"),recorded_sessions:sum("recorded_sessions"),on_duty:staff.filter(s=>s.duty_status==="On duty").length,on_break:staff.filter(s=>s.duty_status==="On break").length};
@@ -106,7 +106,7 @@ export class Reports {
       await tx.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
       await this.authorize(tx,actor,f.person);
       const result=await this.read(tx,actor,kind,f,true);
-      const personName=f.person?(await tx.query<{name:string}>("SELECT u.name FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 AND m.role='executive'",[actor.organizationId,f.person])).rows[0].name:null;
+      const personName=f.person?(await tx.query<{name:string}>("SELECT u.name FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 AND m.role IN ('executive','delivery')",[actor.organizationId,f.person])).rows[0].name:null;
       const sum=(key:string)=>Math.round(result.rows.reduce((n,r)=>n+Number(r[key]??0),0)*100)/100;
       const totals=kind==="activity"?`Visits started in dates: ${result.total}. Visits completed in dates: ${result.summary!.completed_visits}. Pending follow-ups now: ${result.summary!.pending_followups}. Due by end date: ${result.summary!.due_followups}.`:kind==="duty"?`Duty sessions: ${result.total}. Recorded duty: ${sum("elapsed_minutes")} min. Rest: ${sum("rest_minutes")} min. Duty less rest: ${sum("active_minutes")} min.`:`Follow-ups: ${result.total}. Pending: ${result.rows.filter(r=>r.status==="pending").length}. Completed: ${result.rows.filter(r=>r.status==="completed").length}. Cancelled: ${result.rows.filter(r=>r.status==="cancelled").length}.`;
       const local=(v:any)=>v?new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dubai",dateStyle:"short",timeStyle:"short",hour12:false}).format(new Date(v)):"";

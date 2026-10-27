@@ -130,6 +130,8 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           ? req.headers["idempotency-key"]
           : undefined;
       const actor = session.actor;
+      if (actor.role === "delivery" && !["/api/me","/api/metadata","/api/logout","/api/duty","/api/duty/start","/api/duty/rest","/api/duty/return","/api/duty/end"].includes(path))
+        throw new Fault(403, "FORBIDDEN", "This account currently supports duty attendance only.");
       const reportRoute = path.match(/^\/api\/reports\/(activity|duty|followups)(\/export)?$/);
       if (reportRoute && method === "GET") {
         const kind = reportRoute[1] as ReportKind;
@@ -169,6 +171,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         return;
       }
       if (path === "/api/metadata" && method === "GET") {
+        if (actor.role === "delivery") { send(200, {team:[{id:actor.id,name:actor.name,role:actor.role}],areas:[]}); return; }
         const team = (
           await db.query(
             "SELECT u.id,u.name,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.active ORDER BY u.name",
@@ -291,6 +294,12 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
       }
       if (path === "/api/accounts" && method === "POST") {
         send(200, await crm.addAccount(actor, key, await jsonBody(req)));
+        return;
+      }
+      const accountChange=path.match(/^\/api\/accounts\/([^/]+)\/(status|reset-password)$/);
+      if(accountChange && method === "POST") {
+        const id=z.string().uuid().parse(accountChange[1]), body=await jsonBody(req);
+        send(200,accountChange[2]==="status" ? await crm.setAccountActive(actor,key,id,body) : await crm.resetAccountPassword(actor,key,id,body));
         return;
       }
       // Corrections, generic exports/imports and lead conversion still need explicit policies.

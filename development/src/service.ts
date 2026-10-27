@@ -4,6 +4,7 @@ import {
   hashToken,
   createAccount,
   passwordRequestFingerprint,
+  passwordHash,
 } from "./auth.js";
 import {
   type Actor,
@@ -192,6 +193,7 @@ export class CRM {
     });
   }
   updateLeadStatus(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    if (actor.role === "delivery") throw new Fault(403,"FORBIDDEN","Delivery staff cannot update enquiries.");
     const data = z.object({ version: z.number().int().positive(), status: z.enum(["New Lead", "Contacted", "Interested", "Not Interested"]) }).strict().parse(body);
     return this.mutate(actor, key, `lead.status:${id}`, data, async tx => {
       const before = await one(tx, "SELECT id,status,version,assigned_executive_id FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE", [actor.organizationId,id]);
@@ -625,8 +627,8 @@ export class CRM {
     });
   }
   async dutyHistory(actor: Actor, person?: string) {
-    const owner = person || (actor.role === "executive" ? actor.id : null);
-    if (actor.role === "executive" && owner !== actor.id)
+    const owner = person || (actor.role === "executive" || actor.role === "delivery" ? actor.id : null);
+    if ((actor.role === "executive" || actor.role === "delivery") && owner !== actor.id)
       throw new Fault(
         403,
         "FORBIDDEN",
@@ -653,7 +655,7 @@ export class CRM {
     action: DutyAction,
     body: unknown,
   ) {
-    executive(actor);
+    if (actor.role !== "executive" && actor.role !== "delivery") throw new Fault(403,"FORBIDDEN","Only staff can record their own duty.");
     requirePolicy(this.config.dutyPolicy, "Duty recording");
     const data = z
       .object({ expectedSessionId: z.string().uuid().nullable() })
@@ -720,6 +722,32 @@ export class CRM {
       )
     ).rows;
   }
+  setAccountActive(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    if (actor.role !== "admin") throw new Fault(403,"FORBIDDEN","Only admins manage accounts.");
+    const data=z.object({active:z.boolean()}).strict().parse(body);
+    if(id===actor.id && !data.active) throw new Fault(422,"INVALID_ACCOUNT","You cannot disable your own account.");
+    return this.mutate(actor,key,`account.active:${id}`,data,async tx=>{
+      const target=await one(tx,"SELECT u.id,u.active FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
+      if(target.active===data.active) throw new Fault(422,"NO_CHANGE","Account already has this status.");
+      await tx.query("UPDATE users SET active=$2 WHERE id=$1",[id,data.active]);
+      if(!data.active) await tx.query("DELETE FROM sessions WHERE user_id=$1",[id]);
+      await audit(tx,actor,"account.status","user",id,{active:data.active});
+      return {id,active:data.active};
+    });
+  }
+  async resetAccountPassword(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    if (actor.role !== "admin") throw new Fault(403,"FORBIDDEN","Only admins manage accounts.");
+    const data=z.object({password:z.string().min(14).max(128)}).strict().parse(body);
+    if (!key || !/^[a-zA-Z0-9_-]{16,100}$/.test(key)) throw new Fault(400,"IDEMPOTENCY_REQUIRED","Send a unique request key.");
+    const fingerprint=await passwordRequestFingerprint(data.password,key);
+    return this.mutate(actor,key,`account.reset:${id}`,{fingerprint},async tx=>{
+      await one(tx,"SELECT u.id FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
+      await tx.query("UPDATE users SET password_hash=$2 WHERE id=$1",[id,await passwordHash(data.password)]);
+      await tx.query("DELETE FROM sessions WHERE user_id=$1",[id]);
+      await audit(tx,actor,"account.password_reset","user",id,{});
+      return {id,reset:true};
+    });
+  }
   async addAccount(actor: Actor, key: string | undefined, body: unknown) {
     if (actor.role !== "admin")
       throw new Fault(403, "FORBIDDEN", "Only admins manage accounts.");
@@ -727,7 +755,7 @@ export class CRM {
       .object({
         email: z.string().email().max(254),
         name: z.string().trim().min(1).max(120),
-        role: z.enum(["executive", "manager", "admin"]),
+        role: z.enum(["executive", "manager", "admin", "delivery"]),
         password: z.string().min(14).max(128),
       })
       .strict()

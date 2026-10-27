@@ -18,6 +18,11 @@ const rowSchema = z.object({
   zohoId: z.string().max(300), ownerId: z.string().uuid().nullable(),
 }).strict();
 const batchSchema = z.object({ sourceHash: z.string().regex(/^[a-f0-9]{64}$/), rows: z.array(rowSchema).min(1).max(10000) }).strict();
+/** Validation results contain paths and reasons only, never source values. */
+export function validatePilotBatch(input: unknown) {
+  const result=batchSchema.safeParse(input);
+  return result.success ? [] : result.error.issues.map(issue=>({path:issue.path.join("."),message:issue.message}));
+}
 
 /** Caller must verify source hashes and approve the complete mapping before invoking. */
 export async function importPilotBatch(db: Database, actor: Actor, input: unknown) {

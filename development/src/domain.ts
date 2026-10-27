@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export type Role = "executive" | "manager" | "admin";
+export type Role = "executive" | "manager" | "admin" | "delivery";
 export interface Actor {
   id: string;
   name: string;
