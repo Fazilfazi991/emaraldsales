@@ -207,7 +207,7 @@ const visitEnabled = () => me.policies.visit === "approved-v2";
 const executive = () => me.actor.role === "executive";
 const delivery = () => String(me.actor.role)==="delivery";
 const dutyWorker = () => executive() || delivery();
-const visibleNav = () => delivery() ? (demo ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [["dashboard","▦","My duty"]]) : [...nav.map(item => !demo && item[0] === "shops" ? [item[0],item[1],"Customers"] : !demo && item[0] === "leads" ? [item[0],item[1],"Enquiries"] : item),...(!demo && me.actor.role === "admin" ? [["accounts","♙","Accounts"]] : []),...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
+const visibleNav = () => delivery() ? (demo ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [["dashboard","▦","My duty"]]) : [...nav.map(item => !demo && item[0] === "shops" ? [item[0],item[1],"Customers"] : !demo && item[0] === "leads" ? [item[0],item[1],"Enquiries"] : item),...(!demo && supervisor() ? [["accounts","♙","Accounts"]] : []),...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
 const supervisor = () => me.actor.role === "manager" || me.actor.role === "admin";
 function shell() {
   $("application").innerHTML =
@@ -527,9 +527,9 @@ async function render() {
         const actions = (canUpdate ? button("Update enquiry status", "data-lead-status") : "") + (supervisor() ? button("Convert to customer", "data-convert-lead") : "");
         if (actions) markup += panel("Enquiry actions", "Changes are saved in the record history.", `<div class="panel-body actions">${actions}</div>`);
       }
-    } else if (view === "accounts" && !demo && me.actor.role === "admin") {
+    } else if (view === "accounts" && !demo && supervisor()) {
       const accounts=await api("/accounts");
-      markup=heading("Administration","Staff accounts","Individual sign-in accounts",button("Add account","data-account-add",true))+panel("Accounts","Only administrators can manage access",table(["Name","Sign-in email","Role","Status","Actions"],accounts.map((a:Row)=>`<tr>${cell("Name",h(a.name))}${cell("Sign-in email",h(a.email))}${cell("Role",h(a.role))}${cell("Status",a.active?"Active":"Disabled")}${cell("Actions",button("Reset password",`data-account-reset="${h(a.id)}"`)+(a.id!==me.actor.id?button(a.active?"Disable":"Enable",`data-account-status="${h(a.id)}" data-next-active="${a.active?"false":"true"}"`):""))}</tr>`)));
+      markup=heading("Administration","Staff accounts","Individual sign-in accounts",button("Add account","data-account-add",true))+panel("Accounts","Managers can manage sales and delivery staff; only admins manage managers and admins.",table(["Name","Sign-in email","Role","Status","Actions"],accounts.map((a:Row)=>`<tr>${cell("Name",h(a.name))}${cell("Sign-in email",h(a.email))}${cell("Role",h(a.role))}${cell("Status",a.active?"Active":"Disabled")}${cell("Actions",a.id!==me.actor.id && (me.actor.role==="admin" || ["executive","delivery"].includes(a.role)) ? button("Change role",`data-account-role="${h(a.id)}"`)+button("Reset password",`data-account-reset="${h(a.id)}"`)+button(a.active?"Disable":"Enable",`data-account-status="${h(a.id)}" data-next-active="${a.active?"false":"true"}"`) : "")}</tr>`)));
     } else if (view === "dashboard" || view === "team") {
       const result = await api("/dashboard"),
         history = await api("/duty");
@@ -802,7 +802,7 @@ document.addEventListener("click", async (e) => {
       await mutateWork(operation.work, operation.message);
       return;
     }
-    if (unconfirmed && (d.add !== undefined || d.checkout || d.checkin || d.followup || d.addFollowup !== undefined || d.editShop !== undefined || d.transferShop !== undefined || d.dutyAction || d.convertLead !== undefined || d.leadStatus !== undefined || d.accountAdd !== undefined || d.accountReset || d.accountStatus)) {
+    if (unconfirmed && (d.add !== undefined || d.checkout || d.checkin || d.followup || d.addFollowup !== undefined || d.editShop !== undefined || d.transferShop !== undefined || d.dutyAction || d.convertLead !== undefined || d.leadStatus !== undefined || d.accountAdd !== undefined || d.accountReset || d.accountStatus || d.accountRole)) {
       showError(new Error("Your previous save is unconfirmed. Use Retry save first."));
       return;
     }
@@ -869,15 +869,19 @@ document.addEventListener("click", async (e) => {
       leadForm();
       return;
     }
-    if (d.accountAdd !== undefined && !demo && me.actor.role === "admin") {
+    if (d.accountAdd !== undefined && !demo && supervisor()) {
       formAction="account-add";formId="";
-      dialog("Add staff account","Use a separate account for each person.",`<div class="form-grid">${field("name","Name","text",true)}${field("email","Sign-in email","email",true)}${field("role","Role","select",true,"executive",[["executive","Sales executive"],["manager","Manager"],["admin","Administrator"],["delivery","Delivery staff"]])}${field("password","Temporary password (at least 14 characters)","password",true)}</div><p class="help">Share the password privately with this person.</p>`,submit("Create account"));return;
+      dialog("Add staff account","Use a separate account for each person.",`<div class="form-grid">${field("name","Name","text",true)}${field("email","Sign-in email","email",true)}${field("role","Role","select",true,"executive",me.actor.role==="admin"?[["executive","Sales executive"],["manager","Manager"],["admin","Administrator"],["delivery","Delivery staff"]]:[["executive","Sales executive"],["delivery","Delivery staff"]])}${field("password","Password (at least 14 characters)","password",true)}</div><p class="help">Share the password privately with this person.</p>`,submit("Create account"));return;
     }
-    if (d.accountReset && !demo && me.actor.role === "admin") {
+    if (d.accountRole && !demo && supervisor()) {
+      formAction="account-role";formId=d.accountRole;
+      dialog("Change role","The person will be signed out. Complete active work and transfer assignments first.",field("role","New role","select",true,"executive",me.actor.role==="admin"?[["executive","Sales executive"],["manager","Manager"],["admin","Administrator"],["delivery","Delivery staff"]]:[["executive","Sales executive"],["delivery","Delivery staff"]]),submit("Save role"));return;
+    }
+    if (d.accountReset && !demo && supervisor()) {
       formAction="account-reset";formId=d.accountReset;
       dialog("Reset password","This signs the person out on all devices.",field("password","New temporary password (at least 14 characters)","password",true),submit("Reset password"));return;
     }
-    if (d.accountStatus && !demo && me.actor.role === "admin") {
+    if (d.accountStatus && !demo && supervisor()) {
       const active=d.nextActive === "true";
       if(!active && !window.confirm("Disable this account and sign it out on all devices?"))return;
       await mutateWork(()=>api(`/accounts/${d.accountStatus}/status`,{active},true),active?"Account enabled.":"Account disabled.");return;
@@ -1025,6 +1029,7 @@ $("dialogForm").addEventListener("submit", (e) => {
     if (action === "lead-status") await api(`/leads/${id}/status`, {...data, version}, true);
     if (action === "account-add") await api("/accounts", data, true);
     if (action === "account-reset") await api(`/accounts/${id}/reset-password`, data, true);
+    if (action === "account-role") await api(`/accounts/${id}/role`, data, true);
     if (action === "followup-create")
       await api("/followups", data, true);
     if (action.startsWith("followup:")) {
@@ -1034,7 +1039,7 @@ $("dialogForm").addEventListener("submit", (e) => {
         true,
       );
     }
-  }, action === "checkout" ? "Visit completed and saved." : action === "lead" ? "New shop saved. You can now check in." : action.startsWith("followup") ? "Follow-up saved." : "Shop change saved in record history.");
+  }, action === "checkout" ? "Visit completed and saved." : action === "lead" ? "New shop saved. You can now check in." : action.startsWith("followup") ? "Follow-up saved." : action === "account-add" ? "Staff account created." : action === "account-reset" ? "Password reset. Share it privately." : action === "account-role" ? "Role saved. The staff member has been signed out." : "Shop change saved in record history.");
 });
 window.addEventListener("offline", () =>
   toast(

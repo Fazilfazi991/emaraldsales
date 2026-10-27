@@ -29,7 +29,11 @@ async function main() {
   if(preview.issues.some(i=>i.code==="missing_name")) throw new Error("missing source name");
   const db=openPostgres(settings.database);
   try {
-    await db.query("SELECT 1"); await verifyMigrations(db); await verifyRuntimeRole(db); await verifyPilotWorkspace(db,settings.organizationId);
+    // A separate, short-lived role must be used; the web runtime intentionally has
+    // no import privileges. Never pass this credential to the hosted application.
+    const role=(await db.query<{name:string}>("SELECT current_user AS name")).rows[0];
+    if(role?.name!=="emerald_importer") throw new Error("Dedicated import role required");
+    await verifyMigrations(db); await verifyRuntimeRole(db); await verifyPilotWorkspace(db,settings.organizationId);
     const account=(await db.query<{id:string;name:string;role:"manager"|"admin";password_hash:string}>("SELECT u.id,u.name,u.password_hash,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE u.email=$1 AND u.active AND m.organization_id=$2 AND m.role IN ('manager','admin')",[email.toLowerCase(),settings.organizationId])).rows[0];
     if(!account || !await passwordMatches(password,account.password_hash)) throw new Error("operator authentication failed");
     const result=await importReviewedWorkbooks(db,{id:account.id,name:account.name,role:account.role,organizationId:settings.organizationId},customerBytes,leadBytes,approval);

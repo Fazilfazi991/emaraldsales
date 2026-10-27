@@ -27,6 +27,18 @@ try {
     await page.screenshot({path:`${evidence}/manager-${width}.png`,fullPage:true});
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`overflow at ${width}`);
     const nav=await page.locator("#mobileNav").isVisible()?"#mobileNav":"#desktopNav";
+    if(width===390) {
+      await page.locator(`${nav} [data-view="accounts"]`).click();
+      await page.getByRole("heading",{name:"Staff accounts"}).waitFor();
+      await page.getByRole("button",{name:"Add account"}).click();
+      await page.locator("#field-name").fill("Fictional Delivery");
+      await page.locator("#field-email").fill("new-delivery@synthetic.invalid");
+      await page.locator("#field-role").selectOption("delivery");
+      await page.locator("#field-password").fill("fictional-password-123456");
+      await page.getByRole("button",{name:"Create account"}).click();
+      await page.getByText("Staff account created.").waitFor();
+      assert.ok(await page.getByText("Fictional Delivery").isVisible());
+    }
     await page.locator(`${nav} [data-view="leads"]`).click();
     await page.getByRole("heading",{name:"Enquiries",exact:true}).first().waitFor();
     await page.locator("[data-shop]").first().click();

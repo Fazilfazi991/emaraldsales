@@ -129,6 +129,15 @@ export async function login(
   const token = randomBytes(32).toString("hex"),
     csrf = randomBytes(32).toString("hex");
   await db.transaction(async (tx) => {
+    // Serialize session creation with account disabling and password resets.
+    // The password was verified before this transaction; reject it if either
+    // the active state or hash changed while that verification was in flight.
+    const current = (await tx.query<{ active: boolean; password_hash: string }>(
+      "SELECT active,password_hash FROM users WHERE id=$1 FOR UPDATE",
+      [row.id],
+    )).rows[0];
+    if (!current?.active || current.password_hash !== row.password_hash)
+      throw new Fault(401, "INVALID_LOGIN", "Email or password is incorrect.");
     await tx.query("DELETE FROM sessions WHERE expires_at<=now()");
     await tx.query(
       "INSERT INTO sessions(token_hash,user_id,csrf_token,expires_at) VALUES ($1,$2,$3,now()+interval '12 hours')",

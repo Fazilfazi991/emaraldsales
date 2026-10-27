@@ -296,10 +296,10 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         send(200, await crm.addAccount(actor, key, await jsonBody(req)));
         return;
       }
-      const accountChange=path.match(/^\/api\/accounts\/([^/]+)\/(status|reset-password)$/);
+      const accountChange=path.match(/^\/api\/accounts\/([^/]+)\/(status|reset-password|role)$/);
       if(accountChange && method === "POST") {
         const id=z.string().uuid().parse(accountChange[1]), body=await jsonBody(req);
-        send(200,accountChange[2]==="status" ? await crm.setAccountActive(actor,key,id,body) : await crm.resetAccountPassword(actor,key,id,body));
+        send(200,accountChange[2]==="status" ? await crm.setAccountActive(actor,key,id,body) : accountChange[2]==="role" ? await crm.setAccountRole(actor,key,id,body) : await crm.resetAccountPassword(actor,key,id,body));
         return;
       }
       // Corrections, generic exports/imports and lead conversion still need explicit policies.

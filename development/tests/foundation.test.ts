@@ -180,20 +180,21 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
           ).status,
           403,
         );
-        assert.equal((await request("/accounts", manager)).status, 403);
+        assert.equal((await request("/accounts", manager)).status, 200);
         assert.equal((await request("/accounts", ahmed)).status, 403);
         assert.equal((await request("/accounts", admin)).status, 200);
         assert.equal((await request("/leads", manager, {})).status, 403);
       },
     );
     await t.test(
-      "700 synthetic shops, paginated server search, shared history and no assignment-only read filter",
+      "700 synthetic shops, paginated search, shared customer history and assigned lead privacy",
       async () => {
         const all = await request("/shops", ahmed);
-        assert.equal(all.data.total, 700);
+        assert.equal((await request("/shops", manager)).data.total, 700);
+        assert.ok(all.data.total < 700);
         assert.equal(all.data.rows.length, 40);
         assert.equal(
-          (await request("/shops?q=Synthetic%20Shop%200700", naseer)).data.rows
+          (await request("/shops?q=Synthetic%20Shop%200700", manager)).data.rows
             .length,
           1,
         );
@@ -880,7 +881,7 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
             password,
           },
           key = randomUUID();
-        assert.equal((await request("/accounts", manager, body)).status, 403);
+        assert.equal((await request("/accounts", manager, {...body,role:"admin"})).status, 403);
         const a = await request("/accounts", admin, body, key),
           b = await request("/accounts", admin, body, key);
         assert.equal(a.status, 200);

@@ -10,6 +10,8 @@ import { pathToFileURL } from "node:url";
 import { openPostgres, migratePostgres, verifyRuntimeRole, verifySyntheticWorkspace } from "../src/postgres.js";
 import { verifyMigrations, type Database, type Queryable } from "../src/database.js";
 import { seedSynthetic, syntheticId } from "../src/fixtures.js";
+import { createAccount } from "../src/auth.js";
+import { importPilotBatch } from "../src/pilot-import.js";
 import { application } from "../src/server.js";
 import type { Config } from "../src/config.js";
 
@@ -19,11 +21,12 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
   // openPostgres validates loopback before any network connection; remote services are never touched.
   const admin = openPostgres({ connectionString, localTest: true, max: 1 });
   const name = "emerald_test_" + randomUUID().replaceAll("-", "");
-  const operator = name + "_owner", runtime = name + "_runtime";
-  let owner: ReturnType<typeof openPostgres> | undefined, db: ReturnType<typeof openPostgres> | undefined;
+  const operator = name + "_owner", runtime = name + "_runtime", importer = name + "_importer";
+  let owner: ReturnType<typeof openPostgres> | undefined, db: ReturnType<typeof openPostgres> | undefined, importDb: ReturnType<typeof openPostgres> | undefined;
   try {
     await admin.pool.query(`CREATE ROLE ${operator} LOGIN`);
     await admin.pool.query(`CREATE ROLE ${runtime} LOGIN`);
+    await admin.pool.query(`CREATE ROLE ${importer} LOGIN`);
     await admin.pool.query(`CREATE DATABASE ${name} OWNER ${operator}`);
     const url = new URL(connectionString); url.pathname = "/" + name; url.username = operator;
     owner = openPostgres({ connectionString: url.toString(), localTest: true, max: 3 });
@@ -47,12 +50,16 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
     await t.test("Concurrent migration runners serialize and preserve checksums", async () => {
       await Promise.all([migratePostgres(ownerDb), migratePostgres(ownerDb)]);
       await verifyMigrations(ownerDb);
-      assert.equal((await ownerDb.query<{ n: number }>("SELECT count(*)::int n FROM schema_migrations")).rows[0].n, 3);
+      assert.equal((await ownerDb.query<{ n: number }>("SELECT count(*)::int n FROM schema_migrations")).rows[0].n, 6);
       await assert.rejects(() => verifyRuntimeRole(ownerDb));
     });
     const fixture = await seedSynthetic(owner, 36);
     const grants = (await readFile(new URL("../operations/staging-grants.sql", import.meta.url), "utf8")).replaceAll("emerald_runtime", runtime);
     await owner.pool.query(grants);
+    const importGrants = (await readFile(new URL("../operations/import-grants.sql", import.meta.url), "utf8")).replaceAll("emerald_importer", importer);
+    await owner.pool.query(importGrants);
+    url.username = importer;
+    importDb = openPostgres({ connectionString: url.toString(), localTest: true, max: 1 });
     url.username = runtime;
     db = openPostgres({ connectionString: url.toString(), localTest: true, max: 5 });
     const runtimeDb = db;
@@ -222,14 +229,28 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
         const exited = once(child, "exit"); child.kill(); await exited;
       }
     });
+    await t.test("Separate import role imports a synthetic reviewed batch; runtime cannot write import metadata", async () => {
+      const org = randomUUID();
+      await ownerDb.query("INSERT INTO organizations(id,name) VALUES($1,$2)", [org, "Fictional import workspace"]);
+      const managerId = await createAccount(ownerDb, org, "import-test@synthetic.invalid", "Fictional manager", "manager", "test-only-password-12345");
+      const actor = { id: managerId, organizationId: org, name: "Fictional manager", role: "manager" as const };
+      const batch = { sourceHash: "a".repeat(64), rows: [{kind:"lead",row:2,name:"Fictional lead",contact:"",phone:"",phoneType:"empty",whatsapp:"",whatsappType:"empty",area:"",emirate:"",country:"",zohoId:"",ownerId:null}] };
+      await verifyRuntimeRole(importDb!);
+      const imported = await importPilotBatch(importDb!, actor, batch);
+      assert.equal(imported.leads, 1);
+      assert.equal((await importPilotBatch(importDb!, actor, batch)).replay, true);
+      await assert.rejects(() => runtimeDb.query("UPDATE import_batches SET status='rejected'"), (error: any) => error.code === "42501");
+      for (const sql of ["DELETE FROM shops", "UPDATE audit_events SET action='changed'", "DELETE FROM schema_migrations", "CREATE TABLE unexpected_import(id int)"])
+        await assert.rejects(() => importDb!.query(sql), (error: any) => error.code === "42501");
+    });
     await t.test("Schema checksum drift blocks startup verification", async () => {
       await ownerDb.query("UPDATE schema_migrations SET sha256='changed' WHERE name=(SELECT min(name) FROM schema_migrations)");
       await assert.rejects(() => verifyMigrations(runtimeDb), /Schema verification failed/);
     });
   } finally {
-    await db?.close(); await owner?.close();
+    await importDb?.close(); await db?.close(); await owner?.close();
     await admin.pool.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
-    await admin.pool.query(`DROP ROLE IF EXISTS ${runtime}`); await admin.pool.query(`DROP ROLE IF EXISTS ${operator}`);
+    await admin.pool.query(`DROP ROLE IF EXISTS ${importer}`); await admin.pool.query(`DROP ROLE IF EXISTS ${runtime}`); await admin.pool.query(`DROP ROLE IF EXISTS ${operator}`);
     await admin.close();
   }
 });

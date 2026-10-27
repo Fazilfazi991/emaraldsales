@@ -152,12 +152,14 @@ export class CRM {
       p.get("lead") === "true",
       p.get("when") || null,
       kind,
+      actor.role === "executive" ? actor.id : null,
     ];
     if (filters[2]) z.string().uuid().parse(filters[2]);
     const where = `s.organization_id=$1 AND concat_ws(' ',s.name,s.contact,s.phone,s.area,s.location) ILIKE $2
       AND ($3::uuid IS NULL OR s.assigned_executive_id=$3) AND ($4::text IS NULL OR s.area=$4)
       AND ($5::text IS NULL OR s.status=$5) AND (NOT $6::boolean OR s.status<>'Customer')
       AND ($8::text='all' OR ($8='customer' AND s.status='Customer') OR ($8='lead' AND s.status<>'Customer'))
+      AND ($9::uuid IS NULL OR s.status='Customer' OR s.assigned_executive_id=$9)
       AND ($7::text IS NULL OR ($7='due' AND EXISTS(SELECT 1 FROM followups f WHERE f.shop_id=s.id AND f.status='pending'))
         OR ($7='visited' AND EXISTS(SELECT 1 FROM visits v WHERE v.shop_id=s.id))
         OR ($7='never' AND NOT EXISTS(SELECT 1 FROM visits v WHERE v.shop_id=s.id)))`;
@@ -172,7 +174,7 @@ export class CRM {
         `SELECT s.*, (SELECT count(*)::int FROM visits v WHERE v.shop_id=s.id) AS visit_count,
       (SELECT max(checked_in_at) FROM visits v WHERE v.shop_id=s.id) AS last_visit,
       (SELECT min(due_date)::text FROM followups f WHERE f.shop_id=s.id AND f.status='pending') AS next_followup
-      FROM shops s WHERE ${where} ORDER BY lower(s.name),s.id LIMIT 40 OFFSET $9`,
+      FROM shops s WHERE ${where} ORDER BY lower(s.name),s.id LIMIT 40 OFFSET $10`,
         [...filters, page * 40],
       )
     ).rows;
@@ -209,8 +211,8 @@ export class CRM {
   async profile(actor: Actor, id: string) {
     const shop = await one(
       this.db,
-      "SELECT * FROM shops WHERE organization_id=$1 AND id=$2",
-      [actor.organizationId, id],
+      "SELECT * FROM shops WHERE organization_id=$1 AND id=$2 AND ($3::uuid IS NULL OR status='Customer' OR assigned_executive_id=$3)",
+      [actor.organizationId, id, actor.role === "executive" ? actor.id : null],
     );
     const visits = (
       await this.db.query<Row>(
@@ -227,7 +229,7 @@ export class CRM {
     return { shop, visits, followups };
   }
   async shopAudit(actor: Actor, id: string, params: URLSearchParams) {
-    await one(this.db, "SELECT id FROM shops WHERE organization_id=$1 AND id=$2", [actor.organizationId, id]);
+    await one(this.db, "SELECT id FROM shops WHERE organization_id=$1 AND id=$2 AND ($3::uuid IS NULL OR status='Customer' OR assigned_executive_id=$3)", [actor.organizationId, id, actor.role === "executive" ? actor.id : null]);
     const page = z.coerce.number().int().min(0).max(10000).parse(params.get("page") ?? 0);
     const where = `a.organization_id=$1 AND (
       (a.entity_type='shop' AND a.entity_id=$2) OR
@@ -265,6 +267,10 @@ export class CRM {
         throw new Fault(409, "STALE_RECORD", "Shop assignment changed. Refresh before editing.");
       if (before.assigned_executive_id === data.assignedExecutiveId)
         throw new Fault(422, "NO_CHANGE", "This executive already owns the shop.");
+      if(before.status!=="Customer") {
+        const work=await one(tx,`SELECT EXISTS(SELECT 1 FROM visits WHERE organization_id=$1 AND shop_id=$2 AND lifecycle='open') OR EXISTS(SELECT 1 FROM followups WHERE organization_id=$1 AND shop_id=$2 AND status='pending') AS blocked`,[actor.organizationId,id]);
+        if(work.blocked) throw new Fault(409,"LEAD_HAS_WORK","Complete the open visit and pending follow-ups before transferring this enquiry.");
+      }
       const shop = await one(tx, `UPDATE shops SET assigned_executive_id=$3,version=version+1,updated_at=now() WHERE organization_id=$1 AND id=$2 RETURNING *`, [actor.organizationId, id, data.assignedExecutiveId]);
       await audit(tx, actor, "shop.transfer", "shop", id, {
         before: { assignedExecutiveId: before.assigned_executive_id, version: before.version },
@@ -283,6 +289,8 @@ export class CRM {
       owns(actor, visit.visitor_id);
       if (visit.lifecycle !== "completed")
         throw new Fault(409, "VISIT_OPEN", "Finish this visit before adding a follow-up.");
+      const shop=await one(tx,"SELECT status,assigned_executive_id FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE",[actor.organizationId,visit.shop_id]);
+      if(shop.status!=="Customer" && shop.assigned_executive_id!==actor.id) throw new Fault(403,"FORBIDDEN","Only the assigned salesperson can add an enquiry follow-up.");
       await this.futureDate(tx, data.dueDate);
       const followup = await one(tx, `INSERT INTO followups(id,organization_id,shop_id,visit_id,owner_id,created_by,due_date) VALUES($1,$2,$3,$4,$5,$5,$6) RETURNING *,due_date::text`, [randomUUID(), actor.organizationId, visit.shop_id, visit.id, actor.id, data.dueDate]);
       await audit(tx, actor, "followup.create", "followup", followup.id, { visitId: visit.id, ownerId: actor.id, dueDate: data.dueDate });
@@ -305,6 +313,8 @@ export class CRM {
         throw new Fault(409, "STALE_RECORD", "This follow-up changed. Refresh before editing.");
       if (before.owner_id === data.ownerId)
         throw new Fault(422, "NO_CHANGE", "This executive already owns the follow-up.");
+      const shop=await one(tx,"SELECT status,assigned_executive_id FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE",[actor.organizationId,before.shop_id]);
+      if(shop.status!=="Customer" && shop.assigned_executive_id!==data.ownerId) throw new Fault(409,"LEAD_ASSIGNMENT_REQUIRED","Assign the enquiry to this salesperson before assigning its follow-up.");
       const followup = await one(tx, `UPDATE followups SET owner_id=$3,updated_at=now(),version=version+1 WHERE organization_id=$1 AND id=$2 RETURNING *,due_date::text`, [actor.organizationId, id, data.ownerId]);
       await audit(tx, actor, "followup.assign", "followup", id, { before, after: followup, reason: auditReason(data.reason) });
       return { followup };
@@ -325,6 +335,7 @@ export class CRM {
       p.get("to") || null,
       p.get("area") || null,
       p.get("status") || null,
+      actor.role === "executive" ? actor.id : null,
     ];
     z.string().max(200).parse(args[1]);
     if (args[2]) z.string().uuid().parse(args[2]);
@@ -342,7 +353,8 @@ export class CRM {
     const where = `v.organization_id=$1 AND position(lower($2) IN lower(s.name||' '||u.name||' '||v.notes))>0
       AND ($3::uuid IS NULL OR v.visitor_id=$3) AND ($4::date IS NULL OR v.checked_in_at >= ($4::date::timestamp AT TIME ZONE 'Asia/Dubai'))
       AND ($5::date IS NULL OR v.checked_in_at < (($5::date+1)::timestamp AT TIME ZONE 'Asia/Dubai'))
-      AND ($6::text IS NULL OR s.area=$6) AND ($7::text IS NULL OR v.outcome=$7 OR ($7='Currently Visiting' AND v.lifecycle='open'))`;
+      AND ($6::text IS NULL OR s.area=$6) AND ($7::text IS NULL OR v.outcome=$7 OR ($7='Currently Visiting' AND v.lifecycle='open'))
+      AND ($8::uuid IS NULL OR s.status='Customer' OR s.assigned_executive_id=$8)`;
     const join =
       "FROM visits v JOIN shops s ON s.id=v.shop_id JOIN users u ON u.id=v.visitor_id";
     const total = (
@@ -353,7 +365,7 @@ export class CRM {
     ).rows[0].n;
     const rows = (
       await this.db.query<Row>(
-        `SELECT v.*,s.name AS shop_name,s.area,u.name AS visitor_name ${join} WHERE ${where} ORDER BY v.checked_in_at DESC,v.id LIMIT 40 OFFSET $8`,
+        `SELECT v.*,s.name AS shop_name,s.area,u.name AS visitor_name ${join} WHERE ${where} ORDER BY v.checked_in_at DESC,v.id LIMIT 40 OFFSET $9`,
         [...args, page * 40],
       )
     ).rows;
@@ -367,7 +379,7 @@ export class CRM {
         `SELECT
       (SELECT count(*)::int FROM memberships WHERE organization_id=$1 AND role='executive') AS executives,
       (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND status='Customer') AS customers,
-      (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND status<>'Customer') AS enquiries,
+      (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND status<>'Customer' AND ($2::uuid IS NULL OR assigned_executive_id=$2)) AS enquiries,
       (SELECT count(*)::int FROM visits WHERE organization_id=$1 AND ($2::uuid IS NULL OR visitor_id=$2) AND checked_in_at >= (date_trunc('day',now() AT TIME ZONE 'Asia/Dubai') AT TIME ZONE 'Asia/Dubai') AND checked_in_at < ((date_trunc('day',now() AT TIME ZONE 'Asia/Dubai')+interval '1 day') AT TIME ZONE 'Asia/Dubai')) AS today,
       (SELECT count(*)::int FROM visits WHERE organization_id=$1 AND ($2::uuid IS NULL OR visitor_id=$2) AND lifecycle='completed' AND (checked_in_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date) AS completed,
       (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND ($2::uuid IS NULL OR created_by=$2) AND (created_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date) AS new_shops,
@@ -378,13 +390,13 @@ export class CRM {
     ).rows[0];
     const active = (
       await this.db.query<Row>(
-        `SELECT v.*,s.name AS shop_name,s.area,u.name AS visitor_name FROM visits v JOIN shops s ON s.id=v.shop_id JOIN users u ON u.id=v.visitor_id WHERE v.organization_id=$1 AND ($2::uuid IS NULL OR v.visitor_id=$2) AND v.lifecycle='open' ORDER BY v.checked_in_at`,
+        `SELECT v.*,s.name AS shop_name,s.area,u.name AS visitor_name FROM visits v JOIN shops s ON s.id=v.shop_id JOIN users u ON u.id=v.visitor_id WHERE v.organization_id=$1 AND ($2::uuid IS NULL OR (v.visitor_id=$2 AND (s.status='Customer' OR s.assigned_executive_id=$2))) AND v.lifecycle='open' ORDER BY v.checked_in_at`,
         [actor.organizationId, person],
       )
     ).rows;
     const followups = (
       await this.db.query<Row>(
-        `SELECT f.*,f.due_date::text,s.name AS shop_name,u.name AS owner_name FROM followups f JOIN shops s ON s.id=f.shop_id JOIN users u ON u.id=f.owner_id WHERE f.organization_id=$1 AND ($2::uuid IS NULL OR f.owner_id=$2) AND f.status='pending' AND f.due_date <= (now() AT TIME ZONE 'Asia/Dubai')::date+3 ORDER BY f.due_date,f.id LIMIT 100`,
+        `SELECT f.*,f.due_date::text,s.name AS shop_name,u.name AS owner_name FROM followups f JOIN shops s ON s.id=f.shop_id JOIN users u ON u.id=f.owner_id WHERE f.organization_id=$1 AND ($2::uuid IS NULL OR (f.owner_id=$2 AND (s.status='Customer' OR s.assigned_executive_id=$2))) AND f.status='pending' AND f.due_date <= (now() AT TIME ZONE 'Asia/Dubai')::date+3 ORDER BY f.due_date,f.id LIMIT 100`,
         [actor.organizationId, person],
       )
     ).rows;
@@ -406,8 +418,8 @@ export class CRM {
     ).rows;
     const recent = (
       await this.db.query<Row>(
-        `SELECT * FROM shops WHERE organization_id=$1 AND created_at>=now()-interval '7 days' ORDER BY created_at DESC LIMIT 4`,
-        [actor.organizationId],
+        `SELECT * FROM shops WHERE organization_id=$1 AND ($2::uuid IS NULL OR status='Customer' OR assigned_executive_id=$2) AND created_at>=now()-interval '7 days' ORDER BY created_at DESC LIMIT 4`,
+        [actor.organizationId, person],
       )
     ).rows;
     return { metrics, active, followups, today, team, recent };
@@ -422,8 +434,8 @@ export class CRM {
     requirePolicy(this.config.visitPolicy, "Visit recording", "approved-v2");
     await one(
       tx,
-      "SELECT id FROM shops WHERE organization_id=$1 AND id=$2 FOR UPDATE",
-      [actor.organizationId, shopId],
+      "SELECT id FROM shops WHERE organization_id=$1 AND id=$2 AND (status='Customer' OR assigned_executive_id=$3) FOR UPDATE",
+      [actor.organizationId, shopId, actor.id],
     );
     const conflict = (
       await tx.query<Row>(
@@ -713,8 +725,8 @@ export class CRM {
     });
   }
   async accounts(actor: Actor) {
-    if (actor.role !== "admin")
-      throw new Fault(403, "FORBIDDEN", "Only admins manage accounts.");
+    if (actor.role !== "admin" && actor.role !== "manager")
+      throw new Fault(403, "FORBIDDEN", "Only managers and admins manage accounts.");
     return (
       await this.db.query(
         "SELECT u.id,u.email,u.name,u.active,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 ORDER BY u.name",
@@ -723,11 +735,12 @@ export class CRM {
     ).rows;
   }
   setAccountActive(actor: Actor, key: string | undefined, id: string, body: unknown) {
-    if (actor.role !== "admin") throw new Fault(403,"FORBIDDEN","Only admins manage accounts.");
+    if (actor.role !== "admin" && actor.role !== "manager") throw new Fault(403,"FORBIDDEN","Only managers and admins manage accounts.");
     const data=z.object({active:z.boolean()}).strict().parse(body);
     if(id===actor.id && !data.active) throw new Fault(422,"INVALID_ACCOUNT","You cannot disable your own account.");
     return this.mutate(actor,key,`account.active:${id}`,data,async tx=>{
-      const target=await one(tx,"SELECT u.id,u.active FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
+      const target=await one(tx,"SELECT u.id,u.active,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
+      if(actor.role==="manager" && !["executive","delivery"].includes(target.role)) throw new Fault(403,"FORBIDDEN","Only admins manage manager and admin accounts.");
       if(target.active===data.active) throw new Fault(422,"NO_CHANGE","Account already has this status.");
       await tx.query("UPDATE users SET active=$2 WHERE id=$1",[id,data.active]);
       if(!data.active) await tx.query("DELETE FROM sessions WHERE user_id=$1",[id]);
@@ -736,21 +749,44 @@ export class CRM {
     });
   }
   async resetAccountPassword(actor: Actor, key: string | undefined, id: string, body: unknown) {
-    if (actor.role !== "admin") throw new Fault(403,"FORBIDDEN","Only admins manage accounts.");
+    if (actor.role !== "admin" && actor.role !== "manager") throw new Fault(403,"FORBIDDEN","Only managers and admins manage accounts.");
     const data=z.object({password:z.string().min(14).max(128)}).strict().parse(body);
     if (!key || !/^[a-zA-Z0-9_-]{16,100}$/.test(key)) throw new Fault(400,"IDEMPOTENCY_REQUIRED","Send a unique request key.");
     const fingerprint=await passwordRequestFingerprint(data.password,key);
     return this.mutate(actor,key,`account.reset:${id}`,{fingerprint},async tx=>{
-      await one(tx,"SELECT u.id FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
+      const target=await one(tx,"SELECT u.id,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
+      if(actor.role==="manager" && !["executive","delivery"].includes(target.role)) throw new Fault(403,"FORBIDDEN","Only admins manage manager and admin accounts.");
       await tx.query("UPDATE users SET password_hash=$2 WHERE id=$1",[id,await passwordHash(data.password)]);
       await tx.query("DELETE FROM sessions WHERE user_id=$1",[id]);
       await audit(tx,actor,"account.password_reset","user",id,{});
       return {id,reset:true};
     });
   }
+  setAccountRole(actor: Actor, key: string | undefined, id: string, body: unknown) {
+    if(actor.role!=="admin" && actor.role!=="manager") throw new Fault(403,"FORBIDDEN","Only managers and admins manage accounts.");
+    const data=z.object({role:z.enum(["executive","manager","admin","delivery"])}).strict().parse(body);
+    if(id===actor.id) throw new Fault(422,"INVALID_ACCOUNT","You cannot change your own role.");
+    return this.mutate(actor,key,`account.role:${id}`,data,async tx=>{
+      const target=await one(tx,"SELECT m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
+      if(actor.role==="manager" && (!["executive","delivery"].includes(target.role) || !["executive","delivery"].includes(data.role))) throw new Fault(403,"FORBIDDEN","Only admins manage manager and admin roles.");
+      if(target.role===data.role) throw new Fault(422,"NO_CHANGE","Account already has this role.");
+      const pending=await one(tx,`SELECT
+        EXISTS(SELECT 1 FROM duty_sessions WHERE organization_id=$1 AND executive_id=$2 AND ended_at IS NULL)
+        OR EXISTS(SELECT 1 FROM visits WHERE organization_id=$1 AND visitor_id=$2 AND lifecycle='open')
+        OR ($3='executive' AND (
+          EXISTS(SELECT 1 FROM shops WHERE organization_id=$1 AND assigned_executive_id=$2)
+          OR EXISTS(SELECT 1 FROM followups WHERE organization_id=$1 AND owner_id=$2 AND status='pending')
+        )) AS blocked`,[actor.organizationId,id,target.role]);
+      if(pending.blocked) throw new Fault(409,"ACCOUNT_HAS_WORK","Complete active duty and visits, and transfer assigned customers and pending follow-ups before changing this role.");
+      await tx.query("UPDATE memberships SET role=$3 WHERE organization_id=$1 AND user_id=$2",[actor.organizationId,id,data.role]);
+      await tx.query("DELETE FROM sessions WHERE user_id=$1",[id]);
+      await audit(tx,actor,"account.role","user",id,{from:target.role,to:data.role});
+      return {id,role:data.role};
+    });
+  }
   async addAccount(actor: Actor, key: string | undefined, body: unknown) {
-    if (actor.role !== "admin")
-      throw new Fault(403, "FORBIDDEN", "Only admins manage accounts.");
+    if (actor.role !== "admin" && actor.role !== "manager")
+      throw new Fault(403, "FORBIDDEN", "Only managers and admins manage accounts.");
     const data = z
       .object({
         email: z.string().email().max(254),
@@ -760,6 +796,7 @@ export class CRM {
       })
       .strict()
       .parse(body);
+    if(actor.role==="manager" && !["executive","delivery"].includes(data.role)) throw new Fault(403,"FORBIDDEN","Only admins create manager and admin accounts.");
     if (!key || !/^[a-zA-Z0-9_-]{16,100}$/.test(key))
       throw new Fault(
         400,

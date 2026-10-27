@@ -1,4 +1,4 @@
-/** Separately gated pilot handler. It is not referenced by the current Vercel entrypoint. */
+/** Separately gated pilot handler selected by the Vercel entrypoint only for the approved pilot stage. */
 import type { IncomingMessage, ServerResponse, RequestListener } from "node:http";
 import { attachDatabasePool } from "@vercel/functions";
 import { z } from "zod";
