@@ -27,7 +27,7 @@ export function postgresPoolOptions(settings: PostgresSettings): pg.PoolConfig {
     connectionString: url.toString(),
     ssl: local ? false : { rejectUnauthorized: true, ...(settings.ca ? { ca: settings.ca } : {}) },
     max, connectionTimeoutMillis: 5000, idleTimeoutMillis: 10000,
-    application_name: "emerald-synthetic-staging",
+    application_name: "emerald-sales-crm",
     // Keep date-only values independent of the process timezone; timestamps remain JSON strings.
     types: { getTypeParser: ((oid: number, format: "text" | "binary" = "text") =>
       format === "text" && [1082, 1114, 1184].includes(oid) ? (value: string) => value : pg.types.getTypeParser(oid, format)) as typeof pg.types.getTypeParser },

@@ -3,6 +3,7 @@
 -- Passwords and role creation are intentionally absent. Never grant role membership
 -- from emerald_runtime to emerald_migrator. Set database CONNECT rights at provisioning.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO emerald_runtime;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO emerald_runtime;
 GRANT INSERT ON users, memberships, shops, visits, followups, duty_sessions,
