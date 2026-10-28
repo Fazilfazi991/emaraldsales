@@ -24,7 +24,8 @@
     "demo:start": "tsx scripts/phase3-demo-start.ts",
     "test:browser:phase3": "node scripts/build.mjs && tsx scripts/phase3-browser.ts",
     "test:runtime:phase3": "tsx scripts/phase3-runtime.ts",
-    "review:reports:phase3": "tsx scripts/phase3-report-samples.ts"
+    "review:reports:phase3": "tsx scripts/phase3-report-samples.ts",
+    "test:navigation": "node scripts/build.mjs && tsx scripts/verify-navigation.ts"
   },
   "engines": {
     "node": "22.x"

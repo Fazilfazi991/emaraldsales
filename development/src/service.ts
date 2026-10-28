@@ -163,21 +163,13 @@ export class CRM {
       AND ($7::text IS NULL OR ($7='due' AND EXISTS(SELECT 1 FROM followups f WHERE f.shop_id=s.id AND f.status='pending'))
         OR ($7='visited' AND EXISTS(SELECT 1 FROM visits v WHERE v.shop_id=s.id))
         OR ($7='never' AND NOT EXISTS(SELECT 1 FROM visits v WHERE v.shop_id=s.id)))`;
-    const count = (
-      await this.db.query<Row>(
-        `SELECT count(*)::int AS total FROM shops s WHERE ${where}`,
-        filters,
-      )
-    ).rows[0].total;
-    const rows = (
-      await this.db.query<Row>(
-        `SELECT s.*, (SELECT count(*)::int FROM visits v WHERE v.shop_id=s.id) AS visit_count,
+    const data = (await this.db.query<Row>(`WITH filtered AS (SELECT s.* FROM shops s WHERE ${where}), paged AS (
+      SELECT s.*, (SELECT count(*)::int FROM visits v WHERE v.shop_id=s.id) AS visit_count,
       (SELECT max(checked_in_at) FROM visits v WHERE v.shop_id=s.id) AS last_visit,
       (SELECT min(due_date)::text FROM followups f WHERE f.shop_id=s.id AND f.status='pending') AS next_followup
-      FROM shops s WHERE ${where} ORDER BY lower(s.name),s.id LIMIT 40 OFFSET $10`,
-        [...filters, page * 40],
-      )
-    ).rows;
+      FROM filtered s ORDER BY lower(s.name),s.id LIMIT 40 OFFSET $10
+    ) SELECT (SELECT count(*)::int FROM filtered) AS total, COALESCE((SELECT jsonb_agg(to_jsonb(paged) ORDER BY lower(paged.name),paged.id) FROM paged),'[]'::jsonb) AS rows`,[...filters,page*40])).rows[0];
+    const rows: Row[]=data.rows, count: number=data.total;
     return { rows, total: count, page, pageSize: 40 };
   }
   convertLead(actor: Actor, key: string | undefined, id: string, body: unknown) {
@@ -209,24 +201,27 @@ export class CRM {
     });
   }
   async profile(actor: Actor, id: string) {
+    return this.db.transaction(async tx=>{
+    await tx.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
     const shop = await one(
-      this.db,
-      "SELECT * FROM shops WHERE organization_id=$1 AND id=$2 AND ($3::uuid IS NULL OR status='Customer' OR assigned_executive_id=$3)",
+      tx,
+      `SELECT shops.*,(SELECT jsonb_build_object('shop_id',v.shop_id) FROM visits v JOIN shops a ON a.id=v.shop_id AND a.organization_id=v.organization_id WHERE v.organization_id=$1 AND v.visitor_id=$3 AND v.lifecycle='open' AND (a.status='Customer' OR a.assigned_executive_id=$3) LIMIT 1) AS own_active_visit FROM shops WHERE organization_id=$1 AND id=$2 AND ($3::uuid IS NULL OR status='Customer' OR assigned_executive_id=$3)`,
       [actor.organizationId, id, actor.role === "executive" ? actor.id : null],
     );
     const visits = (
-      await this.db.query<Row>(
+      await tx.query<Row>(
         "SELECT v.*,u.name AS visitor_name FROM visits v JOIN users u ON u.id=v.visitor_id WHERE v.organization_id=$1 AND v.shop_id=$2 ORDER BY v.checked_in_at DESC,v.id",
         [actor.organizationId, id],
       )
     ).rows;
     const followups = (
-      await this.db.query<Row>(
+      await tx.query<Row>(
         "SELECT f.*,f.due_date::text,u.name AS owner_name FROM followups f JOIN users u ON u.id=f.owner_id WHERE f.organization_id=$1 AND f.shop_id=$2 ORDER BY f.created_at DESC,f.id",
         [actor.organizationId, id],
       )
     ).rows;
     return { shop, visits, followups };
+    });
   }
   async shopAudit(actor: Actor, id: string, params: URLSearchParams) {
     await one(this.db, "SELECT id FROM shops WHERE organization_id=$1 AND id=$2 AND ($3::uuid IS NULL OR status='Customer' OR assigned_executive_id=$3)", [actor.organizationId, id, actor.role === "executive" ? actor.id : null]);
@@ -320,7 +315,7 @@ export class CRM {
       return { followup };
     });
   }
-  async visits(actor: Actor, p: URLSearchParams) {
+  async visits(actor: Actor, p: URLSearchParams, db: Queryable = this.db) {
     const page = z.coerce
       .number()
       .int()
@@ -358,13 +353,13 @@ export class CRM {
     const join =
       "FROM visits v JOIN shops s ON s.id=v.shop_id JOIN users u ON u.id=v.visitor_id";
     const total = (
-      await this.db.query<Row>(
+      await db.query<Row>(
         `SELECT count(*)::int AS n ${join} WHERE ${where}`,
         args,
       )
     ).rows[0].n;
     const rows = (
-      await this.db.query<Row>(
+      await db.query<Row>(
         `SELECT v.*,s.name AS shop_name,s.area,u.name AS visitor_name ${join} WHERE ${where} ORDER BY v.checked_in_at DESC,v.id LIMIT 40 OFFSET $9`,
         [...args, page * 40],
       )
@@ -372,10 +367,16 @@ export class CRM {
     return { rows, total, page, pageSize: 40 };
   }
   async dashboard(actor: Actor) {
+    return this.db.transaction(async tx=>{
+      await tx.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+      return this.dashboardReads(actor,tx);
+    });
+  }
+  private async dashboardReads(actor: Actor, db: Queryable) {
     const person = actor.role === "executive" ? actor.id : null;
     // All counters come from authoritative rows; no duplicated last-visit or visit-id lists.
     const metrics = (
-      await this.db.query<Row>(
+      await db.query<Row>(
         `SELECT
       (SELECT count(*)::int FROM memberships WHERE organization_id=$1 AND role='executive') AS executives,
       (SELECT count(*)::int FROM shops WHERE organization_id=$1 AND status='Customer') AS customers,
@@ -389,23 +390,23 @@ export class CRM {
       )
     ).rows[0];
     const active = (
-      await this.db.query<Row>(
+      await db.query<Row>(
         `SELECT v.*,s.name AS shop_name,s.area,u.name AS visitor_name FROM visits v JOIN shops s ON s.id=v.shop_id JOIN users u ON u.id=v.visitor_id WHERE v.organization_id=$1 AND ($2::uuid IS NULL OR (v.visitor_id=$2 AND (s.status='Customer' OR s.assigned_executive_id=$2))) AND v.lifecycle='open' ORDER BY v.checked_in_at`,
         [actor.organizationId, person],
       )
     ).rows;
     const followups = (
-      await this.db.query<Row>(
+      await db.query<Row>(
         `SELECT f.*,f.due_date::text,s.name AS shop_name,u.name AS owner_name FROM followups f JOIN shops s ON s.id=f.shop_id JOIN users u ON u.id=f.owner_id WHERE f.organization_id=$1 AND ($2::uuid IS NULL OR (f.owner_id=$2 AND (s.status='Customer' OR s.assigned_executive_id=$2))) AND f.status='pending' AND f.due_date <= (now() AT TIME ZONE 'Asia/Dubai')::date+3 ORDER BY f.due_date,f.id LIMIT 100`,
         [actor.organizationId, person],
       )
     ).rows;
     const today = await this.visits(
       actor,
-      new URLSearchParams({ from: metrics.day, to: metrics.day, ...(person ? { person } : {}) }),
+      new URLSearchParams({ from: metrics.day, to: metrics.day, ...(person ? { person } : {}) }), db,
     );
     const team = (
-      await this.db.query<Row>(
+      await db.query<Row>(
         `SELECT u.id,u.name,
       (SELECT count(*)::int FROM visits v WHERE v.organization_id=m.organization_id AND v.visitor_id=u.id AND (v.checked_in_at AT TIME ZONE 'Asia/Dubai')::date=(now() AT TIME ZONE 'Asia/Dubai')::date AND v.lifecycle='completed') AS completed,
       (SELECT count(*)::int FROM visits v WHERE v.organization_id=m.organization_id AND v.visitor_id=u.id AND v.lifecycle='open') AS active,
@@ -417,7 +418,7 @@ export class CRM {
       )
     ).rows;
     const recent = (
-      await this.db.query<Row>(
+      await db.query<Row>(
         `SELECT * FROM shops WHERE organization_id=$1 AND ($2::uuid IS NULL OR status='Customer' OR assigned_executive_id=$2) AND created_at>=now()-interval '7 days' ORDER BY created_at DESC LIMIT 4`,
         [actor.organizationId, person],
       )
@@ -647,18 +648,11 @@ export class CRM {
         "Duty history is private to you and management.",
       );
     if (owner) z.string().uuid().parse(owner);
-    const sessions = (
-      await this.db.query<Row>(
-        `SELECT d.*,u.name FROM duty_sessions d JOIN users u ON u.id=d.executive_id WHERE d.organization_id=$1 AND ($2::uuid IS NULL OR d.executive_id=$2) ORDER BY d.started_at DESC LIMIT 100`,
-        [actor.organizationId, owner],
-      )
-    ).rows;
-    const rests = (
-      await this.db.query<Row>(
-        `SELECT r.* FROM rest_intervals r WHERE r.organization_id=$1 AND r.session_id=ANY($2::uuid[]) ORDER BY r.started_at`,
-        [actor.organizationId, sessions.map((s) => s.id)],
-      )
-    ).rows;
+    const data=(await this.db.query<Row>(`WITH sessions AS (
+      SELECT d.*,u.name FROM duty_sessions d JOIN users u ON u.id=d.executive_id WHERE d.organization_id=$1 AND ($2::uuid IS NULL OR d.executive_id=$2) ORDER BY d.started_at DESC LIMIT 100
+    ) SELECT COALESCE((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.started_at DESC) FROM sessions s),'[]'::jsonb) AS sessions,
+      COALESCE((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.started_at) FROM rest_intervals r WHERE r.organization_id=$1 AND r.session_id IN (SELECT id FROM sessions)),'[]'::jsonb) AS rests`,[actor.organizationId,owner])).rows[0];
+    const {sessions,rests}=data;
     return { sessions, rests };
   }
   duty(

@@ -60,10 +60,17 @@ export class Reports {
       args.push(f.from,f.to,f.status,f.scope);
       source = `SELECT f.id,f.organization_id,f.shop_id,f.visit_id,f.owner_id,f.created_by,f.due_date::text AS due_date,f.status,f.created_at,f.updated_at,f.version,s.name AS shop_name,s.area,u.name AS owner_name FROM followups f JOIN shops s ON s.id=f.shop_id AND s.organization_id=f.organization_id JOIN users u ON u.id=f.owner_id WHERE f.organization_id=$1 AND ($2::uuid IS NULL OR f.owner_id=$2) AND f.created_at <= $5::timestamptz AND f.due_date <= $7::date AND (($9::text='outstanding' AND f.status='pending') OR ($9::text='range' AND f.due_date >= $6::date AND ($8::text='all' OR f.status=$8))) AND $3::timestamptz IS NOT NULL AND $4::timestamptz IS NOT NULL`;
     }
-    const total = (await tx.query<{n:number}>(`SELECT count(*)::int AS n FROM (${source}) filtered`, args)).rows[0].n;
-    if (all && total > 10000) throw new Fault(422,"EXPORT_TOO_LARGE","This report has more than 10,000 records. Choose fewer dates or one sales executive, then download again.");
     const order = kind === "activity" ? "checked_in_at DESC,id" : kind === "duty" ? "started_at DESC,id" : "due_date,id";
-    const rows = (await tx.query<Row>(`${source} ORDER BY ${order} LIMIT $${args.length+1} OFFSET $${args.length+2}`, [...args,all ? 10000 : f.pageSize,all ? 0 : f.page*f.pageSize])).rows;
+    let total:number,rows:Row[];
+    if(all){
+      total=(await tx.query<{n:number}>(`SELECT count(*)::int AS n FROM (${source}) filtered`,args)).rows[0].n;
+      if(total>10000)throw new Fault(422,"EXPORT_TOO_LARGE","This report has more than 10,000 records. Choose fewer dates or one sales executive, then download again.");
+      rows=(await tx.query<Row>(`${source} ORDER BY ${order} LIMIT 10000`,args)).rows;
+    }else{
+      const data=(await tx.query<{total:number;rows:Row[]}>(`WITH filtered AS NOT MATERIALIZED (${source}), paged AS (SELECT * FROM filtered ORDER BY ${order} LIMIT $${args.length+1} OFFSET $${args.length+2})
+        SELECT (SELECT count(*)::int FROM filtered) AS total, COALESCE((SELECT jsonb_agg(to_jsonb(paged) ORDER BY ${order}) FROM paged),'[]'::jsonb) AS rows`,[...args,f.pageSize,f.page*f.pageSize])).rows[0];
+      total=data.total;rows=data.rows;
+    }
     if (kind === "duty") for (const row of rows) Object.assign(row,this.dutyDurations(row,f));
     const result: ReportPage = {...this.metadata(f),total,rows};
     if (kind === "followups") Object.assign(result,{status:f.scope === "outstanding" ? "pending" : f.status,scope:f.scope});

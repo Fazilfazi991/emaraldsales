@@ -6,7 +6,8 @@ import {
   shopStatuses,
   type Actor,
 } from "../src/domain.js";
-import { createManagerView } from "./manager.js";
+import { ScreenReads } from "./screen-reads.js";
+import { createManagerView, type ManagerState } from "./manager.js";
 import { request, getDemoControls } from "./transport.js";
 const demo = getDemoControls();
 type Row = Record<string, any>;
@@ -65,10 +66,16 @@ let formAction = "",
   submitting = false,
   serverDay = "",
   fetching = false;
+const screenReads = new ScreenReads();
+let reads = new AbortController();
+let lastScreen = "";
+const savedFilters = new Map<string, Filter>();
+const savedScroll = new Map<string, number>();
 const retryKeys = new Map<string, string>();
 const checkinPayloads = new Map<string, unknown>();
 let unconfirmed: { path: string; signature: string } | null = null;
 let managerView: ReturnType<typeof createManagerView> | undefined;
+let managerState: ManagerState | undefined;
 let collectionView: {dispose:()=>void}|undefined;
 let filtersOpen = false;
 let demoDayRefreshPending = false;
@@ -85,10 +92,12 @@ async function api(
   path: string,
   body?: unknown,
   mutation = false,
+  signal?: AbortSignal,
 ): Promise<any> {
   const signature = JSON.stringify([path, body]);
   if (mutation && unconfirmed && unconfirmed.signature !== signature)
     throw new ApiError(409, "A previous save is unconfirmed. Use Retry save before starting another action.");
+  if (body !== undefined) screenReads.clear();
   let key = retryKeys.get(signature);
   if (mutation && !key) {
     key = crypto.randomUUID();
@@ -97,6 +106,7 @@ async function api(
   let response: Response;
   try {
     response = await request(path, {
+      signal,
       method: body === undefined ? "GET" : "POST",
       credentials: "same-origin",
       headers: {
@@ -110,7 +120,8 @@ async function api(
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     if (mutation) unconfirmed = { path, signature };
     throw new ApiError(
       0,
@@ -134,6 +145,7 @@ async function api(
       data.error?.message ?? "The server could not confirm the action.",
     );
   }
+  if (body !== undefined) screenReads.clear();
   if (mutation) { retryKeys.delete(signature); unconfirmed = null; }
   return data;
 }
@@ -224,6 +236,7 @@ function shell() {
   }
 }
 function loginScreen(message = "") {
+  reads.abort(); screenReads.clear();
   collectionView?.dispose();collectionView=undefined;
   managerView?.dispose();
   managerView = undefined;
@@ -255,6 +268,8 @@ function loginScreen(message = "") {
   });
 }
 function resetWorkspace() {
+  reads.abort(); screenReads.clear(); savedFilters.clear(); savedScroll.clear(); lastScreen="";
+  managerState=undefined;
   managerView?.dispose();
   managerView = undefined;
   retryKeys.clear();
@@ -270,8 +285,10 @@ function resetWorkspace() {
   epoch++;
 }
 async function bootstrap() {
-  me = await api("/me");
-  meta = await api("/metadata");
+  const [session,metadata]=await Promise.all([api("/me"),api("/metadata")]);
+  me = session;
+  screenReads.setScope(`${me.actor.organizationId}:${me.actor.id}:${me.csrf}`);
+  meta = metadata;
   shell();
   await render();
 }
@@ -419,7 +436,7 @@ function timeline(v: Row) {
 function renderProfile() {
   const { shop: s, visits, followups } = profile!,
     active = visits.find((v) => v.lifecycle === "open" && v.visitor_id === me.actor.id),
-    anotherActive = dashboard.active.find((v: Row) => v.visitor_id === me.actor.id && v.shop_id !== s.id);
+    anotherActive = demo ? dashboard?.active.find((v: Row) => v.visitor_id === me.actor.id && v.shop_id !== s.id) : s.own_active_visit?.shop_id !== s.id ? s.own_active_visit : undefined;
   const checkAction = !executive()
     ? ""
     : active
@@ -494,33 +511,49 @@ function query() {
   }
   return p.toString();
 }
+function navigation() {
+  for (const id of ["desktopNav", "mobileNav"]) {
+    const node=$(id);
+    if (!node.children.length) node.innerHTML=visibleNav().map(([value,icon,label])=>`<button type="button" data-view="${value}"><span class="icon" aria-hidden="true">${icon}</span><span>${value === "dashboard" ? delivery()?(demo?"My Deliveries":"My duty"):executive()?"Today":"Overview":label}</span></button>`).join("");
+    node.querySelectorAll<HTMLButtonElement>("[data-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.view===view?"page":"false"));
+  }
+  $("mobileNav").style.gridTemplateColumns=`repeat(${visibleNav().length},minmax(0,1fr))`;
+  $("crumb").textContent=selected?"Shop profile":view==="dashboard"?(executive()?"Today":delivery()?"My duty":"Overview"):visibleNav().find(n=>n[0]===view)?.[2]??"Workspace";
+}
 async function render() {
   collectionView?.dispose();collectionView=undefined;
+  if(managerView)managerState=managerView.state();
   managerView?.dispose();
   managerView = undefined;
+  reads.abort(); reads=new AbortController();
+  const signal=reads.signal;
+  const load=(path:string)=>/^\/shops\/[^?]+$/.test(path) ? api(path,undefined,false,signal) : screenReads.get(path,()=>api(path,undefined,false,signal),async()=>{
+    const current=await api("/me",undefined,false,signal);
+    if(current.actor.id!==me.actor.id||current.actor.role!==me.actor.role||current.actor.organizationId!==me.actor.organizationId){screenReads.clear();loginScreen("Your account changed. Sign in again.");throw new Error("Sign in again.");}
+  },signal);
   const ticket = ++epoch;
+  navigation();
+  const screen=selected?`profile:${selected}`:view;
+  if(lastScreen!==screen){$("content").innerHTML='<div class="screen-loading" role="status">Loading '+h(selected?"shop history":$("crumb").textContent)+'…</div>';lastScreen=screen;}
+  else if(!$("screenStatus"))$("content").insertAdjacentHTML("afterbegin",'<p id="screenStatus" class="screen-status" role="status">Updating…</p>');
   fetching = true;
   $("content")?.setAttribute("aria-busy", "true");
   const focused = document.activeElement as HTMLInputElement | null;
   const cursor = focused?.id === "search" ? focused.selectionStart : null;
   try {
     let markup = "";
-    if (!dashboard && !(delivery() && !demo)) {
-      dashboard = await api("/dashboard");
-      serverDay = dashboard.metrics.day;
-    }
+    serverDay=businessDay(new Date());
     if (delivery() && !demo) {
-      duty=await api("/duty"); serverDay=businessDay(new Date());
+      duty=await api("/duty",undefined,false,signal); serverDay=businessDay(new Date());
       markup=heading("Field workspace","Your duty",date(serverDay))+dutyCard()+panel("Delivery records","Delivery and collection recording is not yet available.",'<div class="panel-body"><p>Use this screen to record your duty and breaks.</p></div>');
     } else if (demo && (delivery() || view==="collections")) {
       if(delivery()&&view!=='record-delivery'){duty=await api('/duty');markup=dutyCard();}
       markup+='<div id="collectionWorkspace" class="collection-workspace"></div>';
     } else if (selected) {
-      const [result, currentDashboard] = await Promise.all([api(`/shops/${selected}`), api("/dashboard")]);
+      const result = await load(`/shops/${selected}`);
       if (ticket !== epoch) return;
       profile = result;
-      dashboard = currentDashboard;
-      serverDay = dashboard.metrics.day;
+      if(demo)dashboard=await api("/dashboard");
       markup = renderProfile();
       if (!demo && profile!.shop.status !== "Customer") {
         const canUpdate = supervisor() || (executive() && profile!.shop.assigned_executive_id === me.actor.id);
@@ -528,18 +561,26 @@ async function render() {
         if (actions) markup += panel("Enquiry actions", "Changes are saved in the record history.", `<div class="panel-body actions">${actions}</div>`);
       }
     } else if (view === "accounts" && !demo && supervisor()) {
-      const accounts=await api("/accounts");
+      const accounts=await api("/accounts",undefined,false,signal);
       markup=heading("Administration","Staff accounts","Individual sign-in accounts",button("Add account","data-account-add",true))+panel("Accounts","Managers can manage sales and delivery staff; only admins manage managers and admins.",table(["Name","Sign-in email","Role","Status","Actions"],accounts.map((a:Row)=>`<tr>${cell("Name",h(a.name))}${cell("Sign-in email",h(a.email))}${cell("Role",h(a.role))}${cell("Status",a.active?"Active":"Disabled")}${cell("Actions",a.id!==me.actor.id && (me.actor.role==="admin" || ["executive","delivery"].includes(a.role)) ? button("Change role",`data-account-role="${h(a.id)}"`)+button("Reset password",`data-account-reset="${h(a.id)}"`)+button(a.active?"Disable":"Enable",`data-account-status="${h(a.id)}" data-next-active="${a.active?"false":"true"}"`) : "")}</tr>`)));
+    } else if (!demo && supervisor() && view === "dashboard") {
+      // Render the manager's daily overview immediately. Customer counts are secondary.
+      markup='<div id="managerReports" class="manager-reports"></div><div id="managerContext" class="manager-context section"></div>';
+      void api("/dashboard",undefined,false,signal).then(result=>{
+        if(ticket!==epoch||signal.aborted)return;
+        dashboard=result;
+        const context=$("managerContext");if(!context)return;
+        context.innerHTML=panel("Customers and enquiries","Shared records · open a list to search",`<div class="panel-body actions">${button(`Customers: ${result.metrics.customers}`,'data-view="shops"')}${button(`Enquiries: ${result.metrics.enquiries}`,'data-view="leads"')}</div>`)+panel("Enquiries by salesperson","Unassigned enquiries stay available for manager review",`<div class="panel-body">${result.team.map((p:Row)=>`<p>${h(p.name)} · <strong>${h(p.leads)}</strong> enquiries</p>`).join("")}</div>`);
+      }).catch(error=>{if(ticket===epoch&&!signal.aborted)showError(error);});
     } else if (view === "dashboard" || view === "team") {
-      const result = await api("/dashboard"),
-        history = await api("/duty");
+      const [result,history] = await Promise.all([api("/dashboard",undefined,false,signal), supervisor() && view==="dashboard" ? Promise.resolve(duty) : api("/duty",undefined,false,signal)]);
       if (ticket !== epoch) return;
       dashboard = result;
       duty = history;
       serverDay = dashboard.metrics.day;
       markup =
         view === "dashboard"
-          ? supervisor() ? (!demo ? panel("Customers and enquiries", "Shared records · open a list to search", `<div class="panel-body actions">${button(`Customers: ${dashboard.metrics.customers}`, 'data-view="shops"')}${button(`Enquiries: ${dashboard.metrics.enquiries}`, 'data-view="leads"')}</div>`) + panel("Enquiries by salesperson", "Assigned enquiries; unassigned records remain in the enquiry list", `<div class="panel-body">${dashboard.team.map((p:Row)=>`<p>${h(p.name)} · ${h(p.leads)} enquiries</p>`).join("")}</div>`) : "") + '<div id="managerReports" class="manager-reports"></div>' : renderDashboard()
+          ? supervisor() ? '<div id="managerReports" class="manager-reports"></div>' : renderDashboard()
           : heading(
               "Field team",
               "Sales executives",
@@ -548,9 +589,7 @@ async function render() {
             `<div class="team-grid">${teamCards()}</div>` +
             `<div class="section">${panel(executive() ? "Your duty history" : "Team duty history", "Most recent 100 sessions · Asia/Dubai", dutyTable())}</div>`;
     } else {
-      const result = await api(
-        `/${view === "visits" ? "visits" : "shops"}?${query()}`,
-      );
+      const result = await load(`/${view === "visits" ? "visits" : "shops"}?${query()}`);
       if (ticket !== epoch) return;
       list = result;
       markup =
@@ -568,42 +607,37 @@ async function render() {
           : renderShops();
     }
     if (ticket !== epoch || !$("content")) return;
-    for (const id of ["desktopNav", "mobileNav"])
-      $(id).innerHTML = visibleNav()
-        .map(
-          ([value, icon, label]) =>
-            `<button type="button" data-view="${value}" aria-current="${value === view ? "page" : "false"}"><span class="icon" aria-hidden="true">${icon}</span><span>${value === "dashboard" ? delivery()?(demo?"My Deliveries":"My duty"):executive() ? "Today" : "Overview" : label}</span></button>`,
-        )
-        .join("");
-    $("mobileNav").style.gridTemplateColumns=`repeat(${visibleNav().length},1fr)`;
-    $("crumb").textContent = selected
-      ? "Shop profile"
-      : view === "dashboard" ? delivery()?(demo?"My Deliveries":"My duty"):executive() ? "Today" : "Overview" : visibleNav().find((n) => n[0] === view)![2];
     $("content").innerHTML =
       `<p class="error" role="alert" id="saveError" hidden></p>${retryBanner()}${!visitEnabled() ? '<div class="notice section-gap">Visit recording is awaiting approval. You can search shops and read visit history.</div>' : ""}${markup}`;
     if (demo) document.querySelectorAll<HTMLAnchorElement>('a[href^="tel:"]').forEach(a => { a.removeAttribute("href"); a.title="Fictional sample number"; });
     if(demo&&$("collectionWorkspace"))collectionView=demo.mountCollections($("collectionWorkspace"),{request:(p,b)=>api(p,b,b!==undefined),download:downloadReport,manager:supervisor(),staff:meta.team,today:serverDay,record:view==='record-delivery'});
     if (supervisor() && view === "dashboard" && !selected) {
       managerView = createManagerView({
-        container: $("managerReports"), request: path => api(path), download: downloadReport,
+        container: $("managerReports"), request: path => load(path), download: downloadReport,
         openShop: id => { selected = id; void render(); window.scrollTo(0, 0); },
         today: serverDay, team: meta.team as { id: string; name: string; role?: string }[],
+        state: managerState,
+        invalidate: () => screenReads.clear(),
         pdfLabel: demo ? "Print / Save as PDF" : undefined,
         attendanceEnabled: !!demo,
         currentDay: demo?.currentDay,
         collectionSummary: demo ? date => api("/collections?date="+date) : undefined,
       });
-      await managerView.load();
+      void managerView.load(false);
     }
     if (cursor !== null && $("search")) {
       ($("search") as HTMLInputElement).focus();
       ($("search") as HTMLInputElement).setSelectionRange(cursor, cursor);
     }
   } catch (error) {
-    showError(error);
+    if(ticket===epoch && !signal.aborted) {
+      if($("content")?.querySelector(".screen-loading"))$("content").innerHTML=panel("Unable to load this screen","Your saved records have not changed.",`<div class="panel-body"><p class="error" role="alert">${h(error instanceof Error?error.message:"Check your connection and retry.")}</p>${button("Retry","data-refresh",true)}</div>`);
+      else showError(error);
+    }
   } finally {
     if (ticket === epoch) {
       fetching = false;
+      $("screenStatus")?.remove();
       $("content")?.removeAttribute("aria-busy");
     }
   }
@@ -735,6 +769,7 @@ async function mutateWork(work: () => Promise<unknown>, message: string) {
     return;
   }
   submitting = true;
+  reads.abort(); epoch++;
   retryOperation = { work, message };
   const buttons = Array.from(
     document.querySelectorAll<HTMLButtonElement>("button"),
@@ -811,11 +846,13 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (d.view) {
+      clearTimeout(searchTimer);
+      savedFilters.set(view,{...filters}); savedScroll.set(view,window.scrollY);
       view = d.view;
       selected = null;
-      filters = { q: "", person: "", area: "", status: "", when: "", page: 0 };
+      filters = {...(savedFilters.get(view)??{ q: "", person: "", area: "", status: "", when: "", page: 0 })};
       await render();
-      window.scrollTo(0, 0);
+      window.scrollTo(0, savedScroll.get(view)??0);
       return;
     }
     if (d.clearFilters !== undefined) {
@@ -825,6 +862,8 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (d.shop) {
+      clearTimeout(searchTimer);
+      savedScroll.set(view,window.scrollY);
       selected = d.shop;
       await render();
       window.scrollTo(0, 0);
@@ -833,9 +872,11 @@ document.addEventListener("click", async (e) => {
     if (d.back !== undefined) {
       selected = null;
       await render();
+      window.scrollTo(0,savedScroll.get(view)??0);
       return;
     }
     if (d.refresh !== undefined) {
+      screenReads.clear();
       await render();
       return;
     }
@@ -918,7 +959,8 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (d.duty !== undefined) {
-      duty = await api("/duty");
+      const label=target.textContent;target.textContent="Loading…";target.disabled=true;
+      try{duty = await api("/duty");}finally{target.textContent=label;target.disabled=false;}
       formAction = "";
       dialog(
         dutyWorker() ? "Your duty history" : "Team duty history",
@@ -967,6 +1009,7 @@ document.addEventListener("toggle", (event) => {
 document.addEventListener("input", (e) => {
   const input = e.target as HTMLInputElement;
   if (input.id === "search") {
+    reads.abort(); epoch++;
     filters.q = input.value;
     filters.page = 0;
     clearTimeout(searchTimer);
@@ -1034,6 +1077,7 @@ $("dialogForm").addEventListener("submit", (e) => {
     }
   }, action === "checkout" ? "Visit completed and saved." : action === "lead" ? "New shop saved. You can now check in." : action.startsWith("followup") ? "Follow-up saved." : action === "account-add" ? "Staff account created." : action === "account-reset" ? "Password reset. Share it privately." : action === "account-role" ? "Role saved. The staff member has been signed out." : "Shop change saved in record history.");
 });
+window.addEventListener("focus",()=>screenReads.clear());
 window.addEventListener("offline", () =>
   toast(
     demo ? "Demo changes stay in this browser. No server connection is needed for the open demo." : "Connection lost. Reconnect before saving; changes are not stored offline.",

@@ -29,7 +29,7 @@ let ready:Promise<RequestListener>|undefined;
 export async function pilotHostedHandler(req:IncomingMessage,res:ServerResponse) {
   const pending=(ready ??= (async()=>{
     const settings=pilotConfig(process.env); const db=openPostgres(settings.database);
-    try { await db.query("SELECT 1"); await verifyMigrations(db); await verifyRuntimeRole(db); await verifyPilotWorkspace(db,settings.organizationId); attachDatabasePool(db.pool); return requestHandler(db,settings.app); }
+    try { await db.transaction(async tx=>{ await verifyMigrations(tx); await verifyRuntimeRole(tx); await verifyPilotWorkspace(tx,settings.organizationId); }); attachDatabasePool(db.pool); return requestHandler(db,settings.app); }
     catch { await db.close(); throw new Error("Pilot initialization failed"); }
   })());
   try {return (await pending)(req,res);} catch {if(ready===pending) ready=undefined; return unavailable(req,res,"pilot_initialization");}

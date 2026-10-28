@@ -1,6 +1,7 @@
 import type { ReportKind, ReportPage } from "../src/reports.js";
 type ViewKind=ReportKind|"attendance";
 type ViewReport=ReportPage&{session_details?:Record<string,any>[]};
+export type ManagerState={from:string;to:string;person:string;kind:ViewKind;status:string;scope:string;page:number};
 
 export interface ManagerViewOptions {
   container: HTMLElement;
@@ -13,6 +14,8 @@ export interface ManagerViewOptions {
   attendanceEnabled?: boolean;
   currentDay?: () => string;
   collectionSummary?: (date:string) => Promise<any>;
+  state?: ManagerState;
+  invalidate?: () => void;
 }
 const h=(value:unknown)=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]!);
 const when=(value:unknown)=>value?new Intl.DateTimeFormat("en-AE",{timeZone:"Asia/Dubai",dateStyle:"medium",timeStyle:"short"}).format(new Date(String(value))):"—";
@@ -32,6 +35,7 @@ export function createManagerView(options:ManagerViewOptions) {
   const today=()=>options.currentDay?.()??options.today;
   let observedDay=today();
   let from=options.today,to=options.today,person="",kind:ViewKind="activity",status="pending",scope="outstanding",page=0;
+  if(options.state)({from,to,person,kind,status,scope,page}=options.state);
   let collections:any;
   let activity:ViewReport|undefined,report:ViewReport|undefined,busy=false,disposed=false,version=0,error="";
   const path=(exportFormat?:string)=>{
@@ -42,6 +46,9 @@ export function createManagerView(options:ManagerViewOptions) {
   const badge=(value:unknown)=>`<span class="badge ${/break|pending|open/i.test(String(value))?"amber":"green"}">${h(value)}</span>`;
   function render(){
     if(disposed)return;
+    const focused=container.contains(document.activeElement)?document.activeElement as HTMLInputElement:null;
+    const draft=focused?.matches('[data-manager-filters] input,[data-manager-filters] select')?new FormData(container.querySelector<HTMLFormElement>('[data-manager-filters]')!):null;
+    const focusedId=focused?.id;
     const team=options.team?.filter(x=>!x.role||x.role==="executive"||x.role==="delivery")??activity?.staff??[];
     const staffLabel="Staff member";
     const filter=`<form data-manager-filters class="toolbar manager-filters"><div class="form-field"><label for="manager-from">From</label><input class="input" id="manager-from" type="date" name="from" value="${h(from)}" required></div><div class="form-field"><label for="manager-to">To</label><input class="input" id="manager-to" type="date" name="to" value="${h(to)}" required></div><div class="form-field"><label for="manager-person">${staffLabel}</label><select class="select" id="manager-person" name="person"><option value="">All staff</option>${team.map(p=>`<option value="${h(p.id)}" ${p.id===person?"selected":""}>${h(p.name)}</option>`).join("")}</select></div><button class="button primary" type="submit" ${busy?"disabled":""}>${busy?"Loading…":"Show activity"}</button>${button("Today","data-manager-today")}</form>`;
@@ -62,17 +69,29 @@ export function createManagerView(options:ManagerViewOptions) {
     const paging=report?`<div class="pagination">${button("Previous","data-manager-page=\"-1\""+(busy||page===0?" disabled":""))}<span>${report.total?`${page*report.pageSize+1}–${Math.min((page+1)*report.pageSize,report.total)} of ${report.total}`:"0 records"}</span>${button("Next","data-manager-page=\"1\""+(busy||(page+1)*report.pageSize>=report.total?" disabled":""))}</div>`:"";
     const reportTitle={activity:"Visit report",duty:"Duty and breaks",followups:"Follow-up report",attendance:"Staff Attendance & Working Hours"}[kind];
     container.innerHTML=`<div class="heading"><div><p class="eyebrow">Manager overview</p><h1>Daily activity</h1><p class="subheading">Staff, visits and follow-ups · UAE time</p></div><a class="button" href="#manager-downloads">Reports and downloads ↓</a></div>${panel(options.attendanceEnabled?"Choose dates and staff":"Choose dates and sales executive","Choose dates, then Show activity. All dates use UAE time.",filter)}<div role="status" aria-live="polite">${busy?"Loading saved activity…":""}</div>${error?`<p class="error" role="alert">${h(error)} ${button("Retry","data-manager-retry")}</p>`:""}${kpis}${collections?panel("Deliveries & Collections",`Delivery staff · ${day(collections.date)} · Daily totals, separate from confirmed sales.`,`<div class="panel-body"><p>${collections.totals.completed_deliveries} completed · Cash AED ${(collections.totals.cash_fils/100).toFixed(2)} · Credit AED ${(collections.totals.credit_fils/100).toFixed(2)} · Cheques AED ${(collections.totals.cheque_fils/100).toFixed(2)}</p>${button("Open deliveries and daily collection slip",'data-view="collections"',true)}</div>`):""}${options.attendanceEnabled&&summary?`<p class="notice">Confirmed sales recorded at visit checkout: AED ${((summary.confirmed_order_fils??0)/100).toFixed(2)}. This is separate from cash collections and formal Zoho accounting.</p>`:""}${staff}<div id="manager-downloads" tabindex="-1">${panel("Reports and downloads",`${reportTitle} · ${day(from)}${from!==to?` to ${day(to)}`:""} · ${team.find(p=>p.id===person)?.name??(options.attendanceEnabled?"All staff":"All sales executives")}`,tabs+followFilters)}</div>${panel(reportTitle,caption,body+paging)}${activity?`<p class="help">Last refreshed ${h(when(activity.asOf))}. Use Show activity to refresh. Opening a shop shows its full history.</p>`:""}`;
+    if(draft){for(const [name,value] of draft){const input=container.querySelector<HTMLInputElement>(`[data-manager-filters] [name="${name}"]`);if(input)input.value=String(value);}if(focusedId)container.querySelector<HTMLElement>(`#${focusedId}`)?.focus();}
   }
-  async function load(){
+  async function load(refresh=true){
     if(disposed)return;
+    if(refresh)options.invalidate?.();
     observedDay=today();
     const current=++version;busy=true;error="";activity=undefined;report=undefined;render();
     try{
       const overviewPath=`/reports/activity?${new URLSearchParams({from,to,person})}`;
-      const [overview,data,delivery]=await Promise.all([request(overviewPath),request(path()),options.collectionSummary?.(to)]);
+      const overview=request(overviewPath);
+      const reportPath=path();
+      const sameReport=kind==="activity"&&page===0;
+      const secondary=sameReport?overview:request(reportPath);
+      const delivery=options.collectionSummary?.(to);
+      // Attach rejection handling immediately while the overview renders first.
+      const pending=Promise.all([secondary,delivery]); void pending.catch(()=>{});
+      activity=await overview;
       if(disposed||current!==version)return;
-      activity=overview;report=data;collections=delivery;
-    }catch(e){if(disposed||current!==version)return;activity=undefined;report=undefined;error=e instanceof Error?e.message:"Activity could not be loaded. Check your connection and retry.";}
+      render();
+      const [data,collectionData]=await pending;
+      if(disposed||current!==version)return;
+      report=data;collections=collectionData;
+    }catch(e){if(disposed||current!==version)return;report=undefined;error=e instanceof Error?e.message:"Activity could not be loaded. Check your connection and retry.";}
     finally{if(!disposed&&current===version){busy=false;render();}}
   }
   const captureFilters=()=>{
@@ -117,5 +136,5 @@ export function createManagerView(options:ManagerViewOptions) {
     void load();
   },1000):undefined;
   render();
-  return {load,dispose(){disposed=true;++version;if(dayTimer)clearInterval(dayTimer);container.removeEventListener("submit",submit);container.removeEventListener("change",change);container.removeEventListener("click",click);}};
+  return {load,state:():ManagerState=>({from,to,person,kind,status,scope,page}),dispose(){disposed=true;++version;if(dayTimer)clearInterval(dayTimer);container.removeEventListener("submit",submit);container.removeEventListener("change",change);container.removeEventListener("click",click);}};
 }
