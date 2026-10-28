@@ -211,7 +211,7 @@ const visibleNav = () => delivery() ? (demo ? [["dashboard","▦","My Deliveries
 const supervisor = () => me.actor.role === "manager" || me.actor.role === "admin";
 function shell() {
   $("application").innerHTML =
-    `<div class="shell"><aside class="sidebar" aria-label="Main navigation"><div class="brand"><img class="brand-thumb" src="/brand.png" alt="Emerald Interlink"><div><b>EMERALD INTERLINK</b><span>Field Sales CRM</span></div></div><div class="workspace-label">FIELD WORKSPACE</div><nav class="nav" id="desktopNav"></nav><div class="sidebar-foot"><b>EMERALD INTERLINK TRADING L.L.C</b><br>Dubai, United Arab Emirates<div class="connection"><span class="dot"></span>Local review · synthetic data</div><div>Online saves · UAE reporting time</div></div></aside><main class="main"><header class="topbar"><div class="crumb">Emerald Interlink / <b id="crumb">Dashboard</b></div><div class="top-actions"><span class="signed-in">${h(me.actor.name)} <small>${h(me.actor.role)}</small></span>${button("Duty", "data-duty")}${button("Sign out", "data-logout")}</div></header><div class="content" id="content" tabindex="-1"></div></main><nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation"></nav></div>`;
+    `<div class="shell"><aside class="sidebar" aria-label="Main navigation"><div class="brand"><img class="brand-thumb" src="/brand.png" alt="Emerald Interlink"><div><b>EMERALD INTERLINK</b><span>Field Sales CRM</span></div></div><div class="workspace-label">FIELD WORKSPACE</div><nav class="nav" id="desktopNav"></nav><div class="sidebar-foot"><b>EMERALD INTERLINK TRADING L.L.C</b><br>Dubai, United Arab Emirates<div class="connection"><span class="dot"></span>Shared staff workspace</div><div>Online saves · UAE reporting time</div></div></aside><main class="main"><header class="topbar"><div class="crumb">Emerald Interlink / <b id="crumb">Dashboard</b></div><div class="top-actions"><span class="signed-in">${h(me.actor.name)} <small>${h(me.actor.role)}</small></span>${button("Duty", "data-duty")}${button("Sign out", "data-logout")}</div></header><div class="content" id="content" tabindex="-1"></div></main><nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation"></nav></div>`;
   if (!demo) document.querySelector(".sidebar-foot .connection")!.textContent="Secure team workspace";
   if (demo) {
     document.querySelector(".sidebar-foot")!.innerHTML = '<b>EMERALD INTERLINK TRADING L.L.C</b><br>Client review · Fictional records<div class="connection"><span class="dot"></span>Saved in this browser only</div><div>Changes do not sync between devices.</div>';
@@ -669,18 +669,11 @@ function checkoutForm(id: string) {
       true,
       "Regular Visit",
       outcomes.map((x) => [x, x]),
-    )}${field("notes", demo ? "Visit notes / customer discussion" : "What did you discuss?", "textarea", true)}${field("followUpDate", "Follow-up date (optional)", "date")}</div>${demo ? `<details><summary>Confirmed order amount (optional)</summary>${field('orderValue','Confirmed order total · AED','number')}<p class="help">Enter only for a confirmed order. This records the sales value, not money collected. Formal orders stay in Zoho.</p></details>` : `<details class="section"><summary>Order details (optional)</summary><div class="form-grid section">${field(
-      "orderStatus",
-      "Order status",
-      "select",
-      true,
-      "No Order",
-      orderStates.map((x) => [x, x]),
-    )}${field("orderNote", "Order note / reference")}${field("orderValue", "Approximate order value · AED", "number")}</div><p class="help">Order interest only. This does not create an invoice.</p></details>`}<p class="help section">A follow-up date creates a new item for you. Existing follow-ups stay unchanged.</p>`,
+    )}${field("notes", demo ? "Visit notes / customer discussion" : "What did you discuss?", "textarea", true)}${field("followUpDate", "Follow-up date (optional)", "date")}</div><details><summary>Confirmed order amount (optional)</summary>${field('orderValue','Confirmed order total · AED','number')}<p class="help">Enter only for a confirmed order. This records the sales value, not money collected. Formal orders stay in Zoho.</p></details><p class="help section">A follow-up date creates a new item for you. Existing follow-ups stay unchanged.</p>`,
     submit(demo ? "Check Out &amp; Save" : "Check Out · Save Visit"),
   );
   if (demo) $("dialog").classList.add("demo-visit-checkout");
-  if(demo)($('field-orderValue') as HTMLInputElement).min='0.01';
+  ($('field-orderValue') as HTMLInputElement).min='0.01';
 }
 function leadForm() {
   formAction = "lead";
@@ -1005,7 +998,7 @@ $("dialogForm").addEventListener("submit", (e) => {
         `/visits/${id}/checkout`,
         {
           ...data,
-          ...(demo ? { orderStatus: data.orderValue ? "Order Received" : "No Order", orderNote: "", orderValue: data.orderValue ? Number(data.orderValue) : null } : { orderValue: data.orderValue === "" ? null : Number(data.orderValue) }),
+          orderStatus: data.orderValue ? "Order Received" : "No Order", orderNote: "", orderValue: data.orderValue ? Number(data.orderValue) : null,
           followUpDate: data.followUpDate || null,
         },
         true,
