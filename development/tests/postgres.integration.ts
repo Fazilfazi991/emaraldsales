@@ -69,6 +69,7 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
       assert.deepEqual(settings,{statement:'15s',lock:'5s',idle:'20s',zone:'UTC'});
       await assert.rejects(()=>runtimeDb.read!("UPDATE shops SET notes='must never be saved'"),(error:any)=>error.code==='25006');
       await assert.rejects(()=>runtimeDb.read!("SELECT missing_column FROM shops"),(error:any)=>error.code==='42703');
+      await assert.rejects(()=>runtimeDb.read!("COMMIT; DELETE FROM sessions"),(error:any)=>error.code==='42601');
       assert.equal((await runtimeDb.read<{n:number}>("SELECT 1 AS n")).rows[0].n,1);
       // These checks run against PostgreSQL, not a client-side timeout approximation.
       await assert.rejects(()=>runtimeDb.read!("SELECT pg_sleep(16)"),(error:any)=>error.code==='57014');

@@ -4,10 +4,13 @@
     "deploymentEnabled": false
   },
   "buildCommand": "pnpm run build",
+  "headers": [
+    {"source":"/assets/:file*","headers":[{"key":"Cache-Control","value":"public, max-age=31536000, immutable"},{"key":"X-Content-Type-Options","value":"nosniff"}]}
+  ],
   "functions": {
     "server.ts": {
       "maxDuration": 60,
-      "includeFiles": "{dist/**,assets/fonts/**,migrations/**,node_modules/@sparticuz/chromium/bin/**}",
+      "includeFiles": "{dist/**,public/assets/**,assets/fonts/**,migrations/**,node_modules/@sparticuz/chromium/bin/**}",
       "excludeFiles": "{.local/**,.data/**,.evidence/**,.env,.env.*,tests/**}"
     }
   }

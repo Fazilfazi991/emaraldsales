@@ -46,8 +46,9 @@ export function openPostgres(settings: PostgresSettings): Database & { pool: pg.
   }
   const pool = new pg.Pool({...postgresPoolOptions(settings),Client:TimedClient});
   const acquire=async()=>{const state=timing(),start=performance.now();try{return await pool.connect();}finally{if(state&&!state.suspended)state.acquire+=performance.now()-start;}};
-  const execute=async(client:pg.PoolClient,sql:string,args?:unknown[])=>{
+  const execute=async(client:pg.PoolClient,sql:string,args?:unknown[],single=false)=>{
     const state=timing(),start=performance.now();
+    const statement:pg.QueryConfig&{queryMode:'extended'}={text:sql,values:args,queryMode:'extended'};
     if(state?.requested&&!state.suspended&&state.profiles.length<8&&/^\s*(SELECT|WITH)\b/i.test(sql)&&! /\b(INSERT|UPDATE|DELETE|FOR\s+SHARE|pg_advisory|set_config)\b/i.test(sql)){
       state.profiles.push(()=>transaction(async tx=>{
         await tx.query("SET TRANSACTION READ ONLY");
@@ -57,7 +58,7 @@ export function openPostgres(settings: PostgresSettings): Database & { pool: pg.
     }
     const record=state&&!state.suspended,control=/^\s*(BEGIN|COMMIT|ROLLBACK|SET)\b/i.test(sql);
     if(record){if(!state.dbActive++)state.dbStarted=start;if(control&&!state.controlActive++)state.controlStarted=start;}
-    try{return await client.query(sql,args);}finally{if(record){const end=performance.now();state.commands++;if(!--state.dbActive)state.wire+=end-state.dbStarted;if(control&&!--state.controlActive)state.control+=end-state.controlStarted;}}
+    try{return await (single?client.query(statement):client.query(sql,args));}finally{if(record){const end=performance.now();state.commands++;if(!--state.dbActive)state.wire+=end-state.dbStarted;if(control&&!--state.controlActive)state.control+=end-state.controlStarted;}}
   };
   // Do not log pg messages: they can include connection or customer details.
   pool.on("error", () => console.error(JSON.stringify({ event: "database_idle_connection_error" })));
@@ -87,7 +88,7 @@ export function openPostgres(settings: PostgresSettings): Database & { pool: pg.
       // applies before the parameterized statement. No pooler session settings leak.
       const settled=await Promise.allSettled([
         execute(client,"BEGIN READ ONLY; SET LOCAL TIME ZONE 'UTC'; SET LOCAL statement_timeout='15s'; SET LOCAL lock_timeout='5s'; SET LOCAL idle_in_transaction_session_timeout='20s'"),
-        execute(client,sql,args),
+        execute(client,sql,args,true),
         execute(client,"COMMIT"),
       ]);
       for(const result of settled)if(result.status==='rejected')throw result.reason;

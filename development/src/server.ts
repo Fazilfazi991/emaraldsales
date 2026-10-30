@@ -92,7 +92,8 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           "/brand.png": ["brand.png", "image/png"],
           "/favicon.svg": ["favicon.svg", "image/svg+xml"],
         };
-        const asset = assets[path];
+        const publicAsset=path.match(/^\/assets\/(emerald-(?:client-[a-f0-9]{12}\.js|style-[a-f0-9]{12}\.css))$/);
+        const asset = assets[path] ?? (publicAsset ? [`../public/assets/${publicAsset[1]}`,path.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8'] : undefined);
         if (!asset) throw new Fault(404, "NOT_FOUND", "Page not found.");
         res.setHeader("Content-Type", asset[1]);
         const bytes = await readFile(

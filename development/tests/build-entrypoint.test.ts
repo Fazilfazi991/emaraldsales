@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, readFile, access, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, access, rm, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,25 @@ async function removeFixture(root: string) {
     throw new Error("Refusing to remove an unexpected fixture path");
   await rm(target, { recursive: true, force: true });
 }
+test('CDN publication includes hashed presentation assets and keeps HTML behind the function',async()=>{
+  const root=await fixture();
+  try{
+    await writeFile(join(root,'client/index.html'),'<link href="/style.css"><script src="/app.js"></script>');
+    await execute(process.execPath,[script],{cwd:root});
+    assert.deepEqual((await readdir(join(root,'public'))).sort(),['assets','brand.png','favicon.svg']);
+    const html=await readFile(join(root,'dist/index.html'),'utf8');
+    assert.match(html,/src="\/assets\/emerald-client-[a-f0-9]{12}\.js"/);
+    assert.match(html,/href="\/assets\/emerald-style-[a-f0-9]{12}\.css"/);
+  }finally{await removeFixture(root);}
+});
+test('unexpected files cannot silently become public CDN data',async()=>{
+  const root=await fixture();
+  try{
+    await mkdir(join(root,'public'));
+    await writeFile(join(root,'public/unreviewed-data.json'),'{}');
+    await assert.rejects(()=>execute(process.execPath,[script],{cwd:root}),/Unexpected file in public output/);
+  }finally{await removeFixture(root);}
+});
 test("Browser build removes a cached app.js and emits no Node-detectable entrypoint", async () => {
   const root = await fixture();
   try {
