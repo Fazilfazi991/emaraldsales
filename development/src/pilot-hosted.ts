@@ -1,3 +1,4 @@
+import {requestTiming,phase} from "./performance.js";
 /** Separately gated pilot handler selected by the Vercel entrypoint only for the approved pilot stage. */
 import type { IncomingMessage, ServerResponse, RequestListener } from "node:http";
 import { attachDatabasePool } from "@vercel/functions";
@@ -27,10 +28,12 @@ export async function verifyPilotWorkspace(db:Queryable, organizationId:string) 
 }
 let ready:Promise<RequestListener>|undefined;
 export async function pilotHostedHandler(req:IncomingMessage,res:ServerResponse) {
-  const pending=(ready ??= (async()=>{
+  return requestTiming(req,res,async()=>{
+  const pending=(ready ??= phase("init",async()=>{
     const settings=pilotConfig(process.env); const db=openPostgres(settings.database);
     try { await db.transaction(async tx=>{ await verifyMigrations(tx); await verifyRuntimeRole(tx); await verifyPilotWorkspace(tx,settings.organizationId); }); attachDatabasePool(db.pool); return requestHandler(db,settings.app); }
     catch { await db.close(); throw new Error("Pilot initialization failed"); }
-  })());
+  }) as Promise<RequestListener>);
   try {return (await pending)(req,res);} catch {if(ready===pending) ready=undefined; return unavailable(req,res,"pilot_initialization");}
+  });
 }

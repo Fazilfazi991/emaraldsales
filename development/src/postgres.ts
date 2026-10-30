@@ -1,4 +1,5 @@
 import pg from "pg";
+import {timing} from "./performance.js";
 import { applyMigrations, type Database, type Queryable, type MigrationTransaction } from "./database.js";
 
 export interface PostgresSettings {
@@ -34,25 +35,45 @@ export function postgresPoolOptions(settings: PostgresSettings): pg.PoolConfig {
   };
 }
 export function openPostgres(settings: PostgresSettings): Database & { pool: pg.Pool } {
-  const pool = new pg.Pool(postgresPoolOptions(settings));
+  class TimedClient extends pg.Client {
+    connect(callback?: any): any {
+      const state=timing(),start=performance.now();
+      const finish=()=>{if(state&&!state.suspended){state.connect+=performance.now()-start;state.connections++;}};
+      if(callback)return super.connect((...args:any[])=>{finish();callback(...args);});
+      return super.connect().finally(finish);
+    }
+  }
+  const pool = new pg.Pool({...postgresPoolOptions(settings),Client:TimedClient});
+  const acquire=async()=>{const state=timing(),start=performance.now();try{return await pool.connect();}finally{if(state&&!state.suspended)state.acquire+=performance.now()-start;}};
+  const execute=async(client:pg.PoolClient,sql:string,args?:unknown[])=>{
+    const state=timing(),start=performance.now();
+    if(state?.requested&&!state.suspended&&state.profiles.length<8&&/^\s*(SELECT|WITH)\b/i.test(sql)&&! /\b(INSERT|UPDATE|DELETE|FOR\s+SHARE|pg_advisory|set_config)\b/i.test(sql)){
+      state.profiles.push(()=>transaction(async tx=>{
+        await tx.query("SET TRANSACTION READ ONLY");
+        const row=(await tx.query<Record<string,any>>('EXPLAIN (ANALYZE, FORMAT JSON) '+sql,args)).rows[0];
+        const plan=row['QUERY PLAN'][0];return {execution:Number(plan['Execution Time']),planning:Number(plan['Planning Time'])};
+      }));
+    }
+    try{return await client.query(sql,args);}finally{if(state&&!state.suspended){const elapsed=performance.now()-start;state.wire+=elapsed;state.commands++;if(/^\s*(BEGIN|COMMIT|ROLLBACK|SET)\b/i.test(sql))state.control+=elapsed;}}
+  };
   // Do not log pg messages: they can include connection or customer details.
   pool.on("error", () => console.error(JSON.stringify({ event: "database_idle_connection_error" })));
   const wrap = (client: pg.PoolClient): MigrationTransaction => ({
-    query: (async (sql: string, args?: unknown[]) => ({ rows: (await client.query(sql, args)).rows })) as Queryable["query"],
-    exec: async sql => { await client.query(sql); },
+    query: (async (sql: string, args?: unknown[]) => ({ rows: (await execute(client,sql,args)).rows })) as Queryable["query"],
+    exec: async sql => { await execute(client,sql); },
   });
   const transaction: Database["transaction"] = async work => {
-    const client = await pool.connect();
+    const client = await acquire();
     let discard = false;
     try {
       // Transaction-local settings work with transaction poolers; no session state leaks.
-      await client.query("BEGIN; SET LOCAL TIME ZONE 'UTC'; SET LOCAL statement_timeout='15s'; SET LOCAL lock_timeout='5s'; SET LOCAL idle_in_transaction_session_timeout='20s'");
+      await execute(client,"BEGIN; SET LOCAL TIME ZONE 'UTC'; SET LOCAL statement_timeout='15s'; SET LOCAL lock_timeout='5s'; SET LOCAL idle_in_transaction_session_timeout='20s'");
       const result = await work(wrap(client));
-      if ((await client.query("COMMIT")).command !== "COMMIT") throw new Error("Transaction did not commit");
+      if ((await execute(client,"COMMIT")).command !== "COMMIT") throw new Error("Transaction did not commit");
       return result;
     } catch (error) {
       // Unknown commit outcome is never retried here; the API's same-key retry owns deduplication.
-      try { await client.query("ROLLBACK"); } catch { discard = true; }
+      try { await execute(client,"ROLLBACK"); } catch { discard = true; }
       throw error;
     } finally { client.release(discard); }
   };

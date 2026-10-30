@@ -1,3 +1,4 @@
+import {requestTiming,timing,flushProfiles} from "./performance.js";
 import {
   createServer,
   type IncomingMessage,
@@ -41,7 +42,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
   const reports = new Reports(db);
   const cookie = (value: string, age = 43200) =>
     `emerald_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${age}${settings.secure ? "; Secure" : ""}`;
-  return async (req, res) => {
+  return (req, res) => requestTiming(req,res,async () => {
     const requestId = randomUUID();
     res.setHeader("X-Request-Id", requestId);
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -55,7 +56,8 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
       "Permissions-Policy",
       "geolocation=(self), camera=(), microphone=()",
     );
-    const send = (status: number, data: unknown) => {
+    const send = async (status: number, data: unknown) => {
+      await flushProfiles();
       res.statusCode = status;
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.end(JSON.stringify(data));
@@ -115,7 +117,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           clientAddress(req, settings),
         );
         res.setHeader("Set-Cookie", cookie(session.token));
-        send(200, { csrf: session.csrf });
+        await send(200, { csrf: session.csrf });
         return;
       }
       const session = await readSession(db, req.headers.cookie);
@@ -130,6 +132,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           ? req.headers["idempotency-key"]
           : undefined;
       const actor = session.actor;
+      const perf=timing();if(perf)perf.allowed=perf.requested&&(actor.role==="manager"||actor.role==="admin")&&!path.endsWith("/export");
       if (actor.role === "delivery" && !["/api/me","/api/metadata","/api/logout","/api/duty","/api/duty/start","/api/duty/rest","/api/duty/return","/api/duty/end"].includes(path))
         throw new Fault(403, "FORBIDDEN", "This account currently supports duty attendance only.");
       const reportRoute = path.match(/^\/api\/reports\/(activity|duty|followups)(\/export)?$/);
@@ -145,12 +148,12 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           res.setHeader("Content-Length", bytes.length);
           res.end(bytes);
         } else {
-          send(200, await reports[kind](actor, url.searchParams));
+          await send(200, await reports[kind](actor, url.searchParams));
         }
         return;
       }
       if (path === "/api/me" && method === "GET") {
-        send(200, {
+        await send(200, {
           actor,
           csrf: session.csrf,
           policies: { visit: settings.visitPolicy, duty: settings.dutyPolicy },
@@ -163,15 +166,15 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           hashToken(session.token),
         ]);
         res.setHeader("Set-Cookie", cookie("", 0));
-        send(200, { ok: true });
+        await send(200, { ok: true });
         return;
       }
       if (path === "/api/dashboard" && method === "GET") {
-        send(200, await crm.dashboard(actor));
+        await send(200, await crm.dashboard(actor));
         return;
       }
       if (path === "/api/metadata" && method === "GET") {
-        if (actor.role === "delivery") { send(200, {team:[{id:actor.id,name:actor.name,role:actor.role}],areas:[]}); return; }
+        if (actor.role === "delivery") { await send(200, {team:[{id:actor.id,name:actor.name,role:actor.role}],areas:[]}); return; }
         const team = (
           await db.query(
             "SELECT u.id,u.name,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.active ORDER BY u.name",
@@ -184,41 +187,41 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
             [actor.organizationId],
           )
         ).rows.map((r) => r.area);
-        send(200, { team, areas });
+        await send(200, { team, areas });
         return;
       }
       if (path === "/api/shops" && method === "GET") {
-        send(200, await crm.listShops(actor, url.searchParams));
+        await send(200, await crm.listShops(actor, url.searchParams));
         return;
       }
       const shop = path.match(/^\/api\/shops\/([^/]+)$/);
       if (shop && method === "GET") {
-        send(200, await crm.profile(actor, z.string().uuid().parse(shop[1])));
+        await send(200, await crm.profile(actor, z.string().uuid().parse(shop[1])));
         return;
       }
       const shopAudit = path.match(/^\/api\/shops\/([^/]+)\/audit$/);
       if (shopAudit && method === "GET") {
-        send(200, await crm.shopAudit(actor, z.string().uuid().parse(shopAudit[1]), url.searchParams));
+        await send(200, await crm.shopAudit(actor, z.string().uuid().parse(shopAudit[1]), url.searchParams));
         return;
       }
       const shopChange = path.match(/^\/api\/shops\/([^/]+)\/(update|transfer)$/);
       if (shopChange && method === "POST") {
         const id = z.string().uuid().parse(shopChange[1]);
         const body = await jsonBody(req);
-        send(200, shopChange[2] === "update" ? await crm.updateShop(actor, key, id, body) : await crm.transferShop(actor, key, id, body));
+        await send(200, shopChange[2] === "update" ? await crm.updateShop(actor, key, id, body) : await crm.transferShop(actor, key, id, body));
         return;
       }
       if (path === "/api/visits" && method === "GET") {
-        send(200, await crm.visits(actor, url.searchParams));
+        await send(200, await crm.visits(actor, url.searchParams));
         return;
       }
       if (path === "/api/checkin" && method === "POST") {
-        send(200, await crm.checkin(actor, key, await jsonBody(req)));
+        await send(200, await crm.checkin(actor, key, await jsonBody(req)));
         return;
       }
       const checkout = path.match(/^\/api\/visits\/([^/]+)\/checkout$/);
       if (checkout && method === "POST") {
-        send(
+        await send(
           200,
           await crm.checkout(
             actor,
@@ -230,31 +233,31 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         return;
       }
       if (path === "/api/leads" && method === "POST") {
-        send(200, await crm.lead(actor, key, await jsonBody(req)));
+        await send(200, await crm.lead(actor, key, await jsonBody(req)));
         return;
       }
       const conversion = path.match(/^\/api\/leads\/([^/]+)\/convert$/);
       if (conversion && method === "POST") {
-        send(200, await crm.convertLead(actor, key, z.string().uuid().parse(conversion[1]), await jsonBody(req)));
+        await send(200, await crm.convertLead(actor, key, z.string().uuid().parse(conversion[1]), await jsonBody(req)));
         return;
       }
       const leadStatus = path.match(/^\/api\/leads\/([^/]+)\/status$/);
       if (leadStatus && method === "POST") {
-        send(200, await crm.updateLeadStatus(actor, key, z.string().uuid().parse(leadStatus[1]), await jsonBody(req)));
+        await send(200, await crm.updateLeadStatus(actor, key, z.string().uuid().parse(leadStatus[1]), await jsonBody(req)));
         return;
       }
       const followup = path.match(/^\/api\/followups\/([^/]+)$/);
       if (path === "/api/followups" && method === "POST") {
-        send(200, await crm.createFollowup(actor, key, await jsonBody(req)));
+        await send(200, await crm.createFollowup(actor, key, await jsonBody(req)));
         return;
       }
       const followupAssign = path.match(/^\/api\/followups\/([^/]+)\/assign$/);
       if (followupAssign && method === "POST") {
-        send(200, await crm.assignFollowup(actor, key, z.string().uuid().parse(followupAssign[1]), await jsonBody(req)));
+        await send(200, await crm.assignFollowup(actor, key, z.string().uuid().parse(followupAssign[1]), await jsonBody(req)));
         return;
       }
       if (followup && method === "POST") {
-        send(
+        await send(
           200,
           await crm.updateFollowup(
             actor,
@@ -266,7 +269,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         return;
       }
       if (path === "/api/duty" && method === "GET") {
-        send(
+        await send(
           200,
           await crm.dutyHistory(
             actor,
@@ -277,7 +280,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
       }
       const duty = path.match(/^\/api\/duty\/(start|rest|return|end)$/);
       if (duty && method === "POST") {
-        send(
+        await send(
           200,
           await crm.duty(
             actor,
@@ -289,17 +292,17 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         return;
       }
       if (path === "/api/accounts" && method === "GET") {
-        send(200, await crm.accounts(actor));
+        await send(200, await crm.accounts(actor));
         return;
       }
       if (path === "/api/accounts" && method === "POST") {
-        send(200, await crm.addAccount(actor, key, await jsonBody(req)));
+        await send(200, await crm.addAccount(actor, key, await jsonBody(req)));
         return;
       }
       const accountChange=path.match(/^\/api\/accounts\/([^/]+)\/(status|reset-password|role)$/);
       if(accountChange && method === "POST") {
         const id=z.string().uuid().parse(accountChange[1]), body=await jsonBody(req);
-        send(200,accountChange[2]==="status" ? await crm.setAccountActive(actor,key,id,body) : accountChange[2]==="role" ? await crm.setAccountRole(actor,key,id,body) : await crm.resetAccountPassword(actor,key,id,body));
+        await send(200,accountChange[2]==="status" ? await crm.setAccountActive(actor,key,id,body) : accountChange[2]==="role" ? await crm.setAccountRole(actor,key,id,body) : await crm.resetAccountPassword(actor,key,id,body));
         return;
       }
       // Corrections, generic exports/imports and lead conversion still need explicit policies.
@@ -316,14 +319,14 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
       throw new Fault(404, "NOT_FOUND", "API route not found.");
     } catch (error) {
       if (error instanceof Fault) {
-        send(error.status, {
+        await send(error.status, {
           error: { code: error.code, message: error.message },
           requestId,
         });
         return;
       }
       if (error instanceof ZodError) {
-        send(422, {
+        await send(422, {
           error: {
             code: "VALIDATION",
             message: "Please check the submitted fields.",
@@ -343,7 +346,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           error: "REQUEST_FAILED",
         }),
       );
-      send(500, {
+      await send(500, {
         error: {
           code: "INTERNAL",
           message:
@@ -352,7 +355,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         requestId,
       });
     }
-  };
+  });
 }
 export function clientAddress(req: IncomingMessage, settings: Config) {
   if (settings.trustedProxy !== "vercel") return req.socket.remoteAddress ?? "unknown";
