@@ -1,5 +1,3 @@
-import ExcelJS from "exceljs";
-import { renderPdf } from "./pdf-report.js";
 
 /** Serialization only: authorization, filters, snapshot and row cap belong to Reports.exportRows. */
 export interface DownloadReport {
@@ -20,6 +18,7 @@ export interface DownloadReport {
 const cellValue = (value: unknown): string | number =>
   typeof value === "number" && Number.isFinite(value) ? value : String(value ?? "");
 export async function excelReport(report: DownloadReport): Promise<Buffer> {
+  const {default:ExcelJS}=await import("exceljs");
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Emerald Interlink";
   workbook.created = new Date(report.asOf);
@@ -79,5 +78,6 @@ export async function excelReport(report: DownloadReport): Promise<Buffer> {
 
 const context = (report: DownloadReport) => `Sales executive: ${report.personName ?? (report.person ? "Selected executive" : "All sales executives")} | Generated ${new Intl.DateTimeFormat("en-GB", {timeZone:"Asia/Dubai",dateStyle:"medium",timeStyle:"short",hour12:false}).format(new Date(report.asOf))} UAE`;
 export async function pdfReport(report: DownloadReport): Promise<Buffer> {
+  const {renderPdf}=await import("./pdf-report.js");
   return renderPdf(report, context(report));
 }

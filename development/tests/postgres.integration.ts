@@ -63,6 +63,17 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
     url.username = runtime;
     db = openPostgres({ connectionString: url.toString(), localTest: true, max: 5 });
     const runtimeDb = db;
+    await t.test("Pipelined reads retain server timeouts, reject writes and recover after errors",async()=>{
+      assert.ok(runtimeDb.read);
+      const settings=(await runtimeDb.read<{statement:string;lock:string;idle:string;zone:string}>("SELECT current_setting('statement_timeout') AS statement,current_setting('lock_timeout') AS lock,current_setting('idle_in_transaction_session_timeout') AS idle,current_setting('TimeZone') AS zone")).rows[0];
+      assert.deepEqual(settings,{statement:'15s',lock:'5s',idle:'20s',zone:'UTC'});
+      await assert.rejects(()=>runtimeDb.read!("UPDATE shops SET notes='must never be saved'"),(error:any)=>error.code==='25006');
+      await assert.rejects(()=>runtimeDb.read!("SELECT missing_column FROM shops"),(error:any)=>error.code==='42703');
+      assert.equal((await runtimeDb.read<{n:number}>("SELECT 1 AS n")).rows[0].n,1);
+      // These checks run against PostgreSQL, not a client-side timeout approximation.
+      await assert.rejects(()=>runtimeDb.read!("SELECT pg_sleep(16)"),(error:any)=>error.code==='57014');
+      assert.equal((await runtimeDb.read<{n:number}>("SELECT 2 AS n")).rows[0].n,2);
+    });
     await t.test("Runtime role passes; audit mutation, schema writes and DDL are denied", async () => {
       await verifyRuntimeRole(runtimeDb); await verifyMigrations(runtimeDb);
       await verifySyntheticWorkspace(runtimeDb);

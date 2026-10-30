@@ -6,7 +6,7 @@ import {
   createHash,
 } from "node:crypto";
 import { promisify } from "node:util";
-import type { Database, Queryable } from "./database.js";
+import {readQuery,type Database,type Queryable} from "./database.js";
 import { Fault, type Actor, type Role } from "./domain.js";
 const derive = promisify(scrypt);
 export const hashToken = (s: string) =>
@@ -72,7 +72,7 @@ export async function readSession(
   if (!token || !/^[a-f0-9]{64}$/.test(token))
     throw new Fault(401, "UNAUTHENTICATED", "Sign in to continue.");
   const row = (
-    await db.query<Actor & { csrf: string }>(
+    await readQuery<Actor & { csrf: string }>(db,
       `SELECT u.id,u.name,m.role,m.organization_id AS "organizationId",s.csrf_token AS csrf
     FROM sessions s JOIN users u ON u.id=s.user_id JOIN memberships m ON m.user_id=u.id
     WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active`,

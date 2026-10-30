@@ -1,14 +1,18 @@
-import { PGlite } from "@electric-sql/pglite";
 import { readdir, readFile, mkdir, open, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 import { createHash } from "node:crypto";
 
 /** Only this adapter knows the local engine. Services depend on Queryable. */
 export interface Queryable {
+  /** Optional optimized single-statement read. Transactions retain their own query method. */
+  read?: Queryable['query'];
   query<T = Record<string, unknown>>(
     sql: string,
     params?: unknown[],
   ): Promise<{ rows: T[] }>;
+}
+export function readQuery<T=Record<string,unknown>>(db:Queryable,sql:string,params?:unknown[]){
+  return db.read ? db.read<T>(sql,params) : db.query<T>(sql,params);
 }
 export interface Database extends Queryable {
   transaction<T>(work: (tx: Queryable) => Promise<T>): Promise<T>;
@@ -18,6 +22,8 @@ export interface MigrationTransaction extends Queryable {
   exec(sql: string): Promise<unknown>;
 }
 export async function openDatabase(path?: string): Promise<Database> {
+  // The embedded local engine must never slow down hosted PostgreSQL startup.
+  const {PGlite}=await import("@electric-sql/pglite");
   let release = async () => {};
   if (path) {
     await mkdir(dirname(path), { recursive: true });

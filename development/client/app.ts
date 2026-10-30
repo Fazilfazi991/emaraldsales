@@ -5,7 +5,7 @@ import {
   orderStates,
   shopStatuses,
   type Actor,
-} from "../src/domain.js";
+} from "../src/shared.js";
 import { ScreenReads } from "./screen-reads.js";
 import { createManagerView, type ManagerState } from "./manager.js";
 import { request, getDemoControls } from "./transport.js";
@@ -527,10 +527,11 @@ async function render() {
   managerView = undefined;
   reads.abort(); reads=new AbortController();
   const signal=reads.signal;
-  const load=(path:string)=>/^\/shops\/[^?]+$/.test(path) ? api(path,undefined,false,signal) : screenReads.get(path,()=>api(path,undefined,false,signal),async()=>{
+  let sessionCheck:Promise<void>|undefined;
+  const load=(path:string)=>/^\/shops\/[^?]+$/.test(path) ? api(path,undefined,false,signal) : screenReads.get(path,()=>api(path,undefined,false,signal),()=>sessionCheck??=(async()=>{
     const current=await api("/me",undefined,false,signal);
     if(current.actor.id!==me.actor.id||current.actor.role!==me.actor.role||current.actor.organizationId!==me.actor.organizationId){screenReads.clear();loginScreen("Your account changed. Sign in again.");throw new Error("Sign in again.");}
-  },signal);
+  })(),signal);
   const ticket = ++epoch;
   navigation();
   const screen=selected?`profile:${selected}`:view;
@@ -566,7 +567,7 @@ async function render() {
     } else if (!demo && supervisor() && view === "dashboard") {
       // Render the manager's daily overview immediately. Customer counts are secondary.
       markup='<div id="managerReports" class="manager-reports"></div><div id="managerContext" class="manager-context section"></div>';
-      void api("/dashboard",undefined,false,signal).then(result=>{
+      void api("/dashboard?summary=true",undefined,false,signal).then(result=>{
         if(ticket!==epoch||signal.aborted)return;
         dashboard=result;
         const context=$("managerContext");if(!context)return;

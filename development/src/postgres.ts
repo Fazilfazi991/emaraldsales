@@ -27,7 +27,8 @@ export function postgresPoolOptions(settings: PostgresSettings): pg.PoolConfig {
   return {
     connectionString: url.toString(),
     ssl: local ? false : { rejectUnauthorized: true, ...(settings.ca ? { ca: settings.ca } : {}) },
-    max, connectionTimeoutMillis: 5000, idleTimeoutMillis: 10000,
+    max, connectionTimeoutMillis: 5000, idleTimeoutMillis: 60000,
+    keepAlive:true, keepAliveInitialDelayMillis:10000, pipeline:true,
     application_name: "emerald-sales-crm",
     // Keep date-only values independent of the process timezone; timestamps remain JSON strings.
     types: { getTypeParser: ((oid: number, format: "text" | "binary" = "text") =>
@@ -54,7 +55,9 @@ export function openPostgres(settings: PostgresSettings): Database & { pool: pg.
         const plan=row['QUERY PLAN'][0];return {execution:Number(plan['Execution Time']),planning:Number(plan['Planning Time'])};
       }));
     }
-    try{return await client.query(sql,args);}finally{if(state&&!state.suspended){const elapsed=performance.now()-start;state.wire+=elapsed;state.commands++;if(/^\s*(BEGIN|COMMIT|ROLLBACK|SET)\b/i.test(sql))state.control+=elapsed;}}
+    const record=state&&!state.suspended,control=/^\s*(BEGIN|COMMIT|ROLLBACK|SET)\b/i.test(sql);
+    if(record){if(!state.dbActive++)state.dbStarted=start;if(control&&!state.controlActive++)state.controlStarted=start;}
+    try{return await client.query(sql,args);}finally{if(record){const end=performance.now();state.commands++;if(!--state.dbActive)state.wire+=end-state.dbStarted;if(control&&!--state.controlActive)state.control+=end-state.controlStarted;}}
   };
   // Do not log pg messages: they can include connection or customer details.
   pool.on("error", () => console.error(JSON.stringify({ event: "database_idle_connection_error" })));
@@ -77,8 +80,26 @@ export function openPostgres(settings: PostgresSettings): Database & { pool: pg.
       throw error;
     } finally { client.release(discard); }
   };
+  const read: Queryable['query']=async<T>(sql:string,args?:unknown[])=>{
+    const client=await acquire();let discard=false;
+    try{
+      // One network batch. READ ONLY is enforced by PostgreSQL, and SET LOCAL
+      // applies before the parameterized statement. No pooler session settings leak.
+      const settled=await Promise.allSettled([
+        execute(client,"BEGIN READ ONLY; SET LOCAL TIME ZONE 'UTC'; SET LOCAL statement_timeout='15s'; SET LOCAL lock_timeout='5s'; SET LOCAL idle_in_transaction_session_timeout='20s'"),
+        execute(client,sql,args),
+        execute(client,"COMMIT"),
+      ]);
+      for(const result of settled)if(result.status==='rejected')throw result.reason;
+      const commit=settled[2] as PromiseFulfilledResult<pg.QueryResult>;
+      if(commit.value.command!=='COMMIT')throw new Error('Read transaction did not commit');
+      return {rows:(settled[1] as PromiseFulfilledResult<pg.QueryResult>).value.rows as T[]};
+    }catch(error){try{await execute(client,"ROLLBACK");}catch{discard=true;}throw error;}
+    finally{client.release(discard);}
+  };
   return {
     pool,
+    read,
     // Even standalone reads get server-side bounds without unsupported pooler startup parameters.
     query: (async (sql: string, args?: unknown[]) => transaction(tx => tx.query(sql, args))) as Queryable["query"],
     transaction,

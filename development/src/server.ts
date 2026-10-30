@@ -9,12 +9,11 @@ import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { ZodError, z } from "zod";
-import { openDatabase, type Database } from "./database.js";
+import { openDatabase, readQuery, type Database } from "./database.js";
 import { config, type Config } from "./config.js";
 import { readSession, login, hashToken } from "./auth.js";
 import { CRM, audit } from "./service.js";
 import { Reports, type ReportKind } from "./reports.js";
-import { excelReport, pdfReport } from "./report-downloads.js";
 import { Fault, type DutyAction } from "./domain.js";
 
 async function jsonBody(req: IncomingMessage) {
@@ -141,6 +140,7 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         if (reportRoute[2]) {
           const format = z.enum(["xlsx", "pdf"]).parse(url.searchParams.get("format"));
           const data = await reports.exportRows(actor, kind, url.searchParams);
+          const {excelReport,pdfReport}=await import("./report-downloads.js");
           const bytes = format === "xlsx" ? await excelReport(data) : await pdfReport(data);
           await db.transaction(tx => audit(tx, actor, "report.download", "report", randomUUID(), { kind, format, from: data.from, to: data.to, person: data.person, scope: url.searchParams.get("scope") ?? "range", records: data.total }));
           res.setHeader("Content-Type", format === "xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/pdf");
@@ -170,25 +170,15 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         return;
       }
       if (path === "/api/dashboard" && method === "GET") {
-        await send(200, await crm.dashboard(actor));
+        await send(200, await crm.dashboard(actor,url.searchParams.get("summary")==="true"&&(actor.role==="manager"||actor.role==="admin")));
         return;
       }
       if (path === "/api/metadata" && method === "GET") {
-        if (actor.role === "delivery") { await send(200, {team:[{id:actor.id,name:actor.name,role:actor.role}],areas:[]}); return; }
-        const team = (
-          await db.query(
-            "SELECT u.id,u.name,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.active ORDER BY u.name",
-            [actor.organizationId],
-          )
-        ).rows;
-        const areas = (
-          await db.query<{ area: string }>(
-            "SELECT DISTINCT area FROM shops WHERE organization_id=$1 ORDER BY area",
-            [actor.organizationId],
-          )
-        ).rows.map((r) => r.area);
-        await send(200, { team, areas });
-        return;
+        if(actor.role==="delivery"){await send(200,{team:[{id:actor.id,name:actor.name,role:actor.role}],areas:[]});return;}
+        const data=(await readQuery<{team:unknown[];areas:string[]}>(db,`SELECT
+          COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY t.name) FROM (SELECT u.id,u.name,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.active) t),'[]'::jsonb) AS team,
+          COALESCE((SELECT jsonb_agg(a.area ORDER BY a.area) FROM (SELECT DISTINCT area FROM shops WHERE organization_id=$1) a),'[]'::jsonb) AS areas`,[actor.organizationId])).rows[0];
+        await send(200,data);return;
       }
       if (path === "/api/shops" && method === "GET") {
         await send(200, await crm.listShops(actor, url.searchParams));
