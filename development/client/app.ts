@@ -6,6 +6,7 @@ import {
   shopStatuses,
   type Actor,
 } from "../src/shared.js";
+import {createAdminView,roleLabel,type AdminState} from "./admin.js";
 import { ScreenReads } from "./screen-reads.js";
 import { createManagerView, type ManagerState } from "./manager.js";
 import { request, getDemoControls } from "./transport.js";
@@ -74,6 +75,8 @@ const savedScroll = new Map<string, number>();
 const retryKeys = new Map<string, string>();
 const checkinPayloads = new Map<string, unknown>();
 let unconfirmed: { path: string; signature: string } | null = null;
+let adminView:ReturnType<typeof createAdminView>|undefined;
+let adminState:AdminState|undefined;
 let managerView: ReturnType<typeof createManagerView> | undefined;
 let managerState: ManagerState | undefined;
 let collectionView: {dispose:()=>void}|undefined;
@@ -219,11 +222,11 @@ const visitEnabled = () => me.policies.visit === "approved-v2";
 const executive = () => me.actor.role === "executive";
 const delivery = () => String(me.actor.role)==="delivery";
 const dutyWorker = () => executive() || delivery();
-const visibleNav = () => delivery() ? (demo ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [["dashboard","▦","My duty"]]) : [...nav.map(item => !demo && item[0] === "shops" ? [item[0],item[1],"Customers"] : !demo && item[0] === "leads" ? [item[0],item[1],"Enquiries"] : item),...(!demo && supervisor() ? [["accounts","♙","Accounts"]] : []),...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
+const visibleNav = () => delivery() ? (demo ? [["dashboard","▦","My Deliveries"],["record-delivery","＋","Record Delivery"],["collections","▤","Today's Collections"]] : [["dashboard","▦","My duty"]]) : [...nav.map(item => !demo && item[0] === "shops" ? [item[0],item[1],"Customers"] : !demo && item[0] === "leads" ? [item[0],item[1],"Enquiries"] : item),...(!demo && me.actor.role==="admin" ? [["admin","♙","Admin"]] : []),...(demo&&supervisor()?[["collections","▤","Collections"]]:[])];
 const supervisor = () => me.actor.role === "manager" || me.actor.role === "admin";
 function shell() {
   $("application").innerHTML =
-    `<div class="shell"><aside class="sidebar" aria-label="Main navigation"><div class="brand"><img class="brand-thumb" src="/brand.png" alt="Emerald Interlink"><div><b>EMERALD INTERLINK</b><span>Field Sales CRM</span></div></div><div class="workspace-label">FIELD WORKSPACE</div><nav class="nav" id="desktopNav"></nav><div class="sidebar-foot"><b>EMERALD INTERLINK TRADING L.L.C</b><br>Dubai, United Arab Emirates<div class="connection"><span class="dot"></span>Shared staff workspace</div><div>Online saves · UAE reporting time</div></div></aside><main class="main"><header class="topbar"><div class="crumb">Emerald Interlink / <b id="crumb">Dashboard</b></div><div class="top-actions"><span class="signed-in">${h(me.actor.name)} <small>${h(me.actor.role)}</small></span>${button("Duty", "data-duty")}${button("Sign out", "data-logout")}</div></header><div class="content" id="content" tabindex="-1"></div></main><nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation"></nav></div>`;
+    `<div class="shell"><aside class="sidebar" aria-label="Main navigation"><div class="brand"><img class="brand-thumb" src="/brand.png" alt="Emerald Interlink"><div><b>EMERALD INTERLINK</b><span>Field Sales CRM</span></div></div><div class="workspace-label">FIELD WORKSPACE</div><nav class="nav" id="desktopNav"></nav><div class="sidebar-foot"><b>EMERALD INTERLINK TRADING L.L.C</b><br>Dubai, United Arab Emirates<div class="connection"><span class="dot"></span>Shared staff workspace</div><div>Online saves · UAE reporting time</div></div></aside><main class="main"><header class="topbar"><div class="crumb">Emerald Interlink / <b id="crumb">Dashboard</b></div><div class="top-actions"><span class="signed-in">${h(me.actor.name)} <small>${h(roleLabel(me.actor.role))}</small></span>${button("Duty", "data-duty")}${button("Sign out", "data-logout")}</div></header><div class="content" id="content" tabindex="-1"></div></main><nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation"></nav></div>`;
   if (!demo) document.querySelector(".sidebar-foot .connection")!.textContent="Secure team workspace";
   if (demo) {
     document.querySelector(".sidebar-foot")!.innerHTML = '<b>EMERALD INTERLINK TRADING L.L.C</b><br>Client review · Fictional records<div class="connection"><span class="dot"></span>Saved in this browser only</div><div>Changes do not sync between devices.</div>';
@@ -236,6 +239,7 @@ function shell() {
   }
 }
 function loginScreen(message = "") {
+  adminView?.dispose();adminView=undefined;
   reads.abort(); screenReads.clear();
   collectionView?.dispose();collectionView=undefined;
   managerView?.dispose();
@@ -269,6 +273,7 @@ function loginScreen(message = "") {
 }
 function resetWorkspace() {
   reads.abort(); screenReads.clear(); savedFilters.clear(); savedScroll.clear(); lastScreen="";
+  adminState=undefined;adminView?.dispose();adminView=undefined;
   managerState=undefined;
   managerView?.dispose();
   managerView = undefined;
@@ -289,6 +294,7 @@ async function bootstrap() {
   me = session;
   screenReads.setScope(`${me.actor.organizationId}:${me.actor.id}:${me.csrf}`);
   meta = metadata;
+  if(me.actor.role==="admin"&&!demo)view="admin";
   shell();
   await render();
 }
@@ -353,7 +359,7 @@ function renderDashboard() {
           `<div class="activity-row">${avatar(v.visitor_id)}<div class="activity-copy">${shopLink(v.shop_id, v.shop_name)}<p>${h(v.visitor_name)} · ${date(v.checked_in_at)} ${time(v.checked_in_at)}</p></div>${badge("Open")}</div>`,
       )
       .join("") || '<div class="empty">All field visits are checked out.</div>';
-  return `${heading(executive() ? "Field workspace" : "Manager overview", "Today’s field activity", `${date(m.day)} · Asia/Dubai · refreshed ${time(m.server_time)}`, button("Refresh", "data-refresh") + button("View all visits →", 'data-view="visits"'))}${executive() ? dutyCard() : ""}<section class="kpis">${kpis.map(([label, value, foot], i) => `<article class="kpi"><div class="kpi-top"><span>${label}</span><span class="kpi-icon">${["♙", "⌖", "✓", "＋", "◷"][i]}</span></div><div class="kpi-value">${value}</div><div class="kpi-foot">${foot}</div></article>`).join("")}</section><div class="layout-main"><div class="stack">${panel("Today’s visits", `${m.today} recorded today`, visitRows(dashboard.today.rows))}${panel("Sales team progress", "Derived from recorded activity", `<div class="panel-body team-grid">${teamCards()}</div>`)}${panel("Currently in the field", "Open visits, including earlier days", `<div class="panel-body">${active}</div>`)}</div><aside class="stack">${panel("Follow-ups due", "Three days ahead, including overdue items", `<div class="panel-body">${follows}</div>`)}${panel("New shops this week", "Recent field discoveries", `<div class="panel-body">${dashboard.recent.map((s: Row) => `<div class="follow-row"><div>${shopLink(s.id, s.name)}<span>${h(s.area)} · ${date(s.created_at)}</span></div>${badge(s.status)}</div>`).join("") || '<div class="empty">No new shops this week.</div>'}</div>`)}<div class="notice">Every recorded visit stays in the shop’s shared history so the next executive can pick up where the last visit left off.</div></aside></div>`;
+  return `${heading(executive() ? "Field workspace" : "Sales Manager overview", "Today’s field activity", `${date(m.day)} · Asia/Dubai · refreshed ${time(m.server_time)}`, button("Refresh", "data-refresh") + button("View all visits →", 'data-view="visits"'))}${executive() ? dutyCard() : ""}<section class="kpis">${kpis.map(([label, value, foot], i) => `<article class="kpi"><div class="kpi-top"><span>${label}</span><span class="kpi-icon">${["♙", "⌖", "✓", "＋", "◷"][i]}</span></div><div class="kpi-value">${value}</div><div class="kpi-foot">${foot}</div></article>`).join("")}</section><div class="layout-main"><div class="stack">${panel("Today’s visits", `${m.today} recorded today`, visitRows(dashboard.today.rows))}${panel("Sales team progress", "Derived from recorded activity", `<div class="panel-body team-grid">${teamCards()}</div>`)}${panel("Currently in the field", "Open visits, including earlier days", `<div class="panel-body">${active}</div>`)}</div><aside class="stack">${panel("Follow-ups due", "Three days ahead, including overdue items", `<div class="panel-body">${follows}</div>`)}${panel("New shops this week", "Recent field discoveries", `<div class="panel-body">${dashboard.recent.map((s: Row) => `<div class="follow-row"><div>${shopLink(s.id, s.name)}<span>${h(s.area)} · ${date(s.created_at)}</span></div>${badge(s.status)}</div>`).join("") || '<div class="empty">No new shops this week.</div>'}</div>`)}<div class="notice">Every recorded visit stays in the shop’s shared history so the next executive can pick up where the last visit left off.</div></aside></div>`;
 }
 function executiveDashboard() {
   const active = dashboard.active.find((v: Row) => v.visitor_id === me.actor.id);
@@ -522,6 +528,7 @@ function navigation() {
 }
 async function render() {
   collectionView?.dispose();collectionView=undefined;
+  if(adminView)adminState=adminView.state();adminView?.dispose();adminView=undefined;
   if(managerView)managerState=managerView.state();
   managerView?.dispose();
   managerView = undefined;
@@ -561,9 +568,8 @@ async function render() {
         const actions = (canUpdate ? button("Update enquiry status", "data-lead-status") : "") + (supervisor() ? button("Convert to customer", "data-convert-lead") : "");
         if (actions) markup += panel("Enquiry actions", "Changes are saved in the record history.", `<div class="panel-body actions">${actions}</div>`);
       }
-    } else if (view === "accounts" && !demo && supervisor()) {
-      const accounts=await api("/accounts",undefined,false,signal);
-      markup=heading("Administration","Staff accounts","Individual sign-in accounts",button("Add account","data-account-add",true))+panel("Accounts","Managers can manage sales and delivery staff; only admins manage managers and admins.",table(["Name","Sign-in email","Role","Status","Actions"],accounts.map((a:Row)=>`<tr>${cell("Name",h(a.name))}${cell("Sign-in email",h(a.email))}${cell("Role",h(a.role))}${cell("Status",a.active?"Active":"Disabled")}${cell("Actions",a.id!==me.actor.id && (me.actor.role==="admin" || ["executive","delivery"].includes(a.role)) ? button("Change role",`data-account-role="${h(a.id)}"`)+button("Reset password",`data-account-reset="${h(a.id)}"`)+button(a.active?"Disable":"Enable",`data-account-status="${h(a.id)}" data-next-active="${a.active?"false":"true"}"`) : "")}</tr>`)));
+    } else if(view==='admin'&&!demo&&me.actor.role==='admin') {
+      markup='<div id="adminWorkspace"></div>';
     } else if (!demo && supervisor() && view === "dashboard") {
       // Render the manager's daily overview immediately. Customer counts are secondary.
       markup='<div id="managerReports" class="manager-reports"></div><div id="managerContext" class="manager-context section"></div>';
@@ -612,8 +618,13 @@ async function render() {
       `<p class="error" role="alert" id="saveError" hidden></p>${retryBanner()}${!visitEnabled() ? '<div class="notice section-gap">Visit recording is awaiting approval. You can search shops and read visit history.</div>' : ""}${markup}`;
     if (demo) document.querySelectorAll<HTMLAnchorElement>('a[href^="tel:"]').forEach(a => { a.removeAttribute("href"); a.title="Fictional sample number"; });
     if(demo&&$("collectionWorkspace"))collectionView=demo.mountCollections($("collectionWorkspace"),{request:(p,b)=>api(p,b,b!==undefined),download:downloadReport,manager:supervisor(),staff:meta.team,today:serverDay,record:view==='record-delivery'});
+    if(view==='admin'&&!demo&&me.actor.role==='admin'&&!selected){
+      adminView=createAdminView({container:$("adminWorkspace"),request:path=>api(path,undefined,false,signal),actorId:me.actor.id,state:adminState,openReports:(id,role)=>{managerState={from:serverDay,to:serverDay,person:id??"",kind:role==="delivery"?"duty":"activity",status:"pending",scope:"outstanding",page:0};view="dashboard";void render();}});
+      void adminView.load();
+    }
     if (supervisor() && view === "dashboard" && !selected) {
       managerView = createManagerView({
+        workspaceLabel:me.actor.role==="admin"?"Company reports":"Sales Manager overview",
         container: $("managerReports"), request: path => load(path), download: downloadReport,
         openShop: id => { selected = id; void render(); window.scrollTo(0, 0); },
         today: serverDay, team: meta.team as { id: string; name: string; role?: string }[],
@@ -904,19 +915,19 @@ document.addEventListener("click", async (e) => {
       leadForm();
       return;
     }
-    if (d.accountAdd !== undefined && !demo && supervisor()) {
+    if (d.accountAdd !== undefined && !demo && me.actor.role==="admin") {
       formAction="account-add";formId="";
-      dialog("Add staff account","Use a separate account for each person.",`<div class="form-grid">${field("name","Name","text",true)}${field("email","Sign-in email","email",true)}${field("role","Role","select",true,"executive",me.actor.role==="admin"?[["executive","Sales executive"],["manager","Manager"],["admin","Administrator"],["delivery","Delivery staff"]]:[["executive","Sales executive"],["delivery","Delivery staff"]])}${field("password","Password (at least 14 characters)","password",true)}</div><p class="help">Share the password privately with this person.</p>`,submit("Create account"));return;
+      dialog("Add staff account","Use a separate account for each person.",`<div class="form-grid">${field("name","Name","text",true)}${field("email","Sign-in email","email",true)}${field("role","Role","select",true,"executive",me.actor.role==="admin"?[["executive","Sales executive"],["manager","Sales Manager"],["admin","Admin"],["delivery","Delivery Person"]]:[["executive","Sales executive"],["delivery","Delivery Person"]])}${field("password","Password (at least 14 characters)","password",true)}</div><p class="help">Share the password privately with this person.</p>`,submit("Create account"));return;
     }
-    if (d.accountRole && !demo && supervisor()) {
+    if (d.accountRole && !demo && me.actor.role==="admin") {
       formAction="account-role";formId=d.accountRole;
-      dialog("Change role","The person will be signed out. Complete active work and transfer assignments first.",field("role","New role","select",true,"executive",me.actor.role==="admin"?[["executive","Sales executive"],["manager","Manager"],["admin","Administrator"],["delivery","Delivery staff"]]:[["executive","Sales executive"],["delivery","Delivery staff"]]),submit("Save role"));return;
+      dialog("Change role","The person will be signed out. Complete active work and transfer assignments first.",field("role","New role","select",true,d.currentRole??"executive",me.actor.role==="admin"?[["executive","Sales executive"],["manager","Sales Manager"],["admin","Admin"],["delivery","Delivery Person"]]:[["executive","Sales executive"],["delivery","Delivery Person"]]),submit("Save role"));return;
     }
-    if (d.accountReset && !demo && supervisor()) {
+    if (d.accountReset && !demo && me.actor.role==="admin") {
       formAction="account-reset";formId=d.accountReset;
       dialog("Reset password","This signs the person out on all devices.",field("password","New temporary password (at least 14 characters)","password",true),submit("Reset password"));return;
     }
-    if (d.accountStatus && !demo && supervisor()) {
+    if (d.accountStatus && !demo && me.actor.role==="admin") {
       const active=d.nextActive === "true";
       if(!active && !window.confirm("Disable this account and sign it out on all devices?"))return;
       await mutateWork(()=>api(`/accounts/${d.accountStatus}/status`,{active},true),active?"Account enabled.":"Account disabled.");return;

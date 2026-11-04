@@ -180,7 +180,7 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
           ).status,
           403,
         );
-        assert.equal((await request("/accounts", manager)).status, 200);
+        assert.equal((await request("/accounts", manager)).status, 403);
         assert.equal((await request("/accounts", ahmed)).status, 403);
         assert.equal((await request("/accounts", admin)).status, 200);
         assert.equal((await request("/leads", manager, {})).status, 403);

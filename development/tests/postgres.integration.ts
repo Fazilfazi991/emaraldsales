@@ -12,6 +12,9 @@ import { verifyMigrations, type Database, type Queryable } from "../src/database
 import { seedSynthetic, syntheticId } from "../src/fixtures.js";
 import { createAccount } from "../src/auth.js";
 import { importPilotBatch } from "../src/pilot-import.js";
+import {businessDay,addDays} from "../src/domain.js";
+import {CRM} from "../src/service.js";
+import {Administration} from "../src/admin.js";
 import { application } from "../src/server.js";
 import type { Config } from "../src/config.js";
 
@@ -150,7 +153,7 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
         assert.equal((await request(`/visits/${visit}/checkout`, second, { outcome: "Regular Visit", notes: "Synthetic review", orderStatus: "No Order", followUpDate: null })).response.status, 403);
       });
       await t.test("Checkout failure rolls back all writes, then exact retry and duplicate replay succeed", async () => {
-        const key = randomUUID(), body = { outcome: "Follow-up Required", notes: "Synthetic PostgreSQL journey", orderStatus: "No Order", followUpDate: "2026-11-01" };
+        const key = randomUUID(), body = { outcome: "Follow-up Required", notes: "Synthetic PostgreSQL journey", orderStatus: "No Order", followUpDate: addDays(businessDay(new Date()),1) };
         failAudit = true;
         assert.equal((await request(`/visits/${visit}/checkout`, first, body, key)).response.status, 500);
         assert.equal((await runtimeDb.query<{ lifecycle: string }>("SELECT lifecycle FROM visits WHERE id=$1", [visit])).rows[0].lifecycle, "open");
@@ -160,7 +163,7 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
       });
       await t.test("Follow-up reschedule and completion preserve the completed visit", async () => {
         const row = (await runtimeDb.query<{ version: number }>("SELECT version FROM followups WHERE id=$1", [followup])).rows[0];
-        assert.equal((await request(`/followups/${followup}`, first, { action: "reschedule", dueDate: "2026-11-02", reason: "Synthetic customer request", version: row.version })).response.status, 200);
+        assert.equal((await request(`/followups/${followup}`, first, { action: "reschedule", dueDate: addDays(businessDay(new Date()),2), reason: "Synthetic customer request", version: row.version })).response.status, 200);
         assert.equal((await request(`/followups/${followup}`, first, { action: "complete", reason: "Synthetic contact completed", version: row.version + 1 })).response.status, 200);
       });
       await t.test("Break, return and duty end persist; fresh sign-in retains saved history", async () => {
@@ -254,6 +257,29 @@ test("Real PostgreSQL: restricted runtime, independent connections and authentic
       await assert.rejects(() => runtimeDb.query("UPDATE import_batches SET status='rejected'"), (error: any) => error.code === "42501");
       for (const sql of ["DELETE FROM shops", "UPDATE audit_events SET action='changed'", "DELETE FROM schema_migrations", "CREATE TABLE unexpected_import(id int)"])
         await assert.rejects(() => importDb!.query(sql), (error: any) => error.code === "42501");
+    });
+    await t.test("Admin operations use restricted grants and concurrent changes retain an active Admin",async()=>{
+      const a=fixture.accounts.find(x=>x.role==='admin')!;
+      const actor={id:a.id,name:a.name,role:'admin' as const,organizationId:fixture.organizationId};
+      const crm=new CRM(runtimeDb,{visitPolicy:'approved-v2',dutyPolicy:'approved-v1'});
+      const workspace=new Administration(runtimeDb);
+      const b=await crm.addAccount(actor,randomUUID(),{email:'second-admin@synthetic.invalid',name:'Fictional second Admin',role:'admin',password:'fictional-postgres-password-1234'});
+      const second={...actor,id:b.id,name:'Fictional second Admin'};
+      const results=await Promise.allSettled([
+        crm.setAccountActive(actor,randomUUID(),second.id,{active:false}),
+        crm.setAccountActive(second,randomUUID(),actor.id,{active:false})
+      ]);
+      assert.equal(results.filter(x=>x.status==='fulfilled').length,1);
+      const active=(await runtimeDb.query<any>("SELECT u.id FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND m.role='admin' AND u.active",[fixture.organizationId])).rows;
+      assert.equal(active.length,1);
+      const survivor=active[0].id===actor.id?actor:second,other=active[0].id===actor.id?second:actor;
+      await crm.setAccountActive(survivor,randomUUID(),other.id,{active:true});
+      const overview=await workspace.overview(survivor,new URLSearchParams());assert.ok(overview.totals.employees>=6);
+      assert.ok((await workspace.history(survivor,new URLSearchParams())).total>=3);
+      const employee=await crm.addAccount(survivor,randomUUID(),{email:'pg-employee@synthetic.invalid',name:'Fictional employee',role:'delivery',password:'fictional-postgres-password-1234'});
+      await crm.setAccountRole(survivor,randomUUID(),employee.id,{role:'executive'});
+      await crm.resetAccountPassword(survivor,randomUUID(),employee.id,{password:'replacement-postgres-password-1234'});
+      await crm.setAccountActive(survivor,randomUUID(),employee.id,{active:false});
     });
     await t.test("Schema checksum drift blocks startup verification", async () => {
       await ownerDb.query("UPDATE schema_migrations SET sha256='changed' WHERE name=(SELECT min(name) FROM schema_migrations)");

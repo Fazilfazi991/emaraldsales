@@ -28,6 +28,7 @@ import {
 } from "./domain.js";
 import type { Config } from "./config.js";
 import { z } from "zod";
+import {administrator,Administration} from './admin.js';
 type Row = Record<string, any>;
 // Avoid copying possible phone or tax identifiers from free-text reasons into audit logs.
 function auditReason(reason: string) {
@@ -86,6 +87,9 @@ export class CRM {
     const hash = hashToken(JSON.stringify([route, body]));
     try {
       return await this.db.transaction(async (tx) => {
+        // Account changes acquire the same ordered membership locks before actor/target
+        // locks. Concurrent Admin changes cannot race the last-active-Admin check.
+        if(route.startsWith('account.')) await tx.query('SELECT user_id FROM memberships WHERE organization_id=$1 ORDER BY user_id FOR UPDATE',[actor.organizationId]);
         const current = await one(
           tx,
           `SELECT m.role,u.active FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.organization_id=$2 FOR UPDATE`,
@@ -664,24 +668,21 @@ export class CRM {
       return { state: next, sessionId: id };
     });
   }
-  async accounts(actor: Actor) {
-    if (actor.role !== "admin" && actor.role !== "manager")
-      throw new Fault(403, "FORBIDDEN", "Only managers and admins manage accounts.");
-    return (
-      await this.db.query(
-        "SELECT u.id,u.email,u.name,u.active,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 ORDER BY u.name",
-        [actor.organizationId],
-      )
-    ).rows;
+  private async keepActiveAdmin(tx:Queryable,org:string,id:string){
+    const other=(await tx.query("SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.organization_id=$1 AND m.role='admin' AND u.active AND u.id<>$2 LIMIT 1",[org,id])).rows;
+    if(!other.length) throw new Fault(409,'LAST_ADMIN','Keep at least one active Admin account.');
+  }
+  async accounts(actor:Actor,p=new URLSearchParams()) {
+    return new Administration(this.db).employees(actor,p);
   }
   setAccountActive(actor: Actor, key: string | undefined, id: string, body: unknown) {
-    if (actor.role !== "admin" && actor.role !== "manager") throw new Fault(403,"FORBIDDEN","Only managers and admins manage accounts.");
+    administrator(actor);
     const data=z.object({active:z.boolean()}).strict().parse(body);
     if(id===actor.id && !data.active) throw new Fault(422,"INVALID_ACCOUNT","You cannot disable your own account.");
     return this.mutate(actor,key,`account.active:${id}`,data,async tx=>{
       const target=await one(tx,"SELECT u.id,u.active,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
-      if(actor.role==="manager" && !["executive","delivery"].includes(target.role)) throw new Fault(403,"FORBIDDEN","Only admins manage manager and admin accounts.");
       if(target.active===data.active) throw new Fault(422,"NO_CHANGE","Account already has this status.");
+      if(target.role==='admin' && target.active && !data.active) await this.keepActiveAdmin(tx,actor.organizationId,id);
       await tx.query("UPDATE users SET active=$2 WHERE id=$1",[id,data.active]);
       if(!data.active) await tx.query("DELETE FROM sessions WHERE user_id=$1",[id]);
       await audit(tx,actor,"account.status","user",id,{active:data.active});
@@ -689,13 +690,12 @@ export class CRM {
     });
   }
   async resetAccountPassword(actor: Actor, key: string | undefined, id: string, body: unknown) {
-    if (actor.role !== "admin" && actor.role !== "manager") throw new Fault(403,"FORBIDDEN","Only managers and admins manage accounts.");
+    administrator(actor);
     const data=z.object({password:z.string().min(14).max(128)}).strict().parse(body);
     if (!key || !/^[a-zA-Z0-9_-]{16,100}$/.test(key)) throw new Fault(400,"IDEMPOTENCY_REQUIRED","Send a unique request key.");
     const fingerprint=await passwordRequestFingerprint(data.password,key);
     return this.mutate(actor,key,`account.reset:${id}`,{fingerprint},async tx=>{
       const target=await one(tx,"SELECT u.id,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
-      if(actor.role==="manager" && !["executive","delivery"].includes(target.role)) throw new Fault(403,"FORBIDDEN","Only admins manage manager and admin accounts.");
       await tx.query("UPDATE users SET password_hash=$2 WHERE id=$1",[id,await passwordHash(data.password)]);
       await tx.query("DELETE FROM sessions WHERE user_id=$1",[id]);
       await audit(tx,actor,"account.password_reset","user",id,{});
@@ -703,13 +703,13 @@ export class CRM {
     });
   }
   setAccountRole(actor: Actor, key: string | undefined, id: string, body: unknown) {
-    if(actor.role!=="admin" && actor.role!=="manager") throw new Fault(403,"FORBIDDEN","Only managers and admins manage accounts.");
+    administrator(actor);
     const data=z.object({role:z.enum(["executive","manager","admin","delivery"])}).strict().parse(body);
     if(id===actor.id) throw new Fault(422,"INVALID_ACCOUNT","You cannot change your own role.");
     return this.mutate(actor,key,`account.role:${id}`,data,async tx=>{
       const target=await one(tx,"SELECT m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 FOR UPDATE",[actor.organizationId,id]);
-      if(actor.role==="manager" && (!["executive","delivery"].includes(target.role) || !["executive","delivery"].includes(data.role))) throw new Fault(403,"FORBIDDEN","Only admins manage manager and admin roles.");
       if(target.role===data.role) throw new Fault(422,"NO_CHANGE","Account already has this role.");
+      if(target.role==='admin' && data.role!=='admin') await this.keepActiveAdmin(tx,actor.organizationId,id);
       const pending=await one(tx,`SELECT
         EXISTS(SELECT 1 FROM duty_sessions WHERE organization_id=$1 AND executive_id=$2 AND ended_at IS NULL)
         OR EXISTS(SELECT 1 FROM visits WHERE organization_id=$1 AND visitor_id=$2 AND lifecycle='open')
@@ -725,8 +725,7 @@ export class CRM {
     });
   }
   async addAccount(actor: Actor, key: string | undefined, body: unknown) {
-    if (actor.role !== "admin" && actor.role !== "manager")
-      throw new Fault(403, "FORBIDDEN", "Only managers and admins manage accounts.");
+    administrator(actor);
     const data = z
       .object({
         email: z.string().email().max(254),
@@ -736,7 +735,6 @@ export class CRM {
       })
       .strict()
       .parse(body);
-    if(actor.role==="manager" && !["executive","delivery"].includes(data.role)) throw new Fault(403,"FORBIDDEN","Only admins create manager and admin accounts.");
     if (!key || !/^[a-zA-Z0-9_-]{16,100}$/.test(key))
       throw new Fault(
         400,

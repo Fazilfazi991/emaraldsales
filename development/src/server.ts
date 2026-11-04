@@ -12,6 +12,7 @@ import { ZodError, z } from "zod";
 import { openDatabase, readQuery, type Database } from "./database.js";
 import { config, type Config } from "./config.js";
 import { readSession, login, hashToken } from "./auth.js";
+import {Administration} from "./admin.js";
 import { CRM, audit } from "./service.js";
 import { Reports, type ReportKind } from "./reports.js";
 import { Fault, type DutyAction } from "./domain.js";
@@ -282,8 +283,16 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
         );
         return;
       }
+      if (path.startsWith('/api/admin/') && method==='GET') {
+        const admin=new Administration(db);
+        if(path==='/api/admin/overview') await send(200,await admin.overview(actor,url.searchParams));
+        else if(path==='/api/admin/employees') await send(200,await admin.employees(actor,url.searchParams));
+        else if(path==='/api/admin/history') await send(200,await admin.history(actor,url.searchParams));
+        else throw new Fault(404,'NOT_FOUND','Admin page not found.');
+        return;
+      }
       if (path === "/api/accounts" && method === "GET") {
-        await send(200, await crm.accounts(actor));
+        await send(200, await crm.accounts(actor,url.searchParams));
         return;
       }
       if (path === "/api/accounts" && method === "POST") {

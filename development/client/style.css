@@ -92,3 +92,9 @@ details>summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:600;co
  .kpi-top{align-items:flex-start;line-height:1.4}.manager-reports .kpi-value{margin-top:12px}.kpi-foot{line-height:1.5}.grid-two{grid-template-columns:repeat(2,minmax(0,1fr))}
  .hero-shop{flex-direction:column;align-items:stretch}.hero-shop .shop-primary{width:100%}.visit-top{flex-wrap:wrap}.dialog-body{padding:16px}.dialog-foot{padding:12px;gap:8px}.topbar{padding-inline:12px}.signed-in{max-width:calc(100vw - 190px)}
 }
+
+/* Admin reuses Emerald panels and mobile record cards. */
+.admin-tabs{margin-bottom:18px}.admin-tabs [aria-pressed=true]{background:var(--green-dark);color:white}
+.admin-kpis{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:18px}
+.admin-search label{display:grid;gap:6px;min-width:0;flex:1}.admin-search{align-items:end}
+@media(max-width:700px){.admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-tabs .button{flex:1;min-width:90px}.admin-search{flex-wrap:wrap}.admin-search label{flex-basis:100%}}
