@@ -139,7 +139,10 @@ async function api(
   }
   if (!response.ok) {
     if (mutation) unconfirmed = response.status >= 500 ? { path, signature } : null;
-    if (response.status === 401 && path !== "/login")
+    // Anonymous startup loads /me and metadata concurrently. Only an established
+    // workspace has an expired session; a late anonymous 401 must not replace a
+    // sign-in form while the person is entering credentials.
+    if (response.status === 401 && path !== "/login" && me)
       loginScreen(
         "Your session expired. Sign in, then check the shop history before retrying.",
       );
@@ -239,6 +242,7 @@ function shell() {
   }
 }
 function loginScreen(message = "") {
+  me = undefined as any;
   adminView?.dispose();adminView=undefined;
   reads.abort(); screenReads.clear();
   collectionView?.dispose();collectionView=undefined;

@@ -28,6 +28,7 @@ try{
  }
  await page.setViewportSize({width:1440,height:950});await nav('dashboard');
  if(role==='manager'){
+ assert.equal(await page.locator('#desktopNav [data-view="accounts"],#desktopNav [data-view="admin"]').count(),0);assert.equal((await context.request.get(settings.origin+'/api/accounts')).status(),403);checks+=2;
  await page.locator('.manager-reports .kpis').waitFor();
  await page.locator('[data-manager-kind="duty"]').click();await page.waitForFunction(()=>!document.querySelector('.manager-reports [role="status"]')?.textContent?.includes('Loading'));
  await nav('shops');await nav('dashboard');await page.locator('[data-manager-kind="duty"][aria-pressed="true"]').waitFor();checks++;
@@ -36,7 +37,7 @@ try{
   await page.setViewportSize({width,height:950});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);checks++;
   await page.screenshot({path:'.local/navigation-review/local-dashboard-'+role+'-'+width+'.png',fullPage:true});
  }
- for(const section of ['shops','leads','visits','team',...(role==='manager'?['accounts']:[])]){
+ for(const section of ['shops','leads','visits','team']){
   await page.setViewportSize({width:1440,height:950});await nav(section);
   for(const width of [390,430,768,1024,1440]){
    await page.setViewportSize({width,height:950});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,role+' '+section+' '+width);checks++;
