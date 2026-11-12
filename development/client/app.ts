@@ -20,6 +20,8 @@ type Filter = {
   area: string;
   status: string;
   when: string;
+  from: string;
+  to: string;
   page: number;
 };
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
@@ -59,6 +61,8 @@ let list: List = { rows: [], total: 0, page: 0, pageSize: 40 },
     area: "",
     status: "",
     when: "",
+    from: "",
+    to: "",
     page: 0,
   };
 let formAction = "",
@@ -290,7 +294,7 @@ function resetWorkspace() {
   selected = null;
   view = "dashboard";
   duty = { sessions: [], rests: [] };
-  filters = { q: "", person: "", area: "", status: "", when: "", page: 0 };
+  filters = { q: "", person: "", area: "", status: "", when: "", from: "", to: "", page: 0 };
   epoch++;
 }
 async function bootstrap() {
@@ -381,8 +385,11 @@ function options(values: [string, string][], selected: string) {
     .join("");
 }
 function toolbar(visits = false) {
-  const count = [filters.person, filters.area, filters.status, filters.when].filter(Boolean).length;
-  return `<div class="toolbar"><label class="search"><span class="search-icon">⌕</span><input class="input" id="search" placeholder="${visits ? "Search shop, executive or notes…" : "Search shop, mobile, contact or area…"}" aria-label="${visits ? "Search visits" : "Search shops"}" value="${h(filters.q)}"></label><details class="filter-options" ${filtersOpen ? "open" : ""}><summary>${count ? `Filters · ${count} active` : "More filters"}</summary><div class="filter-fields"><select class="select" aria-label="Filter by sales executive" data-filter="person">${options([["", "All executives"], ...meta.team.filter((m) => m.role === "executive").map((m) => [m.id, m.name] as [string, string])], filters.person)}</select><select class="select" aria-label="Filter by area" data-filter="area">${options([["", "All areas"], ...meta.areas.map((a) => [a, a] as [string, string])], filters.area)}</select><select class="select" aria-label="Filter by status" data-filter="status">${options([["", "All statuses"], ...(visits ? [...outcomes, "Currently Visiting"] : shopStatuses).map((a) => [a, a] as [string, string])], filters.status)}</select><select class="select" aria-label="Filter by date or visit" data-filter="when">${options(
+  const count = [filters.person, filters.area, filters.status, filters.when, filters.from, filters.to].filter(Boolean).length;
+  const range = visits
+    ? filters.when === "custom" ? `<div class="date-range-fields"><label class="form-field">From<input class="input" type="date" data-range-date="from" value="${h(filters.from)}"></label><label class="form-field">To<input class="input" type="date" data-range-date="to" value="${h(filters.to)}"></label></div>` : ""
+    : `<div class="date-range-fields"><label class="form-field">Added from<input class="input" type="date" data-range-date="from" value="${h(filters.from)}"></label><label class="form-field">Added to<input class="input" type="date" data-range-date="to" value="${h(filters.to)}"></label></div>`;
+  return `<div class="toolbar"><label class="search"><span class="search-icon">⌕</span><input class="input" id="search" placeholder="${visits ? "Search shop, executive or notes…" : "Search shop, mobile, contact or area…"}" aria-label="${visits ? "Search visits" : "Search shops"}" value="${h(filters.q)}"></label><details class="filter-options" ${filtersOpen ? "open" : ""}><summary>${count ? `Filters · ${count} active` : "More filters"}</summary><div class="filter-fields"><select class="select" aria-label="Filter by sales executive" data-filter="person">${options([["", "All executives"], ...meta.team.filter((m) => m.role === "executive").map((m) => [m.id, m.name] as [string, string])], filters.person)}</select><select class="select" aria-label="Filter by area" data-filter="area">${options([["", "All areas"], ...meta.areas.map((a) => [a, a] as [string, string])], filters.area)}</select><select class="select" aria-label="Filter by status" data-filter="status">${options([["", "All statuses"], ...(visits ? [...outcomes, "Currently Visiting"] : shopStatuses).map((a) => [a, a] as [string, string])], filters.status)}</select><select class="select" aria-label="${visits ? "Filter visits by date" : "Filter customers and enquiries by visit status"}" data-filter="when">${options(
     visits
       ? [
           ["", "All dates"],
@@ -390,6 +397,7 @@ function toolbar(visits = false) {
           ["yesterday", "Yesterday"],
           ["week", "Last seven days"],
           ["month", "This month"],
+          ["custom", "Custom date range…"],
         ]
       : [
           ["", "Visit / follow-up"],
@@ -398,7 +406,7 @@ function toolbar(visits = false) {
           ["due", "Follow-up set"],
         ],
     filters.when,
-  )}</select></div></details>${count || filters.q ? button("Clear filters", "data-clear-filters") : ""}<span class="results">${list.total} ${visits ? "visits" : view === "leads" ? "leads" : "shops"}</span></div>`;
+  )}</select>${range}</div></details>${count || filters.q ? button("Clear filters", "data-clear-filters") : ""}<span class="results">${list.total} ${visits ? "visits" : view === "leads" ? "leads" : "shops"}</span></div>`;
 }
 function pages() {
   return `<div class="pagination">${button("← Previous", `data-page="${list.page - 1}" ${list.page === 0 ? "disabled" : ""}`)}<span>Page ${list.page + 1} of ${Math.max(1, Math.ceil(list.total / list.pageSize))}</span>${button("Next →", `data-page="${list.page + 1}" ${(list.page + 1) * list.pageSize >= list.total ? "disabled" : ""}`)}</div>`;
@@ -505,7 +513,9 @@ function query() {
   if (!demo && view === "leads") p.set("kind", "lead");
   if (!demo && view === "shops") p.set("kind", "customer");
   if (view !== "visits" && filters.when) p.set("when", filters.when);
-  if (view === "visits" && filters.when) {
+  if (filters.from) p.set("from", filters.from);
+  if (filters.to) p.set("to", filters.to);
+  if (view === "visits" && filters.when && filters.when !== "custom") {
     const day = serverDay || businessDay(new Date());
     p.set("to", filters.when === "yesterday" ? addDays(day, -1) : day);
     p.set(
@@ -514,7 +524,7 @@ function query() {
         ? day
         : filters.when === "yesterday"
           ? addDays(day, -1)
-          : filters.when === "week"
+      : filters.when === "week"
             ? addDays(day, -6)
             : `${day.slice(0, 7)}-01`,
     );
@@ -866,14 +876,14 @@ document.addEventListener("click", async (e) => {
       savedFilters.set(view,{...filters}); savedScroll.set(view,window.scrollY);
       view = d.view;
       selected = null;
-      filters = {...(savedFilters.get(view)??{ q: "", person: "", area: "", status: "", when: "", page: 0 })};
+      filters = {...(savedFilters.get(view)??{ q: "", person: "", area: "", status: "", when: "", from: "", to: "", page: 0 })};
       await render();
       window.scrollTo(0, savedScroll.get(view)??0);
       return;
     }
     if (d.clearFilters !== undefined) {
       clearTimeout(searchTimer);
-      filters = { q: "", person: "", area: "", status: "", when: "", page: 0 };
+      filters = { q: "", person: "", area: "", status: "", when: "", from: "", to: "", page: 0 };
       await render();
       return;
     }
@@ -910,6 +920,8 @@ document.addEventListener("click", async (e) => {
         area: "",
         status: "",
         when: "",
+        from: "",
+        to: "",
         page: 0,
       };
       await render();
@@ -1033,9 +1045,17 @@ document.addEventListener("input", (e) => {
   }
 });
 document.addEventListener("change", (e) => {
-  const input = e.target as HTMLSelectElement;
+  const input = e.target as HTMLSelectElement | HTMLInputElement;
   if (input.dataset.filter) {
     (filters as any)[input.dataset.filter] = input.value;
+    if (view === "visits" && input.dataset.filter === "when" && input.value !== "custom") {
+      filters.from = "";
+      filters.to = "";
+    }
+    filters.page = 0;
+    void render();
+  } else if (input.dataset.rangeDate === "from" || input.dataset.rangeDate === "to") {
+    filters[input.dataset.rangeDate] = input.value;
     filters.page = 0;
     void render();
   }

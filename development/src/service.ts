@@ -14,6 +14,7 @@ import {
   nextDuty,
   requirePolicy,
   businessDay,
+  calendarDate,
   type DutyAction,
   type DutyState,
   checkinInput,
@@ -147,6 +148,13 @@ export class CRM {
       .parse(p.get("q") ?? "");
     // Search terms are literals: %, _ and backslash are escaped for ILIKE.
     const q = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
+    const from = p.get("from") || null;
+    const to = p.get("to") || null;
+    for (const day of [from, to]) if (day) calendarDate.parse(day);
+    if (from && to && from > to)
+      throw new Fault(400, "INVALID_RANGE", "Start date must be on or before end date.");
+    if (from && to && (+new Date(to) - +new Date(from)) / 86400000 > 366)
+      throw new Fault(422, "RANGE_TOO_LARGE", "Choose a date range of one year or less.");
     const filters: unknown[] = [
       actor.organizationId,
       q,
@@ -157,6 +165,8 @@ export class CRM {
       p.get("when") || null,
       kind,
       actor.role === "executive" ? actor.id : null,
+      from,
+      to,
     ];
     if (filters[2]) z.string().uuid().parse(filters[2]);
     const where = `s.organization_id=$1 AND ($2='%%' OR concat_ws(' ',s.name,s.contact,s.phone,s.area,s.location) ILIKE $2)
@@ -164,6 +174,8 @@ export class CRM {
       AND ($5::text IS NULL OR s.status=$5) AND (NOT $6::boolean OR s.status<>'Customer')
       AND ($8::text='all' OR ($8='customer' AND s.status='Customer') OR ($8='lead' AND s.status<>'Customer'))
       AND ($9::uuid IS NULL OR s.status='Customer' OR s.assigned_executive_id=$9)
+      AND ($10::date IS NULL OR s.created_at >= ($10::date::timestamp AT TIME ZONE 'Asia/Dubai'))
+      AND ($11::date IS NULL OR s.created_at < (($11::date+1)::timestamp AT TIME ZONE 'Asia/Dubai'))
       AND ($7::text IS NULL OR ($7='due' AND EXISTS(SELECT 1 FROM followups f WHERE f.shop_id=s.id AND f.status='pending'))
         OR ($7='visited' AND EXISTS(SELECT 1 FROM visits v WHERE v.shop_id=s.id))
         OR ($7='never' AND NOT EXISTS(SELECT 1 FROM visits v WHERE v.shop_id=s.id)))`;
@@ -171,7 +183,7 @@ export class CRM {
       SELECT s.*, (SELECT count(*)::int FROM visits v WHERE v.shop_id=s.id) AS visit_count,
       (SELECT max(checked_in_at) FROM visits v WHERE v.shop_id=s.id) AS last_visit,
       (SELECT min(due_date)::text FROM followups f WHERE f.shop_id=s.id AND f.status='pending') AS next_followup
-      FROM filtered s ORDER BY lower(s.name),s.id LIMIT 40 OFFSET $10
+      FROM filtered s ORDER BY lower(s.name),s.id LIMIT 40 OFFSET $12
     ) SELECT (SELECT count(*)::int FROM filtered) AS total, COALESCE((SELECT jsonb_agg(to_jsonb(paged) ORDER BY lower(paged.name),paged.id) FROM paged),'[]'::jsonb) AS rows`,[...filters,page*40])).rows[0];
     const rows: Row[]=data.rows, count: number=data.total;
     return { rows, total: count, page, pageSize: 40 };
