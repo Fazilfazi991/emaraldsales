@@ -555,7 +555,7 @@ async function render() {
     serverDay=businessDay(new Date());
     if (delivery() && !demo) {
       duty=await api("/duty",undefined,false,signal); serverDay=businessDay(new Date());
-      markup=heading("Field workspace","Your duty",date(serverDay))+dutyCard()+panel("Delivery records","Delivery and collection recording is not yet available.",'<div class="panel-body"><p>Use this screen to record your duty and breaks.</p></div>');
+      markup=heading("Field workspace","Your duty",date(serverDay))+dutyCard()+panel("Your duty history","Most recent 100 sessions · Asia/Dubai",dutyTable())+panel("Delivery records","Delivery and collection recording is not yet available.",'<div class="panel-body"><p>Use this screen to record your duty and breaks.</p></div>');
     } else if (demo && (delivery() || view==="collections")) {
       if(delivery()&&view!=='record-delivery'){duty=await api('/duty');markup=dutyCard();}
       markup+='<div id="collectionWorkspace" class="collection-workspace"></div>';
