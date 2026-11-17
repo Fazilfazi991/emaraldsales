@@ -101,3 +101,6 @@ details>summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:600;co
 /* Keep custom date controls aligned with the existing filter presets. */
 .filter-fields .date-range-fields{display:flex;flex:1 1 260px;gap:8px;align-items:end}.filter-fields .date-range-fields .form-field{display:grid;flex:1;gap:5px;min-width:110px;color:var(--muted);font-size:11px}.filter-fields .date-range-fields input{width:100%;min-width:0}
 @media(max-width:700px){.filter-fields .date-range-fields{flex-basis:100%}.filter-fields .date-range-fields .form-field{min-width:0}.filter-fields .date-range-fields input{height:42px;font-size:14px}}
+/* Daily working-hours filters */
+.duty-date-filter{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:0 0 12px}.duty-date-filter label{display:grid;gap:5px;color:var(--muted);font-size:10px}.duty-date-filter input,.duty-date-filter select{min-height:38px;padding:0 9px;border:1px solid var(--line-dark);border-radius:5px;background:#fff;color:var(--ink)}
+@media(max-width:700px){.duty-date-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.duty-date-filter label:first-child{grid-column:1/-1}.duty-date-filter select,.duty-date-filter input{width:100%;min-width:0;min-height:42px;font-size:14px}.duty-date-filter .button{min-height:42px}}

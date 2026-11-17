@@ -15,6 +15,7 @@ import {
   requirePolicy,
   businessDay,
   calendarDate,
+  dayRange,
   type DutyAction,
   type DutyState,
   checkinInput,
@@ -601,7 +602,7 @@ export class CRM {
       return { followup: updated };
     });
   }
-  async dutyHistory(actor: Actor, person?: string) {
+  async dutyHistory(actor: Actor, person?: string, from?: string, to?: string) {
     const owner = person || (actor.role === "executive" || actor.role === "delivery" ? actor.id : null);
     if ((actor.role === "executive" || actor.role === "delivery") && owner !== actor.id)
       throw new Fault(
@@ -610,10 +611,20 @@ export class CRM {
         "Duty history is private to you and management.",
       );
     if (owner) z.string().uuid().parse(owner);
+    if ((from === undefined) !== (to === undefined)) throw new Fault(422, "INVALID_DATE_RANGE", "Choose both a start and end date.");
+    let range: string[] | null = null;
+    if (from !== undefined && to !== undefined) {
+      calendarDate.parse(from); calendarDate.parse(to);
+      const days = (+new Date(`${to}T12:00:00Z`) - +new Date(`${from}T12:00:00Z`)) / 86400000;
+      if (days < 0 || days > 365) throw new Fault(422, "INVALID_DATE_RANGE", "Choose a valid range of up to 366 days.");
+      range = dayRange(from, to);
+    }
     const data=(await readQuery<Row>(this.db,`WITH sessions AS (
-      SELECT d.*,u.name FROM duty_sessions d JOIN users u ON u.id=d.executive_id WHERE d.organization_id=$1 AND ($2::uuid IS NULL OR d.executive_id=$2) ORDER BY d.started_at DESC LIMIT 100
+      SELECT d.*,u.name FROM duty_sessions d JOIN users u ON u.id=d.executive_id WHERE d.organization_id=$1 AND ($2::uuid IS NULL OR d.executive_id=$2)
+        AND ($3::timestamptz IS NULL OR (d.started_at < $4::timestamptz AND COALESCE(d.ended_at,now()) > $3::timestamptz))
+      ORDER BY d.started_at DESC LIMIT 5000
     ) SELECT COALESCE((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.started_at DESC) FROM sessions s),'[]'::jsonb) AS sessions,
-      COALESCE((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.started_at) FROM rest_intervals r WHERE r.organization_id=$1 AND r.session_id IN (SELECT id FROM sessions)),'[]'::jsonb) AS rests`,[actor.organizationId,owner])).rows[0];
+      COALESCE((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.started_at) FROM rest_intervals r WHERE r.organization_id=$1 AND r.session_id IN (SELECT id FROM sessions)),'[]'::jsonb) AS rests`,[actor.organizationId,owner,range?.[0]??null,range?.[1]??null])).rows[0];
     const {sessions,rests}=data;
     return { sessions, rests };
   }

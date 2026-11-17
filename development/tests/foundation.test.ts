@@ -13,6 +13,7 @@ import {
   dayRange,
   calendarDate,
   nextDuty,
+  summarizeDutyDays,
 } from "../src/domain.js";
 import type { Config } from "../src/config.js";
 
@@ -120,6 +121,14 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
         assert.equal(nextDuty("rest", "return"), "on");
         assert.equal(nextDuty("on", "end"), "off");
         assert.throws(() => nextDuty("rest", "end"));
+        const sessions = [{ id: "overnight", executive_id: "staff", name: "Sam", started_at: "2026-01-19T19:30:00Z", ended_at: "2026-01-19T20:30:00Z" }];
+        const rests = [{ session_id: "overnight", started_at: "2026-01-19T20:00:00Z", ended_at: "2026-01-19T20:15:00Z" }];
+        assert.deepEqual(summarizeDutyDays(sessions, rests, "2026-01-19", "2026-01-20", +new Date("2026-01-19T21:00:00Z")), [
+          { day: "2026-01-19", personId: "staff", name: "Sam", dutyMinutes: 30, breakMinutes: 0, netMinutes: 30, sessions: 1 },
+          { day: "2026-01-20", personId: "staff", name: "Sam", dutyMinutes: 30, breakMinutes: 15, netMinutes: 15, sessions: 1 },
+        ]);
+        const ongoing = [{ id: "open", executive_id: "staff", name: "Sam", started_at: "2026-01-20T00:00:00Z", ended_at: null }];
+        assert.equal(summarizeDutyDays(ongoing, [], "2026-01-20", "2026-01-20", +new Date("2026-01-20T00:45:00Z"))[0].dutyMinutes, 45);
         assert.throws(() => nextDuty("on", "start"));
       },
     );
@@ -615,6 +624,13 @@ test("Emerald foundation: domain, authenticated HTTP API and disk PostgreSQL", a
         assert.equal(businessDay(s.ended_at), "2026-01-20");
         assert.equal(businessDay(r.started_at), "2026-01-19");
         assert.equal(businessDay(r.ended_at), "2026-01-20");
+        const jan19 = (await request("/duty?from=2026-01-19&to=2026-01-19", manager)).data;
+        const jan20 = (await request("/duty?from=2026-01-20&to=2026-01-20", manager)).data;
+        assert.ok(jan19.sessions.some((row: any) => row.id === session));
+        assert.ok(jan20.sessions.some((row: any) => row.id === session));
+        assert.equal((await request("/duty?from=2026-01-20", manager)).status, 422);
+        assert.equal((await request("/duty?from=2026-01-21&to=2026-01-20", manager)).status, 422);
+        assert.equal((await request(`/duty?person=${ahmed.id}&from=2026-01-20&to=2026-01-20`, naseer)).status, 403);
         const fresh = (
           await request("/duty/start", ahmed, { expectedSessionId: null })
         ).data.sessionId;

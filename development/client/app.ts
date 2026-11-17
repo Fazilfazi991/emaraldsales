@@ -4,6 +4,7 @@ import {
   outcomes,
   orderStates,
   shopStatuses,
+  summarizeDutyDays,
   type Actor,
 } from "../src/shared.js";
 import {createAdminView,roleLabel,type AdminState} from "./admin.js";
@@ -71,6 +72,7 @@ let formAction = "",
   submitting = false,
   serverDay = "",
   fetching = false;
+let dutyPeriod = "today", dutyFrom = "", dutyTo = "";
 const screenReads = new ScreenReads();
 let reads = new AbortController();
 let lastScreen = "";
@@ -294,6 +296,7 @@ function resetWorkspace() {
   selected = null;
   view = "dashboard";
   duty = { sessions: [], rests: [] };
+  dutyPeriod = "today"; dutyFrom = ""; dutyTo = "";
   filters = { q: "", person: "", area: "", status: "", when: "", from: "", to: "", page: 0 };
   epoch++;
 }
@@ -483,15 +486,44 @@ function dutyCard() {
   const hours = demo && duty.today ? `<div class="duty-hours" aria-label="Your working hours today">${[["Total duty","duty_duration"],["Break time","break_duration"],["Net working","net_duration"]].map(([label,key])=>`<div><span>${label}</span><strong data-duty-clock="${key}">${h(duty.today![key])}</strong></div>`).join("")}</div><p class="duty-hours-note">Today · UAE time · Net working excludes recorded breaks</p>` : "";
   return `<section class="notice duty-card"><div><strong>Your duty · ${current.state === "off" ? "Off duty" : current.state === "rest" ? "On break" : "On duty"}</strong><p>Duty timing is separate from shop visits.</p></div><div class="actions">${me.policies.duty !== "approved-v1" ? badge("Policy pending") : current.state === "off" ? button("Start duty", 'data-duty-action="start"', !!demo) : current.state === "rest" ? button("Return to duty", 'data-duty-action="return"', !!demo) : button("Start break", 'data-duty-action="rest"') + button("End duty", 'data-duty-action="end"')}</div>${hours}</section>`;
 }
-function dutyTable() {
-  const duration=(ms:number)=>{const minutes=Math.floor(Math.max(0,Number.isFinite(ms)?ms:0)/60000);return `${Math.floor(minutes/60)}h ${String(minutes%60).padStart(2,"0")}m`;};
-  const periods=(s:Row)=>{
-    const now=Date.now(),rawStart=+new Date(s.started_at),start=Number.isFinite(rawStart)?rawStart:now,rawEnd=s.ended_at?+new Date(s.ended_at):now,end=Math.max(start,Math.min(Number.isFinite(rawEnd)?rawEnd:now,now));
-    const rests=(s.rests??duty.rests.filter((r:Row)=>r.session_id===s.id)).flatMap((r:Row)=>{const a=Math.max(start,+new Date(r.started_at)),b=Math.min(end,r.ended_at?+new Date(r.ended_at):now);return Number.isFinite(a)&&Number.isFinite(b)&&b>a?[[a,b] as [number,number]]:[];}).sort((a:[number,number],b:[number,number])=>a[0]-b[0]);
-    let breakMs=0,until=start;for(const [a,b] of rests){breakMs+=Math.max(0,b-Math.max(a,until));until=Math.max(until,b);}
-    const dutyMs=end-start;return {duty:duration(dutyMs),breakTime:duration(breakMs),net:duration(Math.max(0,dutyMs-breakMs))};
-  };
-  return table(["STAFF MEMBER", "DUTY START / END", "TOTAL DUTY", "BREAK TIME", "NET WORKING", "BREAK / RETURN HISTORY"], duty.sessions.map(s=>{const times=periods(s);return `<tr>${cell("STAFF MEMBER",h(s.name))}${cell("DUTY START / END",`${date(s.started_at)} ${time(s.started_at)}<span class="cell-sub">${s.ended_at?`${date(s.ended_at)} ${time(s.ended_at)}`:"Ongoing"}</span>`)}${cell("TOTAL DUTY",`<span data-session-clock="${h(s.id)}|duty_duration">${times.duty}</span>`)}${cell("BREAK TIME",`<span data-session-clock="${h(s.id)}|break_duration">${times.breakTime}</span>`)}${cell("NET WORKING",`<span data-session-clock="${h(s.id)}|net_duration">${times.net}</span>`)}${cell("BREAK / RETURN HISTORY",(s.rests??duty.rests.filter((r:Row)=>r.session_id===s.id)).map((r:Row)=>`${date(r.started_at)} ${time(r.started_at)} → ${r.ended_at?`${date(r.ended_at)} ${time(r.ended_at)}`:"On break"}`).join("<br>")||"No recorded breaks")}</tr>`;}).join(""));
+function activeDutyRange() {
+  const today = serverDay || businessDay(new Date());
+  if (dutyPeriod === "yesterday") return { from: addDays(today, -1), to: addDays(today, -1) };
+  if (dutyPeriod === "week") return { from: addDays(today, -6), to: today };
+  if (dutyPeriod === "custom") return { from: dutyFrom, to: dutyTo };
+  return { from: today, to: today };
+}
+function dutyFilterControls() {
+  const custom = dutyPeriod === "custom";
+  return `<div class="toolbar duty-date-filter"><label>Working hours <select data-duty-period aria-label="Working hours date range"><option value="today" ${dutyPeriod === "today" ? "selected" : ""}>Today</option><option value="yesterday" ${dutyPeriod === "yesterday" ? "selected" : ""}>Yesterday</option><option value="week" ${dutyPeriod === "week" ? "selected" : ""}>Last 7 days</option><option value="custom" ${custom ? "selected" : ""}>Custom dates</option></select></label>${custom ? `<label>From <input type="date" data-duty-from value="${h(dutyFrom)}"></label><label>To <input type="date" data-duty-to value="${h(dutyTo)}"></label>${button("Apply dates", "data-duty-apply", true)}` : ""}</div>`;
+}
+function dutyTable(from = activeDutyRange().from, to = activeDutyRange().to) {
+  if (!from || !to) return '<p class="empty">Choose both dates to see working hours.</p>';
+  const totals = summarizeDutyDays(duty.sessions, duty.rests, from, to);
+  const duration = (minutes: number) => `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m`;
+  const rows = totals.map((row) => `<tr>${cell("DATE", date(`${row.day}T12:00:00+04:00`))}${cell("STAFF MEMBER", h(row.name))}${cell("TOTAL DUTY", duration(row.dutyMinutes))}${cell("BREAK TIME", duration(row.breakMinutes))}${cell("NET WORKING", duration(row.netMinutes))}${cell("SESSIONS", String(row.sessions))}</tr>`).join("");
+  return `<p class="help">One row per staff member per day · Asia/Dubai time · Ongoing duty is counted up to now.${duty.sessions.length >= 5000 ? " Showing up to 5,000 matching sessions; narrow the date range for a complete total." : ""}</p>${table(["DATE", "STAFF MEMBER", "TOTAL DUTY", "BREAK TIME", "NET WORKING", "SESSIONS"], rows || '<tr><td colspan="6" class="empty">No duty recorded for these dates.</td></tr>')}`;
+}
+function dutyHistoryPanel(title: string) {
+  const { from, to } = activeDutyRange();
+  const rangeLabel = from && to ? `${from === to ? date(`${from}T12:00:00+04:00`) : `${date(`${from}T12:00:00+04:00`)} – ${date(`${to}T12:00:00+04:00`)}`} · Asia/Dubai` : "Select a date range · Asia/Dubai";
+  return panel(title, rangeLabel, `<div class="panel-body">${dutyFilterControls()}<div id="dutyHistoryResults">${dutyTable(from, to)}</div></div>`);
+}
+async function applyDutyRange(from: string, to: string) {
+  const results = $("dutyHistoryResults");
+  if (!results) return;
+  if (!from || !to || from > to) { showError(new Error("Choose a valid start and end date.")); return; }
+  results.innerHTML = '<p class="screen-status" role="status">Loading working hours…</p>';
+  try {
+    const params = new URLSearchParams({ from, to });
+    duty = await api(`/duty?${params}`);
+    if (!$("dutyHistoryResults")) return;
+    $("dutyHistoryResults").innerHTML = dutyTable(from, to);
+    const panelHeader = $("dutyHistoryResults").closest(".panel")?.querySelector(".panel-caption");
+    if (panelHeader) panelHeader.textContent = `${from === to ? date(`${from}T12:00:00+04:00`) : `${date(`${from}T12:00:00+04:00`)} – ${date(`${to}T12:00:00+04:00`)}`} · Asia/Dubai`;
+  } catch (error) {
+    results.innerHTML = `<p class="error" role="alert">${h(error instanceof Error ? error.message : "Could not load working hours.")} ${button("Retry", "data-duty-apply", true)}</p>`;
+  }
 }
 function query() {
   const p = new URLSearchParams({ page: String(filters.page), q: filters.q });
@@ -554,8 +586,8 @@ async function render() {
     let markup = "";
     serverDay=businessDay(new Date());
     if (delivery() && !demo) {
-      duty=await api("/duty",undefined,false,signal); serverDay=businessDay(new Date());
-      markup=heading("Field workspace","Your duty",date(serverDay))+dutyCard()+panel("Your duty history","Most recent 100 sessions · Asia/Dubai",dutyTable())+panel("Delivery records","Delivery and collection recording is not yet available.",'<div class="panel-body"><p>Use this screen to record your duty and breaks.</p></div>');
+      duty=await api(`/duty?from=${serverDay}&to=${serverDay}`,undefined,false,signal); serverDay=businessDay(new Date());
+      markup=heading("Field workspace","Your duty",date(serverDay))+dutyCard()+`<div class="section">${dutyHistoryPanel("Your working hours")}</div>`+panel("Delivery records","Delivery and collection recording is not yet available.",'<div class="panel-body"><p>Use this screen to record your duty and breaks.</p></div>');
     } else if (demo && (delivery() || view==="collections")) {
       if(delivery()&&view!=='record-delivery'){duty=await api('/duty');markup=dutyCard();}
       markup+='<div id="collectionWorkspace" class="collection-workspace"></div>';
@@ -582,11 +614,11 @@ async function render() {
         context.innerHTML=panel("Customers and enquiries","Shared records · open a list to search",`<div class="panel-body actions">${button(`Customers: ${result.metrics.customers}`,'data-view="shops"')}${button(`Enquiries: ${result.metrics.enquiries}`,'data-view="leads"')}</div>`)+panel("Enquiries by salesperson","Unassigned enquiries stay available for manager review",`<div class="panel-body">${result.team.map((p:Row)=>`<p>${h(p.name)} · <strong>${h(p.leads)}</strong> enquiries</p>`).join("")}</div>`);
       }).catch(error=>{if(ticket===epoch&&!signal.aborted)showError(error);});
     } else if (view === "dashboard" || view === "team") {
-      const [result,history] = await Promise.all([api("/dashboard",undefined,false,signal), supervisor() && view==="dashboard" ? Promise.resolve(duty) : api("/duty",undefined,false,signal)]);
+      const result = await api("/dashboard",undefined,false,signal);
       if (ticket !== epoch) return;
       dashboard = result;
-      duty = history;
       serverDay = dashboard.metrics.day;
+      if (!(supervisor() && view === "dashboard")) duty = await api(`/duty?from=${serverDay}&to=${serverDay}`,undefined,false,signal);
       markup =
         view === "dashboard"
           ? supervisor() ? '<div id="managerReports" class="manager-reports"></div>' : renderDashboard()
@@ -596,7 +628,7 @@ async function render() {
               "Shared visit history for every executive. Duty history follows your account permissions.",
             ) +
             `<div class="team-grid">${teamCards()}</div>` +
-            `<div class="section">${panel(executive() ? "Your duty history" : "Team duty history", "Most recent 100 sessions · Asia/Dubai", dutyTable())}</div>`;
+            `<div class="section">${dutyHistoryPanel(executive() ? "Your working hours" : "Team working hours")}</div>`;
     } else {
       const result = await load(`/${view === "visits" ? "visits" : "shops"}?${query()}`);
       if (ticket !== epoch) return;
@@ -859,6 +891,11 @@ document.addEventListener("click", async (e) => {
       ($("dialog") as HTMLDialogElement).close();
       return;
     }
+    if (d.dutyApply !== undefined) {
+      const range = activeDutyRange();
+      await applyDutyRange(range.from, range.to);
+      return;
+    }
     if (d.view) {
       clearTimeout(searchTimer);
       savedFilters.set(view,{...filters}); savedScroll.set(view,window.scrollY);
@@ -976,12 +1013,13 @@ document.addEventListener("click", async (e) => {
     }
     if (d.duty !== undefined) {
       const label=target.textContent;target.textContent="Loading…";target.disabled=true;
-      try{duty = await api("/duty");}finally{target.textContent=label;target.disabled=false;}
+      const range = activeDutyRange();
+      try{duty = await api(`/duty?from=${range.from}&to=${range.to}`);}finally{target.textContent=label;target.disabled=false;}
       formAction = "";
       dialog(
-        dutyWorker() ? "Your duty history" : "Team duty history",
-        demo ? "Full session hours and individual breaks · UAE time. Today's card counts today only." : "Server-recorded timing · Asia/Dubai",
-        `${dutyWorker() ? dutyCard() : ""}${dutyTable()}`,
+        dutyWorker() ? "Your working hours" : "Team working hours",
+        "Daily duty, break and net working totals · Asia/Dubai",
+        `${dutyWorker() ? dutyCard() : ""}${dutyHistoryPanel(dutyWorker() ? "Your working hours" : "Team working hours")}`,
         button("Close", "data-dismiss"),
       );
       return;
@@ -1034,7 +1072,19 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", (e) => {
   const input = e.target as HTMLSelectElement | HTMLInputElement;
-  if (input.dataset.filter) {
+  if (input.dataset.dutyPeriod !== undefined) {
+    dutyPeriod = input.value;
+    const controls = input.closest(".duty-date-filter");
+    if (controls) controls.outerHTML = dutyFilterControls();
+    if (dutyPeriod !== "custom") {
+      const range = activeDutyRange();
+      void applyDutyRange(range.from, range.to);
+    }
+  } else if (input.dataset.dutyFrom !== undefined) {
+    dutyFrom = input.value;
+  } else if (input.dataset.dutyTo !== undefined) {
+    dutyTo = input.value;
+  } else if (input.dataset.filter) {
     (filters as any)[input.dataset.filter] = input.value;
     if (view === "visits" && input.dataset.filter === "when" && input.value !== "custom") {
       filters.from = "";
@@ -1125,15 +1175,22 @@ if (demo) setInterval(() => {
   if (demoDayRefreshPending && !submitting && !fetching && !document.querySelector("[data-delivery-form]") && !($("dialog") as HTMLDialogElement).open) {
     demoDayRefreshPending=false;void render();return;
   }
-  if (!dutyWorker() || submitting || fetching || !document.querySelector("[data-duty-clock], [data-session-clock]")) return;
+  if (submitting || fetching || !document.querySelector("[data-duty-clock], #dutyHistoryResults")) return;
   try {
     const current = demo.dutyNow();
-    if (!current.today) return;
     duty = current;
-    document.querySelectorAll<HTMLElement>("[data-duty-clock]").forEach(node => { node.textContent = String(current.today![node.dataset.dutyClock!] ?? "0h 00m"); });
-    document.querySelectorAll<HTMLElement>("[data-session-clock]").forEach(node=>{const [id,key]=node.dataset.sessionClock!.split("|");const session=current.sessions.find(s=>s.id===id);if(session)node.textContent=String(session[key]??"—");});
+    document.querySelectorAll<HTMLElement>("[data-duty-clock]").forEach(node => { node.textContent = String(current.today?.[node.dataset.dutyClock!] ?? "0h 00m"); });
+    const results = $("dutyHistoryResults");
+    if (results) { const range=activeDutyRange(); if(range.from&&range.to)results.innerHTML=dutyTable(range.from,range.to); }
   } catch { /* Explicit reload/save actions present storage errors without repeated timer alerts. */ }
 }, 1000);
+// Keep the visible daily total current for open sessions without polling the API.
+setInterval(() => {
+  if (document.hidden || !duty.sessions.some((session) => !session.ended_at)) return;
+  const results = $("dutyHistoryResults");
+  const range = activeDutyRange();
+  if (results && range.from && range.to) results.innerHTML = dutyTable(range.from, range.to);
+}, 60_000);
 bootstrap().catch((error) =>
   loginScreen(
     error instanceof ApiError && error.status === 401

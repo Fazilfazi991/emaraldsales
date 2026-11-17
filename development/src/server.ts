@@ -266,6 +266,8 @@ export function requestHandler(db: Database, settings: Config): RequestListener 
           await crm.dutyHistory(
             actor,
             url.searchParams.get("person") ?? undefined,
+            url.searchParams.get("from") ?? undefined,
+            url.searchParams.get("to") ?? undefined,
           ),
         );
         return;
