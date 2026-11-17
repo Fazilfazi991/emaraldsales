@@ -17,16 +17,17 @@ test("Attendance aggregates exact milliseconds before formatting whole minutes",
     session("b",at("2026-10-21","10:00:00"),at("2026-10-21","10:00:40")),
   ]);
   assert.equal(result.rows[0].duty_ms,80000);
-  assert.equal(result.rows[0].net_duration,"0h 1m");
-  assert.equal(formatDuration(3599999),"0h 59m");assert.equal(formatDuration(3600000),"1h 0m");
-  assert.equal(formatDuration(-1),"0h 0m");
+  assert.equal(result.rows[0].net_duration,"0h 01m");
+  assert.equal(formatDuration(3599999),"0h 59m");assert.equal(formatDuration(3600000),"1h 00m");
+  assert.equal(formatDuration(7*3600000),"7h 00m");
+  assert.equal(formatDuration(-1),"0h 00m");
 });
 
 test("Attendance combines multiple sessions and two breaks without payroll assumptions",()=>{
   const sessions=[session("a",at("2026-10-21","08:00:00"),at("2026-10-21","12:00:00")),session("b",at("2026-10-21","13:00:00"),at("2026-10-21","17:00:00"))];
   const breaks=[rest("x","a",at("2026-10-21","09:00:00"),at("2026-10-21","09:15:00")),rest("y","a",at("2026-10-21","11:00:00"),at("2026-10-21","11:30:00"))];
   const result=report(sessions,breaks),row=result.rows[0];
-  assert.equal(row.duty_duration,"8h 0m");assert.equal(row.break_duration,"0h 45m");assert.equal(row.net_duration,"7h 15m");
+  assert.equal(row.duty_duration,"8h 00m");assert.equal(row.break_duration,"0h 45m");assert.equal(row.net_duration,"7h 15m");
   assert.equal(row.recorded_sessions,2);assert.equal(row.sessions[0].rests.length,2);
   assert.equal(row.status,"Duty ended");assert.equal(row.current_status,"Off duty");
   assert.equal(row.first_start,new Date(sessions[0].started_at).toISOString());
@@ -47,16 +48,16 @@ test("Attendance clips overnight sessions and breaks at UAE midnight, retaining 
 
 test("Attendance unions duplicate or overlapping sessions and break intervals defensively",()=>{
   const result=report([session("a",at("2026-10-21","08:00:00"),at("2026-10-21","12:00:00")),session("b",at("2026-10-21","10:00:00"),at("2026-10-21","14:00:00"))],[rest("r1","a",at("2026-10-21","10:00:00"),at("2026-10-21","11:00:00")),rest("r2","b",at("2026-10-21","10:30:00"),at("2026-10-21","11:30:00")),rest("invalid","b",at("2026-10-21","13:00:00"),at("2026-10-21","12:00:00"))]);
-  assert.equal(result.rows[0].duty_duration,"6h 0m");assert.equal(result.rows[0].break_duration,"1h 30m");assert.equal(result.rows[0].net_duration,"4h 30m");
+  assert.equal(result.rows[0].duty_duration,"6h 00m");assert.equal(result.rows[0].break_duration,"1h 30m");assert.equal(result.rows[0].net_duration,"4h 30m");
   assert.equal(result.rows[0].overlap_detected,true);assert.equal(result.totals.overlap_detected,true);assert.equal(result.totalsByExecutive[0].overlap_detected,true);assert.equal(result.rows[1].overlap_detected,false);
 });
 
 test("Attendance derives past status at that date and separates live status",()=>{
   const sessions=[session("past",at("2026-10-20","08:00:00"),at("2026-10-20","12:00:00")),session("now",at("2026-10-21","09:00:00"),null)],breaks=[rest("now-break","now",at("2026-10-21","10:00:00"),null)];
   const historical=report(sessions,breaks,"2026-10-20","2026-10-20",at("2026-10-21","11:00:00"));
-  assert.equal(historical.rows[0].status,"Duty ended");assert.equal(historical.rows[0].current_status,"On break");assert.equal(historical.rows[0].duty_duration,"4h 0m");
+  assert.equal(historical.rows[0].status,"Duty ended");assert.equal(historical.rows[0].current_status,"On break");assert.equal(historical.rows[0].duty_duration,"4h 00m");
   const live=report(sessions,breaks,"2026-10-21","2026-10-21",at("2026-10-21","11:00:00"));
-  assert.equal(live.rows[0].status,"On break");assert.equal(live.rows[0].duty_duration,"2h 0m");assert.equal(live.rows[0].break_duration,"1h 0m");assert.equal(live.rows[0].last_end,null);
+  assert.equal(live.rows[0].status,"On break");assert.equal(live.rows[0].duty_duration,"2h 00m");assert.equal(live.rows[0].break_duration,"1h 00m");assert.equal(live.rows[0].last_end,null);
 });
 
 test("Attendance caps ongoing history at the selected date, excludes future and no-record staff",()=>{
@@ -90,7 +91,7 @@ test("Attendance ending exactly at midnight is ended without including the next 
 
 test("Attendance ignores malformed/reversed intervals instead of producing negative or NaN hours",()=>{
   const result=report([session("bad","bad",null),session("reverse",at("2026-10-21","12:00:00"),at("2026-10-21","09:00:00")),session("good",at("2026-10-21","08:00:00"),at("2026-10-21","10:00:00"))],[rest("outside","good",at("2026-10-21","06:00:00"),at("2026-10-21","08:30:00")),rest("bad","good","invalid",null)]);
-  assert.equal(result.rows[0].duty_duration,"2h 0m");assert.equal(result.rows[0].break_duration,"0h 30m");assert.equal(result.rows[0].net_duration,"1h 30m");
+  assert.equal(result.rows[0].duty_duration,"2h 00m");assert.equal(result.rows[0].break_duration,"0h 30m");assert.equal(result.rows[0].net_duration,"1h 30m");
 });
 
 test("Attendance per-person, daily and all-staff totals reconcile with completed visit dates",()=>{

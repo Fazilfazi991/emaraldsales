@@ -8,7 +8,7 @@ const iso = (value: number) => new Date(value).toISOString();
 /** Display only whole aggregate minutes; calculation always keeps exact milliseconds. */
 export function formatDuration(ms: number): string {
   const minutes = Math.floor(Math.max(0, Number.isFinite(ms) ? ms : 0) / 60000);
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2,"0")}m`;
 }
 
 function union(intervals: Interval[]): Interval[] {

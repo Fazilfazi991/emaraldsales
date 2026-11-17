@@ -17,12 +17,12 @@ export interface ReportExport {
 }
 const notes: Record<ReportKind, string[]> = {
   activity: ["Rows are visits checked in during the selected UAE dates. Completed totals count checkouts during those dates, including visits started earlier.", "Open visits, current duty and pending follow-ups describe the current saved state."],
-  duty: ["Sessions overlap the selected UAE dates. Recorded minutes are clipped to those dates and the report time for ongoing sessions.", "Recorded duty and rest are elapsed records, not payroll, absence, lateness or approved working hours."],
+  duty: ["Sessions overlap the selected UAE dates. Durations are calculated from saved timestamps, clipped to those dates and the report time for ongoing sessions, then displayed as completed whole minutes.", "Recorded duty and rest are elapsed records, not payroll, absence, lateness or approved working hours."],
   followups: ["Date filters use the follow-up due date. Outstanding scope includes all pending items due on or before the end date, including overdue items.", "Status and owner describe the current saved record, not a historical snapshot on the due date."],
 };
 const columns: Record<ReportKind, { key: string; label: string }[]> = {
   activity: [ ["visitor_name", "Sales executive"], ["shop_name", "Shop"], ["area", "Area"], ["checked_in_at", "Check in (UAE)"], ["checked_out_at", "Check out (UAE)"], ["lifecycle", "Visit state"], ["outcome", "Outcome"], ["notes", "Visit discussion"], ["order_status", "Order status"], ["order_value", "Order value (AED)"], ["order_note", "Order note"] ].map(([key,label])=>({key,label})),
-  duty: [["executive_name", "Sales executive"], ["started_at", "Duty started (UAE)"], ["ended_at", "Duty ended (UAE)"], ["state", "Session state"], ["elapsed_minutes", "Recorded duty minutes"], ["rest_minutes", "Recorded rest minutes"], ["active_minutes", "Duty less rest minutes"], ["rest_history", "Break / return history (UAE)"]].map(([key,label])=>({key,label})),
+  duty: [["executive_name", "Sales executive"], ["started_at", "Duty started (UAE)"], ["ended_at", "Duty ended (UAE)"], ["state", "Session state"], ["duty_duration", "Total Duty"], ["break_duration", "Break Time"], ["net_duration", "Net Working"], ["rest_history", "Break / return history (UAE)"]].map(([key,label])=>({key,label})),
   followups: [["owner_name", "Assigned executive"], ["shop_name", "Shop"], ["area", "Area"], ["due_date", "Due date (UAE)"], ["status", "Status"], ["created_at", "Created (UAE)"], ["updated_at", "Last updated (UAE)"]].map(([key,label])=>({key,label})),
 };
 export class Reports {
@@ -97,7 +97,8 @@ export class Reports {
     let rest=0,until=start;
     for(const [s,e] of intervals){rest+=Math.max(0,e-Math.max(s,until));until=Math.max(until,e);}
     const elapsed=Math.max(0,end-start);
-    return {state:row.ended_at?"Ended":row.rests.some((r:Row)=>!r.ended_at)?"On break":"On duty",elapsed_minutes:Math.round(elapsed/600)/100,rest_minutes:Math.round(rest/600)/100,active_minutes:Math.round(Math.max(0,elapsed-rest)/600)/100,clipped_from:new Date(start).toISOString(),clipped_to:new Date(Math.max(start,end)).toISOString()};
+    const active=Math.max(0,elapsed-rest);
+    return {state:row.ended_at?"Ended":row.rests.some((r:Row)=>!r.ended_at)?"On break":"On duty",elapsed_minutes:Math.round(elapsed/600)/100,rest_minutes:Math.round(rest/600)/100,active_minutes:Math.round(active/600)/100,duty_ms:elapsed,break_ms:rest,net_ms:active,duty_duration:formatDuration(elapsed),break_duration:formatDuration(rest),net_duration:formatDuration(active),clipped_from:new Date(start).toISOString(),clipped_to:new Date(Math.max(start,end)).toISOString()};
   }
   private async report(actor:Actor,kind:ReportKind,p:URLSearchParams) {
     const f=this.filters(p);
@@ -114,8 +115,8 @@ export class Reports {
       await this.authorize(tx,actor,f.person);
       const result=await this.read(tx,actor,kind,f,true);
       const personName=f.person?(await tx.query<{name:string}>("SELECT u.name FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=$1 AND u.id=$2 AND m.role IN ('executive','delivery')",[actor.organizationId,f.person])).rows[0].name:null;
-      const sum=(key:string)=>Math.round(result.rows.reduce((n,r)=>n+Number(r[key]??0),0)*100)/100;
-      const totals=kind==="activity"?`Visits started in dates: ${result.total}. Visits completed in dates: ${result.summary!.completed_visits}. Pending follow-ups now: ${result.summary!.pending_followups}. Due by end date: ${result.summary!.due_followups}.`:kind==="duty"?`Duty sessions: ${result.total}. Recorded duty: ${sum("elapsed_minutes")} min. Rest: ${sum("rest_minutes")} min. Duty less rest: ${sum("active_minutes")} min.`:`Follow-ups: ${result.total}. Pending: ${result.rows.filter(r=>r.status==="pending").length}. Completed: ${result.rows.filter(r=>r.status==="completed").length}. Cancelled: ${result.rows.filter(r=>r.status==="cancelled").length}.`;
+      const sum=(key:string)=>result.rows.reduce((n,r)=>n+Number(r[key]??0),0);
+      const totals=kind==="activity"?`Visits started in dates: ${result.total}. Visits completed in dates: ${result.summary!.completed_visits}. Pending follow-ups now: ${result.summary!.pending_followups}. Due by end date: ${result.summary!.due_followups}.`:kind==="duty"?`Duty sessions: ${result.total}. Total Duty: ${formatDuration(sum("duty_ms"))}. Break Time: ${formatDuration(sum("break_ms"))}. Net Working: ${formatDuration(sum("net_ms"))}.`:`Follow-ups: ${result.total}. Pending: ${result.rows.filter(r=>r.status==="pending").length}. Completed: ${result.rows.filter(r=>r.status==="completed").length}. Cancelled: ${result.rows.filter(r=>r.status==="cancelled").length}.`;
       const local=(v:any)=>v?new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dubai",dateStyle:"short",timeStyle:"short",hour12:false}).format(new Date(v)):"";
       const rows=result.rows.map(row=>{
         const copy={...row};
@@ -126,4 +127,10 @@ export class Reports {
       return {kind,title:{activity:"Visit activity",duty:"Recorded duty and breaks",followups:"Customer follow-ups"}[kind],from:f.from,to:f.to,person:f.person,personName,totals,timeZone:"Asia/Dubai",asOf:f.asOf,total:result.total,notes:[...notes[kind],...(kind==="followups"?[`Scope: ${f.scope}; status: ${f.scope==="outstanding"?"pending":f.status}.`]:[])],columns:columns[kind],rows};
     });
   }
+}
+
+/** Presentation format only; source calculations remain exact milliseconds. */
+function formatDuration(ms:number):string {
+  const minutes=Math.floor(Math.max(0,Number.isFinite(ms)?ms:0)/60000);
+  return `${Math.floor(minutes/60)}h ${String(minutes%60).padStart(2,"0")}m`;
 }

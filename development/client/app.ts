@@ -484,26 +484,14 @@ function dutyCard() {
   return `<section class="notice duty-card"><div><strong>Your duty · ${current.state === "off" ? "Off duty" : current.state === "rest" ? "On break" : "On duty"}</strong><p>Duty timing is separate from shop visits.</p></div><div class="actions">${me.policies.duty !== "approved-v1" ? badge("Policy pending") : current.state === "off" ? button("Start duty", 'data-duty-action="start"', !!demo) : current.state === "rest" ? button("Return to duty", 'data-duty-action="return"', !!demo) : button("Start break", 'data-duty-action="rest"') + button("End duty", 'data-duty-action="end"')}</div>${hours}</section>`;
 }
 function dutyTable() {
-  const savedHours=(s:Row,key:string)=>`<span data-session-clock="${h(s.id)}|${h(key)}">${h(s[key]??"—")}</span>`;
-  if (demo) return table(["STAFF MEMBER", "DUTY START / END", "TOTAL DUTY", "BREAK TIME", "NET WORKING", "BREAK / RETURN HISTORY"], duty.sessions.map(s=>`<tr>${cell("STAFF MEMBER",h(s.name))}${cell("DUTY START / END",`${date(s.started_at)} ${time(s.started_at)}<span class="cell-sub">${s.ended_at?`${date(s.ended_at)} ${time(s.ended_at)}`:"Ongoing"}</span>`)}${cell("TOTAL DUTY",savedHours(s,"duty_duration"))}${cell("BREAK TIME",savedHours(s,"break_duration"))}${cell("NET WORKING",savedHours(s,"net_duration"))}${cell("BREAK / RETURN HISTORY",(s.rests??duty.rests.filter(r=>r.session_id===s.id)).map((r:Row)=>`${date(r.started_at)} ${time(r.started_at)} → ${r.ended_at?`${date(r.ended_at)} ${time(r.ended_at)}`:"On break"}`).join("<br>")||"No recorded breaks")}</tr>`).join(""));
-  return table(
-    ["EXECUTIVE", "START", "END", "REST INTERVALS"],
-    duty.sessions
-      .map(
-        (s) =>
-          `<tr>${cell("EXECUTIVE", h(s.name))}${cell("START", `${date(s.started_at)} ${time(s.started_at)}`)}${cell("END", s.ended_at ? `${date(s.ended_at)} ${time(s.ended_at)}` : "Open")}${cell(
-            "REST INTERVALS",
-            duty.rests
-              .filter((r) => r.session_id === s.id)
-              .map(
-                (r) =>
-                  `${date(r.started_at)} ${time(r.started_at)} → ${r.ended_at ? date(r.ended_at) + " " + time(r.ended_at) : "Away"}`,
-              )
-              .join("<br>") || "—",
-          )}</tr>`,
-      )
-      .join(""),
-  );
+  const duration=(ms:number)=>{const minutes=Math.floor(Math.max(0,Number.isFinite(ms)?ms:0)/60000);return `${Math.floor(minutes/60)}h ${String(minutes%60).padStart(2,"0")}m`;};
+  const periods=(s:Row)=>{
+    const now=Date.now(),rawStart=+new Date(s.started_at),start=Number.isFinite(rawStart)?rawStart:now,rawEnd=s.ended_at?+new Date(s.ended_at):now,end=Math.max(start,Math.min(Number.isFinite(rawEnd)?rawEnd:now,now));
+    const rests=(s.rests??duty.rests.filter((r:Row)=>r.session_id===s.id)).flatMap((r:Row)=>{const a=Math.max(start,+new Date(r.started_at)),b=Math.min(end,r.ended_at?+new Date(r.ended_at):now);return Number.isFinite(a)&&Number.isFinite(b)&&b>a?[[a,b] as [number,number]]:[];}).sort((a:[number,number],b:[number,number])=>a[0]-b[0]);
+    let breakMs=0,until=start;for(const [a,b] of rests){breakMs+=Math.max(0,b-Math.max(a,until));until=Math.max(until,b);}
+    const dutyMs=end-start;return {duty:duration(dutyMs),breakTime:duration(breakMs),net:duration(Math.max(0,dutyMs-breakMs))};
+  };
+  return table(["STAFF MEMBER", "DUTY START / END", "TOTAL DUTY", "BREAK TIME", "NET WORKING", "BREAK / RETURN HISTORY"], duty.sessions.map(s=>{const times=periods(s);return `<tr>${cell("STAFF MEMBER",h(s.name))}${cell("DUTY START / END",`${date(s.started_at)} ${time(s.started_at)}<span class="cell-sub">${s.ended_at?`${date(s.ended_at)} ${time(s.ended_at)}`:"Ongoing"}</span>`)}${cell("TOTAL DUTY",`<span data-session-clock="${h(s.id)}|duty_duration">${times.duty}</span>`)}${cell("BREAK TIME",`<span data-session-clock="${h(s.id)}|break_duration">${times.breakTime}</span>`)}${cell("NET WORKING",`<span data-session-clock="${h(s.id)}|net_duration">${times.net}</span>`)}${cell("BREAK / RETURN HISTORY",(s.rests??duty.rests.filter((r:Row)=>r.session_id===s.id)).map((r:Row)=>`${date(r.started_at)} ${time(r.started_at)} → ${r.ended_at?`${date(r.ended_at)} ${time(r.ended_at)}`:"On break"}`).join("<br>")||"No recorded breaks")}</tr>`;}).join(""));
 }
 function query() {
   const p = new URLSearchParams({ page: String(filters.page), q: filters.q });
@@ -1142,7 +1130,7 @@ if (demo) setInterval(() => {
     const current = demo.dutyNow();
     if (!current.today) return;
     duty = current;
-    document.querySelectorAll<HTMLElement>("[data-duty-clock]").forEach(node => { node.textContent = String(current.today![node.dataset.dutyClock!] ?? "0h 0m"); });
+    document.querySelectorAll<HTMLElement>("[data-duty-clock]").forEach(node => { node.textContent = String(current.today![node.dataset.dutyClock!] ?? "0h 00m"); });
     document.querySelectorAll<HTMLElement>("[data-session-clock]").forEach(node=>{const [id,key]=node.dataset.sessionClock!.split("|");const session=current.sessions.find(s=>s.id===id);if(session)node.textContent=String(session[key]??"—");});
   } catch { /* Explicit reload/save actions present storage errors without repeated timer alerts. */ }
 }, 1000);

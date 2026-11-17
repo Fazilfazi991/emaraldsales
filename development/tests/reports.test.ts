@@ -59,7 +59,9 @@ test("Manager reports: saved activity, UAE dates, ongoing duty and complete expo
       for(const [session,start,end] of [[overnight,"2026-01-19T19:55Z","2026-01-19T20:05Z"],[overnight,"2026-01-19T20:10Z","2026-01-19T20:20Z"],[ongoing,"2026-01-20T07:00Z",null]])await db.query("INSERT INTO rest_intervals(id,organization_id,session_id,started_at,ended_at) VALUES($1,$2,$3,$4,$5)",[randomUUID(),org,session,start,end]);
       const result=await reports.duty(manager,params()),night=result.rows.find(r=>r.id===overnight)!,live=result.rows.find(r=>r.id===ongoing)!;
       assert.equal(result.total,2);assert.equal(night.elapsed_minutes,30);assert.equal(night.rest_minutes,15);assert.equal(night.active_minutes,15);assert.equal(night.rests.length,2);
+      assert.deepEqual([night.duty_duration,night.break_duration,night.net_duration],["0h 30m","0h 15m","0h 15m"]);
       assert.equal(live.elapsed_minutes,120);assert.equal(live.rest_minutes,60);assert.equal(live.state,"On break");assert.equal(live.clipped_to,now.toISOString());
+      assert.deepEqual([live.duty_duration,live.break_duration,live.net_duration],["2h 00m","1h 00m","1h 00m"]);
       const overview=await reports.activity(manager,params());assert.equal(overview.summary!.recorded_sessions,2);assert.equal(overview.staff!.find(s=>s.id===naseer.id)!.duty_status,"On break");
       const prior=await reports.duty(manager,new URLSearchParams("from=2026-01-19&to=2026-01-19"));assert.equal(prior.rows[0].elapsed_minutes,10);assert.equal(prior.rows[0].rest_minutes,5);
     });
@@ -79,6 +81,9 @@ test("Manager reports: saved activity, UAE dates, ongoing duty and complete expo
       const empty=await reports.exportRows(manager,"activity",new URLSearchParams(`from=2026-01-01&person=${ahmed.id}`));assert.equal(empty.total,0);assert.equal(empty.personName,ahmed.name);assert.ok(empty.totals.includes("Visits completed in dates: 0"));
       assert.equal(result.rows.filter(v=>v.checked_in_at==="20/01/2026, 09:00").length,45);assert.equal(result.timeZone,"Asia/Dubai");
       const duty=await reports.exportRows(manager,"duty",params());assert.equal(duty.rows.length,2);assert.ok(duty.rows.some(d=>d.rest_history.includes("Ongoing")));
+      assert.deepEqual(duty.columns.slice(4,7).map(c=>c.label),["Total Duty","Break Time","Net Working"]);
+      assert.ok(duty.rows.every(d=>/^\d+h \d{2}m$/.test(String(d.duty_duration))&&/^\d+h \d{2}m$/.test(String(d.break_duration))&&/^\d+h \d{2}m$/.test(String(d.net_duration))));
+      assert.match(duty.totals,/Total Duty: 2h 30m/);assert.match(duty.totals,/Break Time: 1h 15m/);assert.match(duty.totals,/Net Working: 1h 15m/);
       const follows=await reports.exportRows(manager,"followups",params("&scope=outstanding"));assert.equal(follows.rows.length,2);assert.ok(follows.notes.some(n=>n.includes("outstanding")));
     });
     await t.test("export cap rejects instead of silently truncating and foreign organization has no rows",async()=>{

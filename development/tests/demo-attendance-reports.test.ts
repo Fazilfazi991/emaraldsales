@@ -24,7 +24,7 @@ test("Attendance exports reconcile daily, staff, session and break totals across
   const {store}=fixture(),report=demoReport(store,path()),ahmed=report.rows.find((r:any)=>r.executive_id===profiles[0].id);
   assert.equal(report.title,"Staff Attendance & Working Hours");assert.equal(report.rows.length,4);
   assert.equal(ahmed.duty_ms,285*60000);assert.equal(ahmed.break_ms,45*60000);assert.equal(ahmed.net_ms,240*60000);
-  assert.equal(ahmed.duty_duration,"4h 45m");assert.equal(ahmed.net_duration,"4h 0m");
+  assert.equal(ahmed.duty_duration,"4h 45m");assert.equal(ahmed.net_duration,"4h 00m");
   assert.equal(ahmed.first_start,"20/10/2026, 23:15:00");assert.equal(ahmed.last_end,"21/10/2026, 13:00:00");
   for(const field of ["duty_ms","break_ms","net_ms"])assert.equal(report.sessionRows.reduce((n:number,r:any)=>n+r[field],0),report.summary[field]);
   assert.equal(report.breakRows.reduce((n:number,r:any)=>n+r.break_ms,0),report.summary.break_ms);
@@ -41,9 +41,9 @@ test("Attendance Excel and print use the same filtered rows, exact totals, Unico
   assert.deepEqual(loaded.worksheets.map(s=>s.name),["Daily attendance","Staff totals","Duty sessions","Break and return times"]);
   for(const sheet of loaded.worksheets){assert.equal(sheet.getCell("A1").value,"EMERALD INTERLINK — DEMO — Sample Data");assert.equal(sheet.getCell("A5").value,report.totals);assert.equal(sheet.getCell("B3").value,"2026-10-21");assert.equal(sheet.getCell("B4").value,profiles[0].name);}
   const daily=loaded.getWorksheet("Daily attendance")!,dailyHeader=daily.getRows(1,daily.rowCount)!.find(r=>r.getCell(1).value==="UAE date")!;
-  assert.equal(daily.getRow(dailyHeader.number+1).getCell(2).value,name);assert.equal(daily.getRow(dailyHeader.number+1).getCell(7).value,"4h 0m");
+  assert.equal(daily.getRow(dailyHeader.number+1).getCell(2).value,name);assert.equal(daily.getRow(dailyHeader.number+1).getCell(7).value,"4h 00m");
   const html=demoPrintHtml(report,"https://demo.example.invalid");
-  for(const value of ["DEMO — Sample Data","4h 45m","4h 0m","20/10/2026, 23:15:00","21/10/2026, 00:00:00","Current status at report time","Print / Save as PDF","مؤسسة","മാതൃക"])assert.ok(html.includes(value),value);
+  for(const value of ["DEMO — Sample Data","4h 45m","4h 00m","20/10/2026, 23:15:00","21/10/2026, 00:00:00","Current status at report time","Print / Save as PDF","مؤسسة","മാതൃക"])assert.ok(html.includes(value),value);
   assert.ok(html.includes("&lt;sample&gt;"));assert.ok(!html.includes("<sample>"));assert.match(html,/Totals use exact timestamps before rounding/);assert.match(html,/Changes do not synchronize between devices/);
 });
 
@@ -59,7 +59,7 @@ test("Attendance export formats combined sub-minute sessions after aggregation",
     {id:"short-one",executive_id:profiles[0].id,started_at:"2026-10-21T06:00:00Z",ended_at:"2026-10-21T06:00:31Z"},
     {id:"short-two",executive_id:profiles[0].id,started_at:"2026-10-21T07:00:00Z",ended_at:"2026-10-21T07:00:31Z"},
   ];state.rests=[];f.values.set(STORAGE_KEY,JSON.stringify(state));
-  const report=demoReport(f.store,path("2026-10-21","2026-10-21",profiles[0].id));assert.equal(report.summary.net_ms,62000);assert.equal(report.rows[0].net_duration,"0h 1m");assert.equal(report.staffRows[0].net_duration,"0h 1m");assert.ok(report.sessionRows.every((s:any)=>s.net_duration==="0h 0m"));assert.match(report.totals,/Net working hours: 0h 1m/);
+  const report=demoReport(f.store,path("2026-10-21","2026-10-21",profiles[0].id));assert.equal(report.summary.net_ms,62000);assert.equal(report.rows[0].net_duration,"0h 01m");assert.equal(report.staffRows[0].net_duration,"0h 01m");assert.ok(report.sessionRows.every((s:any)=>s.net_duration==="0h 00m"));assert.match(report.totals,/Net Working: 0h 01m/);
 });
 
 test("Existing visit, duty and follow-up Excel and print exports retain their fields",async()=>{
@@ -89,7 +89,7 @@ test("Attendance exports explain overlapping saved records without altering deta
 test("Duty and breaks exports show hours and minutes while retaining exact legacy minute fields",()=>{
   const {store}=fixture(),report=demoReport(store,`/reports/duty/export?from=2026-10-21&to=2026-10-21&person=${profiles[0].id}`),second=report.rows.find((row:any)=>row.id==="second");
   assert.equal(second.elapsed_minutes,180);assert.equal(second.rest_minutes,30);assert.equal(second.active_minutes,150);
-  assert.equal(second.duty_duration,"3h 0m");assert.equal(second.break_duration,"0h 30m");assert.equal(second.net_duration,"2h 30m");
-  assert.match(report.totals,/Duty: 4h 45m/);assert.match(report.totals,/Breaks: 0h 45m/);assert.match(report.totals,/Net working hours: 4h 0m/);assert.doesNotMatch(report.totals,/ min/);
-  assert.deepEqual(report.columns.slice(4,7).map((pair:string[])=>pair[1]),["Duty hours","Break hours","Net working hours"]);
+  assert.equal(second.duty_duration,"3h 00m");assert.equal(second.break_duration,"0h 30m");assert.equal(second.net_duration,"2h 30m");
+  assert.match(report.totals,/Total Duty: 4h 45m/);assert.match(report.totals,/Break Time: 0h 45m/);assert.match(report.totals,/Net Working: 4h 00m/);assert.doesNotMatch(report.totals,/ min/);
+  assert.deepEqual(report.columns.slice(4,7).map((pair:string[])=>pair[1]),["Total Duty","Break Time","Net Working"]);
 });
